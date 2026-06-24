@@ -22,16 +22,16 @@ public :
 
 	void init(const char *utf8_string)
 	{
+		needFree = false;
 		if (0 == utf8_string)
 			t_string = 0;
 		else if (0 == *utf8_string)
 		{
-			needFree = false;
-			t_string = ("");
+			static char empty[] = "";
+			t_string = empty;
 		}
 		else if ( isPureAscii(utf8_string))
 		{
-			needFree = false;
 			t_string = (char *)utf8_string;
 		}
 		else
@@ -85,8 +85,8 @@ public :
 	}
 
 private :
-	char *t_string;
-	bool needFree;
+	char *t_string = 0;
+	bool needFree = false;
 
 	//
 	// helper utility to test if a string contains only ASCII characters
@@ -117,17 +117,17 @@ public :
 
 	void init(const char *t_string)
 	{
+		needFree = false;
 		if (0 == t_string)
 			utf8_string = 0;
 		else if (0 == *t_string)
 		{
-			utf8_string = "";
-			needFree = false;
+			static char empty[] = "";
+			utf8_string = empty;
 		}
 		else if (isPureAscii((char *)t_string))
 		{
 			utf8_string = (char *)t_string;
-			needFree = false;
 		}
 		else
 		{
@@ -182,8 +182,8 @@ public :
 	}
 
 private :
-	char *utf8_string;
-	bool needFree;
+	char *utf8_string = 0;
+	bool needFree = false;
 
 	//
 	// helper utility to test if a string contains only ASCII characters
