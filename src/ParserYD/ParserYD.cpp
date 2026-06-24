@@ -28,7 +28,7 @@ inline void write_log(IParserSpi* sink, WTSLogLevel ll, const char* format, cons
 
 	static thread_local char buffer[512] = { 0 };
 	memset(buffer, 0, 512);
-	fmt::format_to(buffer, format, args...);
+	fmt::format_to(buffer, fmt::runtime(format), args...);
 
 	sink->handleParserLog(ll, buffer);
 }

@@ -33,21 +33,21 @@ private:
 	template<typename... Args>
 	void log_debug(const char* format, const Args& ...args)
 	{
-		std::string s = fmt::format(format, args...);
+		std::string s = fmt::format(fmt::runtime(format), args...);
 		stra_log_debug(s.c_str());
 	}
 
 	template<typename... Args>
 	void log_info(const char* format, const Args& ...args)
 	{
-		std::string s = fmt::format(format, args...);
+		std::string s = fmt::format(fmt::runtime(format), args...);
 		stra_log_info(s.c_str());
 	}
 
 	template<typename... Args>
 	void log_error(const char* format, const Args& ...args)
 	{
-		std::string s = fmt::format(format, args...);
+		std::string s = fmt::format(fmt::runtime(format), args...);
 		stra_log_error(s.c_str());
 	}
 

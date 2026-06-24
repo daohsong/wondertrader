@@ -103,7 +103,7 @@ bool ParserUDP::init( WTSVariant* config )
 	if (_gpsize == 0)
 		_gpsize = 1000;
 
-	ip::address addr = ip::address::from_string(_hots);
+	ip::address addr = ip::make_address(_hots);
 	_server_ep = ip::udp::endpoint(addr, _sport);
 
 	_broad_ep = ip::udp::endpoint(ip::address_v4::any(), _bport);
@@ -270,7 +270,7 @@ bool ParserUDP::disconnect()
 	}
 
 	_stopped = true;
-	_strand.post(boost::bind(&ParserUDP::doOnDisconnected, this));
+	boost::asio::post(_strand, boost::bind(&ParserUDP::doOnDisconnected, this));
 
 	return true;
 }

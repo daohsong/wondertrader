@@ -22,6 +22,7 @@
 #include "../WTSTools/WTSBaseDataMgr.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/io_service.hpp>
 
 NS_WTP_BEGIN
 class WTSVariant;

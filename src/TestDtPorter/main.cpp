@@ -16,7 +16,7 @@ void on_bar_cnt(WtUInt32 dataCnt)
 
 void on_log(const char* message)
 {
-	fmt::print(message);
+	fmt::print("{}", message);
 	fmt::print("\n");
 }
 

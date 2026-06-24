@@ -26,7 +26,7 @@ std::set<std::string>	g_blkList;
 template<typename... Args>
 inline void encoding_print(const char* format, const Args& ...args)
 {
-	fmt::print(format, args...);
+	fmt::print(fmt::runtime(format), args...);
 	//printf(fmtutil::format(format, args...));
 //#ifdef _MSC_VER
 //	printf(UTF8toChar(s).c_str());

@@ -129,7 +129,7 @@ inline void print_timetag(bool bWithSpace = true)
 void WTSLogger::print_message(const char* buffer)
 {
 	print_timetag(true);
-	fmt::print(buffer);
+	fmt::print("{}", buffer);
 	fmt::print("\r\n");
 }
 
@@ -263,10 +263,10 @@ void WTSLogger::stop()
 void WTSLogger::debug_imp(SpdLoggerPtr logger, const char* message)
 {
 	if (logger)
-		logger->debug(message);
+		logger->debug("{}", message);
 
 	if (logger != m_rootLogger)
-		m_rootLogger->debug(message);
+		m_rootLogger->debug("{}", message);
 
 	if (m_logHandler)
 		m_logHandler->handleLogAppend(LL_DEBUG, message);
@@ -275,10 +275,10 @@ void WTSLogger::debug_imp(SpdLoggerPtr logger, const char* message)
 void WTSLogger::info_imp(SpdLoggerPtr logger, const char* message)
 {
 	if (logger)
-		logger->info(message);
+		logger->info("{}", message);
 
 	if (logger != m_rootLogger)
-		m_rootLogger->info(message);
+		m_rootLogger->info("{}", message);
 
 	if (m_logHandler)
 		m_logHandler->handleLogAppend(LL_INFO, message);
@@ -287,10 +287,10 @@ void WTSLogger::info_imp(SpdLoggerPtr logger, const char* message)
 void WTSLogger::warn_imp(SpdLoggerPtr logger, const char* message)
 {
 	if (logger)
-		logger->warn(message);
+		logger->warn("{}", message);
 
 	if (logger != m_rootLogger)
-		m_rootLogger->warn(message);
+		m_rootLogger->warn("{}", message);
 
 	if (m_logHandler)
 		m_logHandler->handleLogAppend(LL_WARN, message);
@@ -299,10 +299,10 @@ void WTSLogger::warn_imp(SpdLoggerPtr logger, const char* message)
 void WTSLogger::error_imp(SpdLoggerPtr logger, const char* message)
 {
 	if (logger)
-		logger->error(message);
+		logger->error("{}", message);
 
 	if (logger != m_rootLogger)
-		m_rootLogger->error(message);
+		m_rootLogger->error("{}", message);
 
 	if (m_logHandler)
 		m_logHandler->handleLogAppend(LL_ERROR, message);
@@ -311,10 +311,10 @@ void WTSLogger::error_imp(SpdLoggerPtr logger, const char* message)
 void WTSLogger::fatal_imp(SpdLoggerPtr logger, const char* message)
 {
 	if (logger)
-		logger->critical(message);
+		logger->critical("{}", message);
 
 	if (logger != m_rootLogger)
-		m_rootLogger->critical(message);
+		m_rootLogger->critical("{}", message);
 
 	if (m_logHandler)
 		m_logHandler->handleLogAppend(LL_FATAL, message);
@@ -365,7 +365,7 @@ void WTSLogger::log_raw_by_cat(const char* catName, WTSLogLevel ll, const char* 
 	if (!m_bInited)
 	{
 		print_timetag(true);
-		fmt::print(message);
+		fmt::print("{}", message);
 		fmt::print("\n");
 		return;
 	}
@@ -407,7 +407,7 @@ void WTSLogger::log_dyn_raw(const char* patttern, const char* catName, WTSLogLev
 	if (!m_bInited)
 	{
 		print_timetag(true);
-		fmt::print(m_buffer);
+		fmt::print("{}", m_buffer);
 		fmt::print("\n");
 		return;
 	}

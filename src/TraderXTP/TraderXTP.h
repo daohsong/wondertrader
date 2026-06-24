@@ -11,6 +11,10 @@
 
 #include <stdint.h>
 #include <boost/asio/io_service.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/ip/address.hpp>
 
 #include "../API/XTP2.2.32.2/xtp_trader_api.h"
 
@@ -139,7 +143,7 @@ private:
 
 	boost::asio::io_service		_asyncio;
 	StdThreadPtr				_thrd_worker;
-	typedef std::shared_ptr<boost::asio::io_service::work> BoostWorkerPtr;
+	typedef std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> BoostWorkerPtr;
 	BoostWorkerPtr				_worker;
 
 	DllHandle		m_hInstXTP;

@@ -24,7 +24,7 @@ inline void pipe_reader_log(IDataReaderSink* sink, WTSLogLevel ll, const char* f
 
 	static thread_local char buffer[512] = { 0 };
 	memset(buffer, 0, 512);
-	fmt::format_to(buffer, format, args...);
+	fmt::format_to(buffer, fmt::runtime(format), args...);
 
 	sink->reader_log(ll, buffer);
 }

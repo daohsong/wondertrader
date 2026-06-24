@@ -128,7 +128,7 @@ TEST(test_fmt, test_itos)
 		std::to_chars(buffer, buffer + 64, num);
 	}
 	uint64_t t3 = ticker.nano_seconds();
-	fmt::print(buffer);
+	fmt::print("{}", buffer);
 
 	ticker.reset();
 	for (int i = 0; i < times; i++)

@@ -13,6 +13,7 @@
 #include "../Share/StdUtils.hpp"
 
 #include <boost/asio.hpp>
+#include <boost/asio/io_service.hpp>
 #include <queue>
 
 NS_WTP_BEGIN

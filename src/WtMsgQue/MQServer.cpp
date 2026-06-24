@@ -229,12 +229,12 @@ void MQServer::publish(const char* topic, const void* data, uint32_t dataLen)
 				{
 					if(m_uTotalSents != m_uTotalPacks)
 					{
-						_mgr->log_server(_id, fmtutil::format("Total sent packs {} != total packs {}, force to sync", m_uTotalSents, m_uTotalPacks));
+						_mgr->log_server(_id, fmtutil::format("Total sent packs {} != total packs {}, force to sync", m_uTotalSents.load(), m_uTotalPacks.load()));
 						m_uTotalSents = m_uTotalPacks.fetch_add(0);
 					}
 					else if(m_uTotalSents % 100 == 0)
 					{
-						_mgr->log_server(_id, fmtutil::format("{} packets published", m_uTotalSents));
+						_mgr->log_server(_id, fmtutil::format("{} packets published", m_uTotalSents.load()));
 					}
 				}
 

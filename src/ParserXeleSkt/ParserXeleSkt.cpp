@@ -28,7 +28,7 @@ inline void write_log(IParserSpi* sink, WTSLogLevel ll, const char* format, cons
 
 	static thread_local char buffer[512] = { 0 };
 	memset(buffer, 0, 512);
-	fmt::format_to(buffer, format, args...);
+	fmt::format_to(buffer, fmt::runtime(format), args...);
 
 	sink->handleParserLog(ll, buffer);
 }
@@ -106,10 +106,10 @@ bool ParserXeleSkt::init( WTSVariant* config )
 	if (_gpsize == 0)
 		_gpsize = 1000;
 
-	ip::address addr = ip::address::from_string(_tcp_host);
+	ip::address addr = ip::make_address(_tcp_host);
 	_tcp_ep = ip::tcp::endpoint(addr, _tcp_port);
 
-	addr = ip::address::from_string("0.0.0.0");
+	addr = ip::make_address("0.0.0.0");
 	_mcast_ep = ip::udp::endpoint(addr, _mcast_port);
 
 	return true;
@@ -285,7 +285,7 @@ bool ParserXeleSkt::disconnect()
 	}
 
 	_stopped = true;
-	_strand.post(boost::bind(&ParserXeleSkt::doOnDisconnected, this));
+	boost::asio::post(_strand, boost::bind(&ParserXeleSkt::doOnDisconnected, this));
 
 	return true;
 }
