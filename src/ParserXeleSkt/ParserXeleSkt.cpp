@@ -265,7 +265,7 @@ bool ParserXeleSkt::connect()
 {
 	if(reconnect())
 	{
-		_thrd_parser.reset(new StdThread(boost::bind(&io_service::run, &_io_service)));
+		_thrd_parser.reset(new StdThread(boost::bind(&io_context::run, &_io_service)));
 	}
 	else
 	{

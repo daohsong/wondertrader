@@ -197,7 +197,7 @@ void TraderFemas::connect()
 
 	if (m_thrdWorker == NULL)
 	{
-		m_strandIO = new boost::asio::io_service::strand(m_asyncIO);
+		m_strandIO = new boost::asio::io_context::strand(m_asyncIO);
 		auto work = boost::asio::make_work_guard(m_asyncIO);
 		m_thrdWorker.reset(new StdThread([this](){
 			while (true)

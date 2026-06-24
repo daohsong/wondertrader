@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/asio/executor_work_guard.hpp>
@@ -67,7 +67,7 @@ private:
 	FuncRegCallbacks	_register;
 
 	bool			_stopped;
-	boost::asio::io_service		_asyncio;
+	boost::asio::io_context		_asyncio;
 	StdThreadPtr				_worker;
 };
 

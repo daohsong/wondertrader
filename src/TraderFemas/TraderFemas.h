@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <atomic>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/asio/executor_work_guard.hpp>
@@ -230,8 +230,8 @@ protected:
 	bool						m_bQryOnline;
 	bool						m_bStopped;
 
-	boost::asio::io_service		m_asyncIO;
-	boost::asio::io_service::strand*	m_strandIO;
+	boost::asio::io_context		m_asyncIO;
+	boost::asio::io_context::strand*	m_strandIO;
 	StdThreadPtr				m_thrdWorker;
 
 	typedef std::queue<CommonExecuter>	QueryQue;

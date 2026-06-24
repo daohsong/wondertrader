@@ -84,21 +84,21 @@ public:
 		DllHandle hInst = DLLHelper::load_library(moduleName);
 		if (hInst == NULL)
 		{
-			WTSLogger::info(u8"模块{}加载失败", moduleName);
+			WTSLogger::info("模块{}加载失败", moduleName);
 			return false;
 		}
 
 		FuncCreateTrader pFunCreateTrader = (FuncCreateTrader)DLLHelper::get_symbol(hInst, "createTrader");
 		if (NULL == pFunCreateTrader)
 		{
-			WTSLogger::info(u8"入口函数createTrader不存在");
+			WTSLogger::info("入口函数createTrader不存在");
 			return false;
 		}
 
 		m_pTraderApi = pFunCreateTrader();
 		if (NULL == m_pTraderApi)
 		{
-			WTSLogger::info(u8"交易接口创建失败");
+			WTSLogger::info("交易接口创建失败");
 			return false;
 		}
 
@@ -108,7 +108,7 @@ public:
 
 	bool qryFund()
 	{
-		WTSLogger::info(u8"Querying fund info...");
+		WTSLogger::info("Querying fund info...");
 		m_pTraderApi->queryAccount();
 
 		return true;
@@ -116,7 +116,7 @@ public:
 
 	bool qryOrders()
 	{
-		WTSLogger::info(u8"正在查询订单...");
+		WTSLogger::info("正在查询订单...");
 		m_pTraderApi->queryOrders();
 
 		return true;
@@ -124,7 +124,7 @@ public:
 
 	bool qryTrades()
 	{
-		WTSLogger::info(u8"正在查询成交...");
+		WTSLogger::info("正在查询成交...");
 		m_pTraderApi->queryTrades();
 
 		return true;
@@ -132,7 +132,7 @@ public:
 
 	bool qryPosition()
 	{
-		WTSLogger::info(u8"正在查询持仓...");
+		WTSLogger::info("正在查询持仓...");
 		m_pTraderApi->queryPositions();
 
 		return true;
@@ -141,7 +141,7 @@ public:
 	bool qrySettle()
 	{
 		uint32_t uDate = TimeUtils::getNextDate(TimeUtils::getCurDate(), -1);
-		WTSLogger::info(u8"正在查询日期为{}的结算信息...", uDate);
+		WTSLogger::info("正在查询日期为{}的结算信息...", uDate);
 		m_pTraderApi->querySettlement(uDate);
 
 		return true;
@@ -158,40 +158,40 @@ public:
 
 		for (;;)
 		{
-			encoding_print(u8"合约代码: ");
+			encoding_print("合约代码: ");
 			std::cin >> code;
 
-			encoding_print(u8"交易所代码: ");
+			encoding_print("交易所代码: ");
 			std::cin >> exchg;
 
-			encoding_print(u8"委托价格: ");
+			encoding_print("委托价格: ");
 			std::cin >> price;
 
-			encoding_print(u8"委托数量: ");
+			encoding_print("委托数量: ");
 			std::cin >> qty;
 
 			if(isNet)
 			{
-				encoding_print(u8"方向: 0-买, 1-卖: ");
+				encoding_print("方向: 0-买, 1-卖: ");
 				std::cin >> bs;
 				if (bs != 0 && bs != 1)
 					continue;
 
-				encoding_print(u8"合约: {}.{},价格: {},数量: {},方向: {},确认(y/n)? ", exchg, code, price, qty, bs == 0 ? "买" : "卖");
+				encoding_print("合约: {}.{},价格: {},数量: {},方向: {},确认(y/n)? ", exchg, code, price, qty, bs == 0 ? "买" : "卖");
 			}
 			else
 			{
-				encoding_print(u8"方向: 0-多, 1-空: ");
+				encoding_print("方向: 0-多, 1-空: ");
 				std::cin >> bs;
 				if (bs != 0 && bs != 1)
 					continue;
 
-				encoding_print(u8"开平: 0-开, 1-平,2-平今: ");
+				encoding_print("开平: 0-开, 1-平,2-平今: ");
 				std::cin >> offset;
 				if (offset != 0 && offset != 1 && offset != 2)
 					continue;
 
-				encoding_print(u8"合约: {}.{},价格: {},数量: {},方向: {},开盘: {},确认(y/n)? ", exchg, code, price, qty, bs == 0 ? "多" : "空", offset == 0 ? "开" : "平");
+				encoding_print("合约: {}.{},价格: {},数量: {},方向: {},开盘: {},确认(y/n)? ", exchg, code, price, qty, bs == 0 ? "多" : "空", offset == 0 ? "开" : "平");
 			}
 			
 			char c;
@@ -205,7 +205,7 @@ public:
 			auto it = g_blkList.find(code);
 			if (it != g_blkList.end())
 			{
-				WTSLogger::info(u8"{}已被禁止交易", code);
+				WTSLogger::info("{}已被禁止交易", code);
 				return false;
 			}
 		}
@@ -232,9 +232,9 @@ public:
 		entrust->setUserTag("test");
 
 		if(!isNet)
-			WTSLogger::info(u8"[{}]下单中, 代码:{}.{}, 价格:{}, 数量:{}, 操作:{}{}", m_strUniUser, exchg, code, price, qty, offset == 0 ? "Open" : "Close", bs == 0 ? "Long" : "Short");
+			WTSLogger::info("[{}]下单中, 代码:{}.{}, 价格:{}, 数量:{}, 操作:{}{}", m_strUniUser, exchg, code, price, qty, offset == 0 ? "Open" : "Close", bs == 0 ? "Long" : "Short");
 		else
-			WTSLogger::info(u8"[{}]下单中, 代码:{}.{}, 价格:{}, 数量:{}, 操作:{}", m_strUniUser, exchg, code, price, qty, bs == 0 ? "buy" : "sell");
+			WTSLogger::info("[{}]下单中, 代码:{}.{}, 价格:{}, 数量:{}, 操作:{}", m_strUniUser, exchg, code, price, qty, bs == 0 ? "buy" : "sell");
 
 		entrust->setContractInfo(g_bdMgr.getContract(code, exchg));
 		entrust->setUserTag("test_user_tag");
@@ -254,22 +254,22 @@ public:
 
 		for (;;)
 		{
-			encoding_print(u8"合约代码: ");
+			encoding_print("合约代码: ");
 			std::cin >> code;
 
-			encoding_print(u8"交易所代码: ");
+			encoding_print("交易所代码: ");
 			std::cin >> exchg;
 
-			encoding_print(u8"委托数量: ");
+			encoding_print("委托数量: ");
 			std::cin >> qty;
 
-			encoding_print(u8"方向: 0-多, 1-空: ");
+			encoding_print("方向: 0-多, 1-空: ");
 			std::cin >> bs;
 
-			encoding_print(u8"开平: 0-开, 1-平: ");
+			encoding_print("开平: 0-开, 1-平: ");
 			std::cin >> offset;
 
-			encoding_print(u8"合约: {}.{},数量: {},方向: {},开盘: {},确认(y/n)? ", exchg, code, qty, bs == 0 ? "多" : "空", offset == 0 ? "开" : "平");
+			encoding_print("合约: {}.{},数量: {},方向: {},开盘: {},确认(y/n)? ", exchg, code, qty, bs == 0 ? "多" : "空", offset == 0 ? "开" : "平");
 			char c;
 			std::cin >> c;
 			if (c == 'y')
@@ -281,7 +281,7 @@ public:
 			auto it = g_blkList.find(code);
 			if (it != g_blkList.end())
 			{
-				WTSLogger::info(u8"{}已被禁止交易", code);
+				WTSLogger::info("{}已被禁止交易", code);
 				return false;
 			}
 		}
@@ -297,7 +297,7 @@ public:
 		m_pTraderApi->makeEntrustID(entrustid, 64);
 		entrust->setEntrustID(entrustid);
 
-		WTSLogger::info(u8"[{}]下单中, 代码:{}.{}, 价格:市价, 数量:{}, 操作:{}{}", m_strUniUser, exchg, code, qty, offset == 0 ? "Open" : "Close", bs == 0 ? "Long" : "Short");
+		WTSLogger::info("[{}]下单中, 代码:{}.{}, 价格:市价, 数量:{}, 操作:{}{}", m_strUniUser, exchg, code, qty, offset == 0 ? "Open" : "Close", bs == 0 ? "Long" : "Short");
 
 		m_pTraderApi->orderInsert(entrust);
 		entrust->release();
@@ -311,12 +311,12 @@ public:
 
 		for (;;)
 		{
-			encoding_print(u8"订单号: ");
+			encoding_print("订单号: ");
 			std::cin >> orderid;
 
 			StrUtil::replace(orderid, "\"", "");
 
-			encoding_print(u8"订单号: {},确认撤单(y/n)? ", orderid);
+			encoding_print("订单号: {},确认撤单(y/n)? ", orderid);
 			char c;
 			std::cin >> c;
 			if (c == 'y')
@@ -329,12 +329,12 @@ public:
 		WTSOrderInfo* ordInfo = (WTSOrderInfo*)m_mapOrds->get(orderid);
 		if (ordInfo == NULL)
 		{
-			WTSLogger::info(u8"订单不存在，请检查你的订单号或者先查询订单");
+			WTSLogger::info("订单不存在，请检查你的订单号或者先查询订单");
 			return false;
 		}
 
 
-		WTSLogger::info(u8"[{}]正在撤单 [{}]...", m_strUniUser, orderid);
+		WTSLogger::info("[{}]正在撤单 [{}]...", m_strUniUser, orderid);
 		WTSEntrustAction* action = WTSEntrustAction::create(ordInfo->getCode(), ordInfo->getExchg());
 		action->setEntrustID(ordInfo->getEntrustID());
 		action->setOrderID(ordInfo->getOrderID());
@@ -353,7 +353,7 @@ public:
 		{
 			if (ec == 0)
 			{
-				WTSLogger::info(u8"[{}] 已连接", m_strUniUser);
+				WTSLogger::info("[{}] 已连接", m_strUniUser);
 				m_pTraderApi->login(m_pParams->getCString("user"), m_pParams->getCString("pass"), "");
 			}
 			else
@@ -374,12 +374,12 @@ public:
 	{
 		if(bSucc)
 		{
-			WTSLogger::info(u8"[{}] 登录成功" , m_strUniUser);
+			WTSLogger::info("[{}] 登录成功" , m_strUniUser);
 			m_bLogined = true;
 		}
 		else
 		{
-			WTSLogger::info(u8"[{}] 登录失败: {}", m_strUniUser, msg);
+			WTSLogger::info("[{}] 登录失败: {}", m_strUniUser, msg);
 			g_exitNow = true;
 		}
 
@@ -391,7 +391,7 @@ public:
 	{
 		if(err)
 		{
-			WTSLogger::info(u8"[{}] 下单失败: {}", m_strUniUser, err->getMessage());
+			WTSLogger::info("[{}] 下单失败: {}", m_strUniUser, err->getMessage());
 			StdUniqueLock lock(g_mtxOpt);
 			g_condOpt.notify_all();
 		}
@@ -405,7 +405,7 @@ public:
 			WTSAccountInfo* accInfo = (WTSAccountInfo*)ayAccounts->at(0);
 			if(accInfo)
 			{
-				WTSLogger::info(u8"[{}] 资金数据已更新，静态权益: {:.2f}", m_strUniUser, accInfo->getBalance());
+				WTSLogger::info("[{}] 资金数据已更新，静态权益: {:.2f}", m_strUniUser, accInfo->getBalance());
 			}
 		}
 
@@ -419,7 +419,7 @@ public:
 		if (ayPositions != NULL)
 			cnt = ayPositions->size();
 
-		WTSLogger::info(u8"[{}] 持仓数据已更新, 共{}条数据", m_strUniUser, cnt);
+		WTSLogger::info("[{}] 持仓数据已更新, 共{}条数据", m_strUniUser, cnt);
 		for(uint32_t i = 0; i < cnt; i++)
 		{
 			WTSPositionItem* posItem = (WTSPositionItem*)((WTSArray*)ayPositions)->at(i);
@@ -428,10 +428,10 @@ public:
 				if(g_riskAct)
 				{
 					g_blkList.insert(posItem->getCode());
-					WTSLogger::info(u8"{}持仓量超限,限制open", posItem->getCode());
+					WTSLogger::info("{}持仓量超限,限制open", posItem->getCode());
 				}
 				
-				WTSLogger::info(u8"持仓{}({})已更新, {}[{}]", posItem->getCode(), posItem->getDirection() == WDT_LONG ? "L" : "S", posItem->getTotalPosition(), posItem->getAvailPosition());
+				WTSLogger::info("持仓{}({})已更新, {}[{}]", posItem->getCode(), posItem->getDirection() == WDT_LONG ? "L" : "S", posItem->getTotalPosition(), posItem->getAvailPosition());
 			}
 		}
 		StdUniqueLock lock(g_mtxOpt);
@@ -454,11 +454,11 @@ public:
 			if (ordInfo->isAlive())
 			{
 				m_mapOrds->add(StrUtil::trim(ordInfo->getOrderID()), ordInfo, true);
-				WTSLogger::info(u8"[{}] 未完成单, 代码: {}, 订单号: {}", m_strUniUser, ordInfo->getCode(), ordInfo->getOrderID());
+				WTSLogger::info("[{}] 未完成单, 代码: {}, 订单号: {}", m_strUniUser, ordInfo->getCode(), ordInfo->getOrderID());
 			}
 		}
 
-		WTSLogger::info(u8"[{}] 订单数据已更新, 共{}条订单, 其中未完成单{}条", m_strUniUser, cnt, m_mapOrds->size());
+		WTSLogger::info("[{}] 订单数据已更新, 共{}条订单, 其中未完成单{}条", m_strUniUser, cnt, m_mapOrds->size());
 
 		StdUniqueLock lock(g_mtxOpt);
 		g_condOpt.notify_all();
@@ -470,14 +470,14 @@ public:
 		if (ayTrades != NULL)
 			cnt = ayTrades->size();
 
-		WTSLogger::info(u8"[{}] 成交数据已更新, 共{}条成交", m_strUniUser, cnt);
+		WTSLogger::info("[{}] 成交数据已更新, 共{}条成交", m_strUniUser, cnt);
 		StdUniqueLock lock(g_mtxOpt);
 		g_condOpt.notify_all();
 	}
 
 	virtual void onRspSettlementInfo(uint32_t uDate, const char* content)
 	{
-		WTSLogger::info(u8"[{}]{} 收到结算信息", m_strUniUser, uDate);
+		WTSLogger::info("[{}]{} 收到结算信息", m_strUniUser, uDate);
 		WTSLogger::info(content);
 		StdUniqueLock lock(g_mtxOpt);
 		g_condOpt.notify_all();
@@ -495,7 +495,7 @@ public:
 
 				if (m_mapOrds->find(orderid) == m_mapOrds->end())
 				{
-					WTSLogger::info(u8"[{}] 下单成功，订单号: {}, 用户标记: {}",  m_strUniUser, orderid, orderInfo->getUserTag());
+					WTSLogger::info("[{}] 下单成功，订单号: {}, 用户标记: {}",  m_strUniUser, orderid, orderInfo->getUserTag());
 					m_mapOrds->add(orderid, orderInfo, true);
 				}
 
@@ -510,13 +510,13 @@ public:
 
 			if (orderid.empty())
 			{
-				WTSLogger::info(u8"[{}] 订单{}下单失败并撤销: {}, 用户标记: {}", m_strUniUser, orderInfo->getEntrustID(), orderInfo->getStateMsg(), orderInfo->getUserTag());
+				WTSLogger::info("[{}] 订单{}下单失败并撤销: {}, 用户标记: {}", m_strUniUser, orderInfo->getEntrustID(), orderInfo->getStateMsg(), orderInfo->getUserTag());
 				StdUniqueLock lock(g_mtxOpt);
 				g_condOpt.notify_all();
 			}
 			else
 			{
-				WTSLogger::info(u8"[{}] 订单{}已撤销: {}, 用户标记: {}", m_strUniUser, orderid, orderInfo->getStateMsg(), orderInfo->getUserTag());
+				WTSLogger::info("[{}] 订单{}已撤销: {}, 用户标记: {}", m_strUniUser, orderid, orderInfo->getStateMsg(), orderInfo->getUserTag());
 				StdUniqueLock lock(g_mtxOpt);
 				g_condOpt.notify_all();
 			}			
@@ -525,12 +525,12 @@ public:
 
 	virtual void onPushTrade(WTSTradeInfo* tradeRecord)
 	{
-		WTSLogger::info(u8"[{}] 收到成交回报，代码:{}, 价格:{}, 数量: {}, 用户标记: {}", 
+		WTSLogger::info("[{}] 收到成交回报，代码:{}, 价格:{}, 数量: {}, 用户标记: {}", 
 			m_strUniUser, tradeRecord->getCode(), tradeRecord->getPrice(), tradeRecord->getVolume(), tradeRecord->getUserTag());
 
 		if(g_riskAct)
 		{
-			WTSLogger::info(u8"[{}]{}超过最大持仓Volume,禁止open", m_strUniUser, tradeRecord->getCode());
+			WTSLogger::info("[{}]{}超过最大持仓Volume,禁止open", m_strUniUser, tradeRecord->getCode());
 
 			g_blkList.insert(tradeRecord->getCode());
 		}
@@ -540,13 +540,13 @@ public:
 	{
 		if(err && err->getErrorCode() == WEC_ORDERCANCEL)
 		{
-			WTSLogger::info(u8"[{}] 撤单出错: {}", m_strUniUser, err->getMessage());
+			WTSLogger::info("[{}] 撤单出错: {}", m_strUniUser, err->getMessage());
 			StdUniqueLock lock(g_mtxOpt);
 			g_condOpt.notify_all();
 		}
 		else if (err && err->getErrorCode() == WEC_ORDERINSERT)
 		{
-			WTSLogger::info(u8"[{}] 下单出错: {}", m_strUniUser, err->getMessage());
+			WTSLogger::info("[{}] 下单出错: {}", m_strUniUser, err->getMessage());
 			StdUniqueLock lock(g_mtxOpt);
 			g_condOpt.notify_all();
 		}
@@ -586,7 +586,7 @@ int main()
 	WTSVariant* root = WTSCfgLoader::load_from_file("config.yaml");
 	if(root == NULL)
 	{
-		WTSLogger::log_raw(LL_ERROR, u8"配置文件config.yaml加载失败");
+		WTSLogger::log_raw(LL_ERROR, "配置文件config.yaml加载失败");
 		return 0;
 	}
 
@@ -612,7 +612,7 @@ int main()
 	WTSVariant* params = root->get(profile.c_str());
 	if(params == NULL)
 	{
-		WTSLogger::error(u8"配置项{}不存在", profile);
+		WTSLogger::error("配置项{}不存在", profile);
 		return 0;
 	}
 
@@ -629,17 +629,17 @@ int main()
 	
 	while(!g_exitNow)
 	{
-		encoding_print(u8"请选择一个操作：\n");
-		encoding_print(u8"1. 查询资金\n");
-		encoding_print(u8"2. 查询订单\n");
-		encoding_print(u8"3. 查询成交\n");
-		encoding_print(u8"4. 查询持仓\n");
-		encoding_print(u8"5. 查询结算单\n");
-		encoding_print(u8"6. 限价委托\n");
-		encoding_print(u8"7. 市价委托\n");
-		encoding_print(u8"8. 撤单\n");
-		encoding_print(u8"9. 净头寸交易\n");
-		encoding_print(u8"0. 退出\n");
+		encoding_print("请选择一个操作：\n");
+		encoding_print("1. 查询资金\n");
+		encoding_print("2. 查询订单\n");
+		encoding_print("3. 查询成交\n");
+		encoding_print("4. 查询持仓\n");
+		encoding_print("5. 查询结算单\n");
+		encoding_print("6. 限价委托\n");
+		encoding_print("7. 市价委托\n");
+		encoding_print("8. 撤单\n");
+		encoding_print("9. 净头寸交易\n");
+		encoding_print("0. 退出\n");
 
 		char cmd;
 		for (;;)

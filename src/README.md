@@ -5,13 +5,18 @@
 + Windows	
 	> `Visual Studio 2017` + `Windows 10`
 + Linux	
-	> `Gcc v8.4.0` + `cmake 3.17.5`
+	> `GCC 13.3`（C++17）/ `GCC 15.2`（C++23）+ `cmake 3.28`
+	>
+	> 已在 Ubuntu 24.04 上验证：GCC 13.3 + C++17、GCC 15.2 + C++23 均可干净编译
+	> （C++ 标准由 `src/CMakeLists.txt` 的 `CMAKE_CXX_STANDARD` 控制，源码兼容 C++17/C++23）
 
 ## 依赖库
-+ [boost 1.72](https://www.boost.org/)
-+ [rapidjson 1.0.2](https://github.com/Tencent/rapidjson)
-+ [spdlog 1.9.2](https://github.com/gabime/spdlog)
-+ [nanomsg 1.1.5](https://github.com/nanomsg/nanomsg)
+依赖前缀默认取环境变量 `WT_DEPS`（缺省回退到本地路径），需在其下提供 `include` 与 `lib`。
+
++ [boost 1.91](https://www.boost.org/)
++ [rapidjson 1.1.x（master）](https://github.com/Tencent/rapidjson)
++ [spdlog 1.17.0](https://github.com/gabime/spdlog)
++ [nanomsg 1.2.2](https://github.com/nanomsg/nanomsg)
 
 ## 解决方案结构
 + ***Backtest***

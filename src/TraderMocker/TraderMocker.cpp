@@ -690,7 +690,7 @@ void TraderMocker::connect()
 {
 	reconn_udp();
 
-	_thrd_worker.reset(new StdThread(boost::bind(&boost::asio::io_service::run, &_io_service)));
+	_thrd_worker.reset(new StdThread(boost::bind(&boost::asio::io_context::run, &_io_service)));
 
 	boost::asio::post(_io_service, [this](){
 		StdUniqueLock lock(_mutex_api);

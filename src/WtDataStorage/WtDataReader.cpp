@@ -1035,7 +1035,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 		StdFile::read_file_content(filename.c_str(), content);
 		if (content.size() < sizeof(HisKlineBlock))
 		{
-			pipe_reader_log(_sink, LL_ERROR, u8"历史K线数据文件{}大小校验失败", filename);
+			pipe_reader_log(_sink, LL_ERROR, "历史K线数据文件{}大小校验失败", filename);
 			break;
 		}
 		proc_block_data(content, true, false);
@@ -1598,11 +1598,11 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 		}
 		catch (const std::exception& ex)
 		{
-			pipe_reader_log(_sink, LL_ERROR, u8"缓存{}的连续{}数据异常：{}", stdCode, ruleTag, ex.what());
+			pipe_reader_log(_sink, LL_ERROR, "缓存{}的连续{}数据异常：{}", stdCode, ruleTag, ex.what());
 		}
 		catch(...)
 		{
-			pipe_reader_log(_sink, LL_ERROR, u8"缓存{}的连续{}数据异常", stdCode, ruleTag);
+			pipe_reader_log(_sink, LL_ERROR, "缓存{}的连续{}数据异常", stdCode, ruleTag);
 		}
 		return false;
 	}
@@ -1615,11 +1615,11 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 		}
 		catch (const std::exception& ex)
 		{
-			pipe_reader_log(_sink, LL_ERROR, u8"缓存{}的复权数据异常：{}", stdCode, ex.what());
+			pipe_reader_log(_sink, LL_ERROR, "缓存{}的复权数据异常：{}", stdCode, ex.what());
 		}
 		catch (...)
 		{
-			pipe_reader_log(_sink, LL_ERROR, u8"缓存{}的复权{}数据异常", stdCode, ruleTag);
+			pipe_reader_log(_sink, LL_ERROR, "缓存{}的复权{}数据异常", stdCode, ruleTag);
 		}
 		return false;
 	}
@@ -1668,7 +1668,7 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 			StdFile::read_file_content(filename.c_str(), content);
 			if (content.size() < sizeof(HisKlineBlock))
 			{
-				pipe_reader_log(_sink,LL_ERROR, u8"历史K线数据文件{}大小校验失败", filename.c_str());
+				pipe_reader_log(_sink,LL_ERROR, "历史K线数据文件{}大小校验失败", filename.c_str());
 				return false;
 			}
 
