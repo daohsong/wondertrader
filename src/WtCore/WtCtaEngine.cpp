@@ -659,7 +659,7 @@ void WtCtaEngine::on_bar(const char* stdCode, const char* period, uint32_t times
 	if (_pool)
 		_pool->wait();
 
-	WTSLogger::info("KBar [{}] @ {} closed", key, period[0] == 'd' ? newBar->date : newBar->time);
+	WTSLogger::debug("KBar [{}] @ {} closed", key, period[0] == 'd' ? newBar->date : newBar->time);
 }
 
 bool WtCtaEngine::isInTrading()
