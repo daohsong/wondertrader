@@ -61,6 +61,7 @@ private:
 	uint32_t		_millisecs;
 	uint32_t		_mocker_id;
 	bool			_use_newpx;
+	double			_init_balance;
 	double			_max_qty;
 	double			_min_qty;
 

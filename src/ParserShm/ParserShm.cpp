@@ -77,7 +77,7 @@ bool ParserShm::init( WTSVariant* config )
 {
 	_path = config->getCString("path");
 	_gpsize = config->getUInt32("gpsize", 1000);
-	_check_span = config->getUInt32("checkspan", 0);
+	_check_span = config->getUInt32("check_span", 0);
 	_cpu = config->getUInt32("cpu", 0);
 	return true;
 }

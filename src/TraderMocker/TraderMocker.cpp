@@ -88,6 +88,7 @@ TraderMocker::TraderMocker()
 	, _b_socket(NULL)
 	, _max_tick_time(0)
 	, _last_match_time(0)
+	, _init_balance(0)
 {
 	_auto_order_id = (uint32_t)((TimeUtils::getLocalTimeNow() - TimeUtils::makeTime(20200101, 0)) / 1000 * 100);
 	_auto_trade_id = (uint32_t)((TimeUtils::getLocalTimeNow() - TimeUtils::makeTime(20200101, 0)) / 1000 * 300);
@@ -520,6 +521,7 @@ bool TraderMocker::init(WTSVariant *params)
 	_millisecs = params->getUInt32("span");
 	_use_newpx = params->getBoolean("newpx");
 	_mocker_id = params->getUInt32("mockerid");
+	_init_balance = params->getDouble("init_balance");
 	_max_qty = params->getDouble("maxqty");
 	_min_qty = params->getDouble("minqty");
 
@@ -833,11 +835,11 @@ int TraderMocker::queryAccount()
 		WTSArray* ay = WTSArray::create();
 		WTSAccountInfo* accountInfo = WTSAccountInfo::create();
 		accountInfo->setCurrency("CNY");
-		accountInfo->setBalance(0);
-		accountInfo->setPreBalance(0);
+		accountInfo->setBalance(_init_balance);
+		accountInfo->setPreBalance(_init_balance);
 		accountInfo->setCloseProfit(0);
 		accountInfo->setMargin(0);
-		accountInfo->setAvailable(0);
+		accountInfo->setAvailable(_init_balance);
 		accountInfo->setCommission(0);
 		accountInfo->setFrozenMargin(0);
 		accountInfo->setFrozenCommission(0);
