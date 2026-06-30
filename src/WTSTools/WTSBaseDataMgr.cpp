@@ -20,6 +20,56 @@
 
 const char* DEFAULT_HOLIDAY_TPL = "CHINA";
 
+namespace
+{
+bool isProduct(WTSCommodityInfo* commInfo, const char* product)
+{
+	const char* curProduct = commInfo == NULL ? NULL : commInfo->getProduct();
+	return curProduct != NULL && strcmp(curProduct, product) == 0;
+}
+
+bool isConvertibleBondProduct(WTSCommodityInfo* commInfo)
+{
+	return isProduct(commInfo, "CB") || isProduct(commInfo, "CBOND");
+}
+
+double defaultLotsTick(WTSCommodityInfo* commInfo)
+{
+	if (isConvertibleBondProduct(commInfo))
+		return 10;
+	if (isProduct(commInfo, "STK") || isProduct(commInfo, "ETF"))
+		return 100;
+	return 1;
+}
+
+double defaultPriceTick(WTSCommodityInfo* commInfo)
+{
+	if (isConvertibleBondProduct(commInfo) || isProduct(commInfo, "ETF"))
+		return 0.001;
+	if (isProduct(commInfo, "STK") || isProduct(commInfo, "IDX"))
+		return 0.01;
+	return 0;
+}
+
+ContractCategory defaultCategory(WTSCommodityInfo* commInfo)
+{
+	if (isProduct(commInfo, "STK") || isProduct(commInfo, "ETF") || isProduct(commInfo, "IDX") || isConvertibleBondProduct(commInfo))
+		return CC_Stock;
+	return CC_Future;
+}
+
+TradingMode defaultTradingMode(WTSCommodityInfo* commInfo)
+{
+	if (isConvertibleBondProduct(commInfo))
+		return TM_Long;
+	if (isProduct(commInfo, "STK") || isProduct(commInfo, "ETF"))
+		return TM_LongT1;
+	if (isProduct(commInfo, "IDX"))
+		return TM_None;
+	return TM_Both;
+}
+}
+
 WTSBaseDataMgr::WTSBaseDataMgr()
 	: _session_map(NULL)
 {
@@ -299,13 +349,16 @@ bool WTSBaseDataMgr::loadSessions(const char* filename)
 
 void parseCommodity(WTSCommodityInfo* pCommInfo, WTSVariant* jPInfo)
 {
-	pCommInfo->setPriceTick(jPInfo->getDouble("pricetick"));
+	if (jPInfo->has("pricetick"))
+		pCommInfo->setPriceTick(jPInfo->getDouble("pricetick"));
+	else
+		pCommInfo->setPriceTick(defaultPriceTick(pCommInfo));
 	pCommInfo->setVolScale(jPInfo->getUInt32("volscale"));
 
 	if (jPInfo->has("category"))
 		pCommInfo->setCategory((ContractCategory)jPInfo->getUInt32("category"));
 	else
-		pCommInfo->setCategory(CC_Future);
+		pCommInfo->setCategory(defaultCategory(pCommInfo));
 
 	pCommInfo->setCoverMode((CoverMode)jPInfo->getUInt32("covermode"));
 	pCommInfo->setPriceMode((PriceMode)jPInfo->getUInt32("pricemode"));
@@ -313,10 +366,10 @@ void parseCommodity(WTSCommodityInfo* pCommInfo, WTSVariant* jPInfo)
 	if (jPInfo->has("trademode"))
 		pCommInfo->setTradingMode((TradingMode)jPInfo->getUInt32("trademode"));
 	else
-		pCommInfo->setTradingMode(TM_Both);
+		pCommInfo->setTradingMode(defaultTradingMode(pCommInfo));
 
-	double lotsTick = 1;
-	double minLots = 1;
+	double lotsTick = defaultLotsTick(pCommInfo);
+	double minLots = defaultLotsTick(pCommInfo);
 	if (jPInfo->has("lotstick"))
 		lotsTick = jPInfo->getDouble("lotstick");
 	if (jPInfo->has("minlots"))

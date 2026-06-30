@@ -31,6 +31,27 @@ inline void write_log(ITraderSpi* sink, WTSLogLevel ll, const char* format, cons
 	sink->handleTraderLog(ll, buffer);
 }
 
+namespace
+{
+double openVolumeLotStep(WTSCommodityInfo* commInfo) noexcept
+{
+	if (commInfo == NULL)
+		return 0.0;
+
+	const double lotsTick = commInfo->getLotsTick();
+	if (decimal::gt(lotsTick))
+		return lotsTick;
+
+	return 0.0;
+}
+
+bool isValidOpenVolumeLot(WTSCommodityInfo* commInfo, double volume) noexcept
+{
+	const double step = openVolumeLotStep(commInfo);
+	return decimal::gt(step) && decimal::eq(decimal::mod(volume, step), 0);
+}
+}
+
 extern "C"
 {
 	EXPORT_FLAG ITraderApi* createTrader()
@@ -179,10 +200,11 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 			}
 
 			//检查数量的合法性
-			if ((commInfo->getCategoty() == CC_Stock) && (entrust->getOffsetType() == WOT_OPEN) && !decimal::eq(decimal::mod(entrust->getVolume(), 100), 0))
+			if (entrust->getOffsetType() == WOT_OPEN && !isValidOpenVolumeLot(commInfo, entrust->getVolume()))
 			{
 				bPass = false;
-				msg = "股票买入数量必须为100的整数倍";
+				const double volumeStep = openVolumeLotStep(commInfo);
+				msg = decimal::gt(volumeStep) ? fmtutil::format("买入数量必须为{}的整数倍", volumeStep) : "品种数量规则不合法";
 				break;
 			}
 
