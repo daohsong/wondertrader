@@ -28,9 +28,6 @@ typedef std::function<void(const char*, bool, double, double, double, double)> F
 class WtStockMinImpactExeUnit : public ExecuteUnit
 {
 private:
-	const char* cbondStr = "CBOND";
-	const char* stockStr = "STK";
-
 	enum class TargetMode
 	{
 		stocks = 0,
@@ -185,26 +182,15 @@ public:
 		return (int)((hands + min_hands / 2) / min_hands) * min_hands;
 	}
 
-	inline double get_minOrderQty(std::string stdCode)
+	inline double get_minOrderQty(std::string)
 	{
-		int code = std::stoi(StrUtil::split(stdCode, ".")[2]);
-		bool is_KC = false;
-		if (code >= 688000)
-		{
-			is_KC = true;
-		}
-		WTSCommodityInfo* comm_info = _ctx->getCommodityInfo(stdCode.c_str());
 		double min_order = 1.0;
-		if (strcmp(comm_info->getProduct(), cbondStr) == 0)
-			min_order = 10.0;
-		else if (strcmp(comm_info->getProduct(), stockStr) == 0)
-			if (is_KC)
-				min_order = 200.0;
-			else
-				min_order = 100.0;
-		if (comm_info)
-			comm_info->release();
+		if (_comm_info)
+		{
+			min_order = _comm_info->getLotsTick();
+			if (!decimal::gt(min_order))
+				min_order = 1.0;
+		}
 		return min_order;
 	}
 };
-

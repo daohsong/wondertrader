@@ -20,6 +20,8 @@ namespace rj = rapidjson;
 
 //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
+#include <algorithm>
+#include <limits>
 template<typename... Args>
 inline void write_log(ITraderSpi* sink, WTSLogLevel ll, const char* format, const Args&... args)
 {
@@ -45,11 +47,89 @@ double openVolumeLotStep(WTSCommodityInfo* commInfo) noexcept
 	return 0.0;
 }
 
+double openVolumeMinLots(WTSCommodityInfo* commInfo) noexcept
+{
+	if (commInfo == NULL)
+		return 0.0;
+
+	const double minLots = commInfo->getMinLots();
+	if (decimal::gt(minLots))
+		return minLots;
+
+	return openVolumeLotStep(commInfo);
+}
+
 bool isValidOpenVolumeLot(WTSCommodityInfo* commInfo, double volume) noexcept
 {
 	const double step = openVolumeLotStep(commInfo);
-	return decimal::gt(step) && decimal::eq(decimal::mod(volume, step), 0);
+	const double minLots = openVolumeMinLots(commInfo);
+	return decimal::gt(step) && !decimal::lt(volume, minLots) && decimal::eq(decimal::mod(volume, step), 0);
 }
+
+uint32_t volumeStepToUInt(double step) noexcept
+{
+	if (!decimal::gt(step))
+		return 0;
+
+	if (decimal::lt(step, 1.0))
+		return 1;
+
+	return static_cast<uint32_t>(step + 0.5);
+}
+
+uint32_t alignVolumeDown(uint32_t volume, uint32_t step) noexcept
+{
+	if (step <= 1)
+		return volume;
+
+	return volume / step * step;
+}
+
+uint32_t alignVolumeUp(uint32_t volume, uint32_t step) noexcept
+{
+	if (step <= 1)
+		return volume;
+
+	const uint32_t remainder = volume % step;
+	if (remainder == 0)
+		return volume;
+
+	const uint32_t delta = step - remainder;
+	if (volume > std::numeric_limits<uint32_t>::max() - delta)
+		return alignVolumeDown(std::numeric_limits<uint32_t>::max(), step);
+
+	return volume + delta;
+}
+
+bool isValidCloseVolumeLot(WTSCommodityInfo* commInfo, double validQty, double volume) noexcept
+{
+	const double step = openVolumeLotStep(commInfo);
+	if (!decimal::gt(step) || decimal::le(step, 1.0))
+		return true;
+
+	if (decimal::eq(decimal::mod(volume, step), 0))
+		return true;
+
+	const double oddLots = decimal::mod(validQty, step);
+	if (!decimal::gt(oddLots))
+		return false;
+
+	return decimal::eq(decimal::mod(volume, step), oddLots);
+}
+
+uint32_t matchVolumeStep(WTSOrderInfo* ordInfo, WTSCommodityInfo* commInfo) noexcept
+{
+	const uint32_t lotStep = volumeStepToUInt(openVolumeLotStep(commInfo));
+	if (lotStep <= 1 || ordInfo == NULL)
+		return 1;
+
+	if (ordInfo->getOffsetType() == WOT_OPEN)
+		return lotStep;
+
+	// Dirty simulated positions may be odd lots. Let close orders clear them.
+	return decimal::eq(decimal::mod(ordInfo->getVolLeft(), static_cast<double>(lotStep)), 0) ? lotStep : 1;
+}
+
 }
 
 extern "C"
@@ -70,10 +150,31 @@ extern "C"
 	}
 }
 
-std::vector<uint32_t> splitVolume(uint32_t vol, uint32_t minQty = 1, uint32_t maxQty = 100)
+std::vector<uint32_t> splitVolume(uint32_t vol, uint32_t minQty = 1, uint32_t maxQty = 100, uint32_t qtyTick = 1)
 {
-	uint32_t length = maxQty - minQty + 1;
 	std::vector<uint32_t> ret;
+	if (vol == 0)
+		return ret;
+
+	if (qtyTick == 0)
+		qtyTick = 1;
+
+	vol = alignVolumeDown(vol, qtyTick);
+	if (vol == 0)
+		return ret;
+
+	minQty = std::max(minQty, qtyTick);
+	minQty = alignVolumeUp(minQty, qtyTick);
+
+	if (maxQty == 0)
+		maxQty = minQty;
+
+	maxQty = std::max(maxQty, minQty);
+	maxQty = alignVolumeDown(maxQty, qtyTick);
+	if (maxQty < minQty)
+		maxQty = minQty;
+
+	uint32_t length = (maxQty - minQty) / qtyTick + 1;
 	if (vol <= minQty)
 	{
 		ret.emplace_back(vol);
@@ -84,7 +185,7 @@ std::vector<uint32_t> splitVolume(uint32_t vol, uint32_t minQty = 1, uint32_t ma
 		srand((uint32_t)time(NULL));
 		while (left > 0)
 		{
-			uint32_t curVol = minQty + (uint32_t)rand() % length;
+			uint32_t curVol = minQty + ((uint32_t)rand() % length) * qtyTick;
 
 			if (curVol >= left)
 				curVol = left;
@@ -127,6 +228,9 @@ TraderMocker::~TraderMocker()
 
 	if (_ticks)
 		_ticks->release();
+
+	if (_awaits)
+		_awaits->release();
 }
 
 uint32_t TraderMocker::makeTradeID()
@@ -158,7 +262,7 @@ bool TraderMocker::makeEntrustID(char* buffer, int length)
 }
 
 int TraderMocker::orderInsert(WTSEntrust* entrust)
-{	
+{
 	if (entrust == NULL)
 	{
 		return 0;
@@ -166,10 +270,8 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 
 	entrust->retain();
 	boost::asio::post(_io_service, [this, entrust](){
-		StdUniqueLock lock(_mutex_api);
-
 		WTSContractInfo* ct = entrust->getContractInfo();
-		if(ct == NULL) 
+		if(ct == NULL)
 			ct = _bd_mgr->getContract(entrust->getCode(), entrust->getExchg());
 
 		/*
@@ -181,163 +283,179 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 
 		bool bPass = false;
 		std::string msg;
-		do 
+		WTSOrderInfo* ordInfo = NULL;
+		uint32_t code_count = 0;
+
 		{
-			if (ct == NULL)
+			StdUniqueLock awaits_lock(_mtx_awaits);
+			do
 			{
-				bPass = false;
-				msg = "品种不存在";
-				break;
-			}
-			WTSCommodityInfo* commInfo = ct->getCommInfo();
-
-			//检查价格类型的合法性
-			if (entrust->getPriceType() == WPT_ANYPRICE && commInfo->getPriceMode() == PM_Limit)
-			{
-				bPass = false;
-				msg = "价格类型不合法";
-				break;
-			}
-
-			//检查数量的合法性
-			if (entrust->getOffsetType() == WOT_OPEN && !isValidOpenVolumeLot(commInfo, entrust->getVolume()))
-			{
-				bPass = false;
-				const double volumeStep = openVolumeLotStep(commInfo);
-				msg = decimal::gt(volumeStep) ? fmtutil::format("买入数量必须为{}的整数倍", volumeStep) : "品种数量规则不合法";
-				break;
-			}
-
-			//检查方向的合法性
-			if(!commInfo->canShort() && entrust->getDirection() == WDT_SHORT)
-			{
-				bPass = false;
-				msg = "股票不能做空";
-				break;
-			}
-
-			//检查价格的合法性
-			if(!decimal::eq(entrust->getPrice(), 0))
-			{
-				double pricetick = commInfo->getPriceTick();
-				double v = entrust->getPrice() / pricetick;
-
-				if (!decimal::eq(decimal::mod(entrust->getPrice(), pricetick), 0))	//整除的检查方式,先小数相除得到商,然后商取整以后,再跟原来的商相减,如果等于0,则是整除,否则是
+				if (ct == NULL)
 				{
 					bPass = false;
-					msg = "委托价格不合法";
+					msg = "品种不存在";
 					break;
 				}
-			}
+				WTSCommodityInfo* commInfo = ct->getCommInfo();
+
+				//检查价格类型的合法性
+				if (entrust->getPriceType() == WPT_ANYPRICE && commInfo->getPriceMode() == PM_Limit)
+				{
+					bPass = false;
+					msg = "价格类型不合法";
+					break;
+				}
+
+				//检查数量的合法性
+				if (entrust->getOffsetType() == WOT_OPEN && !isValidOpenVolumeLot(commInfo, entrust->getVolume()))
+				{
+					bPass = false;
+					const double volumeStep = openVolumeLotStep(commInfo);
+					const double minLots = openVolumeMinLots(commInfo);
+					msg = decimal::gt(volumeStep) ? fmtutil::format("买入数量必须不小于{}且为{}的整数倍", minLots, volumeStep) : "品种数量规则不合法";
+					break;
+				}
+
+				//检查方向的合法性
+				if(!commInfo->canShort() && entrust->getDirection() == WDT_SHORT)
+				{
+					bPass = false;
+					msg = "股票不能做空";
+					break;
+				}
+
+				//检查价格的合法性
+				if(!decimal::eq(entrust->getPrice(), 0))
+				{
+					double pricetick = commInfo->getPriceTick();
+
+					if (!decimal::eq(decimal::mod(entrust->getPrice(), pricetick), 0))	//整除的检查方式,先小数相除得到商,然后商取整以后,再跟原来的商相减,如果等于0,则是整除,否则是
+					{
+						bPass = false;
+						msg = "委托价格不合法";
+						break;
+					}
+				}
 
 
-			//开仓直接通过,不检查资金
-			if (entrust->getOffsetType() == WOT_OPEN)
-			{
+				//开仓直接通过,不检查资金
+				if (entrust->getOffsetType() == WOT_OPEN)
+				{
+					bPass = true;
+					break;
+				}
+
+				//如果不需要开平,则直接通过,主要针对国际期货
+				if (commInfo->getCoverMode() == CM_None)
+				{
+					bPass = true;
+					break;
+				}
+
+				//如果区分平昨平今,而委托的是平昨,则直接拒绝,因为mocker为了简化处理,不考虑昨仓
+				if (commInfo->getCoverMode() == CM_CoverToday && (entrust->getOffsetType() == WOT_CLOSE || entrust->getOffsetType() == WOT_CLOSEYESTERDAY))
+				{
+					bPass = false;
+					msg = "没有足够的可平仓位";
+					break;
+				}
+
+				//如果没有持仓或者持仓不够,也要
+				auto it = _positions.find(ct->getFullCode());
+				if(it == _positions.end())
+				{
+					bPass = false;
+					msg = "没有足够的可平仓位";
+					break;
+				}
+
+				PosItem& pItem = (PosItem&)it->second;
+				bool isLong = entrust->getDirection() == WDT_LONG;
+
+				double validQty = isLong ? (pItem._long._volume - pItem._long._frozen) : (pItem._short._volume - pItem._short._frozen);
+				if(decimal::lt(validQty, entrust->getVolume()))
+				{
+					bPass = false;
+					msg = "没有足够的可平仓位";
+					break;
+				}
+
+				if (!isValidCloseVolumeLot(commInfo, validQty, entrust->getVolume()))
+				{
+					bPass = false;
+					const double volumeStep = openVolumeLotStep(commInfo);
+					msg = decimal::gt(volumeStep) ? fmtutil::format("卖出数量必须符合{}的整手规则，零股部分只能一次性卖出", volumeStep) : "品种数量规则不合法";
+					break;
+				}
+
+				//冻结持仓
+				if(isLong)
+				{
+					pItem._long._frozen += entrust->getVolume();
+				}
+				else
+				{
+					pItem._short._frozen += entrust->getVolume();
+				}
+
 				bPass = true;
-				break;
-			}
+				msg = "下单成功";
 
-			//如果不需要开平,则直接通过,主要针对国际期货
-			if (commInfo->getCoverMode() == CM_None)
+			} while (false);
+
+			if(bPass)
 			{
-				bPass = true;
-				break;
-			}
-			
-			//如果区分平昨平今,而委托的是平昨,则直接拒绝,因为mocker为了简化处理,不考虑昨仓
-			if (commInfo->getCoverMode() == CM_CoverToday && (entrust->getOffsetType() == WOT_CLOSE || entrust->getOffsetType() == WOT_CLOSEYESTERDAY))
-			{
-				bPass = false;
-				msg = "没有足够的可平仓位";
-				break;
-			}
+				ordInfo = WTSOrderInfo::create();
+				ordInfo->setContractInfo(ct);
+				ordInfo->setCode(entrust->getCode());
+				ordInfo->setExchange(entrust->getExchg());
+				ordInfo->setDirection(entrust->getDirection());
+				ordInfo->setOffsetType(entrust->getOffsetType());
+				ordInfo->setUserTag(entrust->getUserTag());
+				ordInfo->setPrice(entrust->getPrice());
+				thread_local static char str[64];
+				fmtutil::format_to(str, "mo.{}.{}", _mocker_id, makeOrderID());
+				ordInfo->setOrderID(str);
+				ordInfo->setStateMsg(msg.c_str());
+				ordInfo->setOrderState(WOS_NotTraded_Queuing);
+				ordInfo->setOrderTime(TimeUtils::getLocalTimeNow());
+				ordInfo->setVolume(entrust->getVolume());
+				ordInfo->setVolLeft(entrust->getVolume());
+				ordInfo->setPriceType(entrust->getPriceType());
+				ordInfo->setOrderFlag(entrust->getOrderFlag());
 
-			//如果没有持仓或者持仓不够,也要
-			auto it = _positions.find(ct->getFullCode());
-			if(it == _positions.end())
-			{
-				bPass = false;
-				msg = "没有足够的可平仓位";
-				break;
+				_codes.insert(ct->getFullCode());
+				code_count = _codes.size();
+
+				if (_orders == NULL)
+					_orders = WTSArray::create();
+				_orders->append(ordInfo, false);
+
+				if (_awaits == NULL)
+					_awaits = OrderCache::create();
+
+				_awaits->add(ordInfo->getOrderID(), ordInfo, true);
+
+				save_positions();
 			}
+		}
 
-			PosItem& pItem = (PosItem&)it->second;
-			bool isLong = entrust->getDirection() == WDT_LONG;
-
-			double validQty = isLong ? (pItem._long._volume - pItem._long._frozen) : (pItem._short._volume - pItem._short._frozen);
-			if(decimal::lt(validQty, entrust->getVolume()))
-			{
-				bPass = false;
-				msg = "没有足够的可平仓位";
-				break;
-			}
-
-			//冻结持仓
-			if(isLong)
-			{
-				pItem._long._frozen += entrust->getVolume();
-			}
-			else
-			{
-				pItem._short._frozen += entrust->getVolume();
-			}
-
-			bPass = true;
-			msg = "下单成功";
-
-		} while (false);
-		
 		if(bPass)
 		{
-			WTSOrderInfo* ordInfo = WTSOrderInfo::create();
-			ordInfo->setContractInfo(ct);
-			ordInfo->setCode(entrust->getCode());
-			ordInfo->setExchange(entrust->getExchg());
-			ordInfo->setDirection(entrust->getDirection());
-			ordInfo->setOffsetType(entrust->getOffsetType());
-			ordInfo->setUserTag(entrust->getUserTag());
-			ordInfo->setPrice(entrust->getPrice());
-			thread_local static char str[64];
-			fmtutil::format_to(str, "mo.{}.{}", _mocker_id, makeOrderID());
-			ordInfo->setOrderID(str);
-			ordInfo->setStateMsg(msg.c_str());
-			ordInfo->setOrderState(WOS_NotTraded_Queuing);
-			ordInfo->setOrderTime(TimeUtils::getLocalTimeNow());
-			ordInfo->setVolume(entrust->getVolume());
-			ordInfo->setVolLeft(entrust->getVolume());
-			ordInfo->setPriceType(entrust->getPriceType());
-			ordInfo->setOrderFlag(entrust->getOrderFlag());
-
 			if (_listener != NULL)
 			{
+				StdUniqueLock lock(_mutex_api);
 				_listener->onRspEntrust(entrust, NULL);
 				_listener->onPushOrder(ordInfo);
+				write_log(_listener, LL_INFO, "共有{}个品种有待撮合订单", code_count);
 			}
-
-			_codes.insert(ct->getFullCode());
-
-			if(_listener)
-			{
-				write_log(_listener,LL_INFO, "共有{}个品种有待撮合订单", _codes.size());
-			}
-
-			if (_orders == NULL)
-				_orders = WTSArray::create();
-			_orders->append(ordInfo, false);
-
-			if (_awaits == NULL)
-				_awaits = OrderCache::create();
-
-			_awaits->add(ordInfo->getOrderID(), ordInfo, true);
-
-			save_positions();
 		}
 		else
 		{
 			WTSError* err = WTSError::create(WEC_ORDERINSERT, msg.c_str());
 			if (_listener != NULL)
 			{
+				StdUniqueLock lock(_mutex_api);
 				_listener->onRspEntrust(entrust, err);
 			}
 			err->release();
@@ -350,7 +468,8 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 
 int32_t TraderMocker::match_once()
 {
-	if (_terminated || _orders == NULL || _orders->size() == 0 || _ticks == NULL)
+	StdUniqueLock state_lock(_mtx_awaits);
+	if (_terminated || _orders == NULL || _orders->size() == 0 || _ticks == NULL || _awaits == NULL)
 		return 0;
 	
 	int32_t count = 0;
@@ -373,7 +492,6 @@ int32_t TraderMocker::match_once()
 		WTSTickData* curTick = (WTSTickData*)_ticks->grab(fullcode);
 		if (curTick && strcmp(curTick->code(), ct->getCode())==0)
 		{
-			StdUniqueLock lock(_mtx_awaits);
 			uint64_t tickTime = (uint64_t)curTick->actiondate() * 1000000000 + curTick->actiontime();
 			if (decimal::gt(curTick->price(), 0) /*&& tickTime >= _last_match_time*/)
 			{
@@ -417,10 +535,18 @@ int32_t TraderMocker::match_once()
 					if (ordInfo->getPriceType() == WPT_LIMITPRICE && ((isBuy && decimal::lt(target, uPrice)) || (!isBuy && decimal::gt(target, uPrice))))
 						continue;
 
-					count++;
+					uint32_t maxVolume = (uint32_t)min(uVolume, ordInfo->getVolLeft());
+					uint32_t volumeStep = matchVolumeStep(ordInfo, commInfo);
+					uint32_t minVolume = volumeStep <= 1 ? 1 : volumeStep;
+					maxVolume = alignVolumeDown(maxVolume, volumeStep);
+					if (maxVolume == 0 || maxVolume < minVolume)
+						continue;
 
-					double maxVolume = min(uVolume, ordInfo->getVolLeft());
-					std::vector<uint32_t> ayVol = splitVolume((uint32_t)maxVolume, (uint32_t)_min_qty, (uint32_t)_max_qty);
+					std::vector<uint32_t> ayVol = splitVolume(maxVolume, std::max((uint32_t)_min_qty, minVolume), (uint32_t)_max_qty, volumeStep);
+					if (ayVol.empty())
+						continue;
+
+					count++;
 					for (uint32_t curVol : ayVol)
 					{
 
@@ -552,11 +678,14 @@ bool TraderMocker::init(WTSVariant *params)
 	boost::asio::ip::address addr = boost::asio::ip::make_address("0.0.0.0");
 	_broad_ep = boost::asio::ip::udp::endpoint(addr, _udp_port);
 
-	if (decimal::eq(_max_qty, 0))
+	if (decimal::le(_max_qty, 0))
 		_max_qty = 100;
 
-	if (decimal::eq(_min_qty, 0))
+	if (decimal::le(_min_qty, 0))
 		_min_qty = 1;
+
+	if (decimal::lt(_max_qty, _min_qty))
+		_max_qty = _min_qty;
 
 	//加载持仓数据
 	std::stringstream ss;
@@ -773,11 +902,15 @@ int TraderMocker::logout()
 
 int TraderMocker::orderAction(WTSEntrustAction* action)
 {
+	if (action == NULL)
+		return 0;
+
 	action->retain();
-	
+
 	boost::asio::post(_io_service, [this, action](){
 		StdUniqueLock lck(_mtx_awaits);	//一定要把awaits锁起来,不然可能会导致一边撮合一边撤单
-		WTSOrderInfo* ordInfo = (WTSOrderInfo*)_awaits->grab(action->getOrderID());
+		std::string orderID = action->getOrderID();
+		WTSOrderInfo* ordInfo = _awaits ? (WTSOrderInfo*)_awaits->grab(orderID) : NULL;
 
 		/*
 		 *	撤单也要考虑几个问题
@@ -787,11 +920,15 @@ int TraderMocker::orderAction(WTSEntrustAction* action)
 		 */
 		if(ordInfo == NULL)
 		{
-			write_log(_listener,LL_ERROR, "订单{}不存在或者已完成", action->getOrderID());
 			WTSError* err = WTSError::create(WEC_ORDERCANCEL, "订单不存在或者处于不可撤销状态");
 			if (_listener)
+			{
+				StdUniqueLock lock(_mutex_api);
+				write_log(_listener, LL_ERROR, "订单{}不存在或者已完成", orderID.c_str());
 				_listener->onTraderError(err);
+			}
 			err->release();
+			action->release();
 			return;
 		}
 
@@ -840,11 +977,11 @@ int TraderMocker::orderAction(WTSEntrustAction* action)
 			_listener->onPushOrder(ordInfo);
 		}
 
+		if (_awaits)
+			_awaits->remove(orderID);
+
 		ordInfo->release();
 		action->release();
-
-		_awaits->remove(action->getOrderID());
-
 		save_positions();
 	});
 
@@ -886,6 +1023,7 @@ int TraderMocker::queryAccount()
 int TraderMocker::queryPositions()
 {
 	boost::asio::post(_io_service, [this](){
+		StdUniqueLock state_lock(_mtx_awaits);
 		WTSArray* ayPos = WTSArray::create();
 
 		for(auto& v : _positions)
@@ -935,6 +1073,7 @@ int TraderMocker::queryPositions()
 int TraderMocker::queryOrders()
 {
 	boost::asio::post(_io_service, [this](){
+		StdUniqueLock state_lock(_mtx_awaits);
 		StdUniqueLock lock(_mutex_api);
 
 		if (_listener)
@@ -947,6 +1086,7 @@ int TraderMocker::queryOrders()
 int TraderMocker::queryTrades()
 {
 	boost::asio::post(_io_service, [this](){
+		StdUniqueLock state_lock(_mtx_awaits);
 		StdUniqueLock lock(_mutex_api);
 
 		if (_listener)
@@ -1015,6 +1155,7 @@ void TraderMocker::extract_buffer(uint32_t length, bool isBroad /* = true */)
 		UDPTickPacket* packet = (UDPTickPacket*)header;
 		thread_local static char fullcode[64] = { 0 };
 		fmtutil::format_to(fullcode, "{}.{}", packet->_data.exchg, packet->_data.code);
+		StdUniqueLock state_lock(_mtx_awaits);
 		auto it = _codes.find(fullcode);
 		if (it == _codes.end())
 			return;

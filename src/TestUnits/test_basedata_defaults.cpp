@@ -35,6 +35,7 @@ TEST(test_basedata_defaults, fill_stock_like_product_defaults_when_fields_missin
 	const std::string commodities = write_temp_file("wt_test_comms.json", R"({
 		"SSE": {
 			"CB": {"name": "bond", "covermode": 0, "pricemode": 1, "volscale": 1, "session": "SD0930"},
+			"CBOND": {"name": "convertible bond", "covermode": 0, "pricemode": 1, "volscale": 1, "session": "SD0930"},
 			"STK": {"name": "stock", "covermode": 0, "pricemode": 1, "volscale": 1, "session": "SD0930"},
 			"ETF": {"name": "fund", "covermode": 0, "pricemode": 1, "volscale": 1, "session": "SD0930"},
 			"IDX": {"name": "index", "covermode": 0, "pricemode": 1, "volscale": 1, "session": "SD0930"},
@@ -53,6 +54,14 @@ TEST(test_basedata_defaults, fill_stock_like_product_defaults_when_fields_missin
 	EXPECT_DOUBLE_EQ(cb->getPriceTick(), 0.001);
 	EXPECT_EQ(cb->getCategoty(), CC_Stock);
 	EXPECT_EQ(cb->getTradingMode(), TM_Long);
+
+	WTSCommodityInfo* cbond = mgr.getCommodity("SSE", "CBOND");
+	ASSERT_NE(cbond, nullptr);
+	EXPECT_DOUBLE_EQ(cbond->getLotsTick(), 10.0);
+	EXPECT_DOUBLE_EQ(cbond->getMinLots(), 10.0);
+	EXPECT_DOUBLE_EQ(cbond->getPriceTick(), 0.001);
+	EXPECT_EQ(cbond->getCategoty(), CC_Stock);
+	EXPECT_EQ(cbond->getTradingMode(), TM_Long);
 
 	WTSCommodityInfo* stk = mgr.getCommodity("SSE", "STK");
 	ASSERT_NE(stk, nullptr);
