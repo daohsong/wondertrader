@@ -62,6 +62,7 @@ public:
 	virtual bool		cancel(uint32_t localid) override;
 	virtual OrderIDs	cancel(const char* code, bool isBuy, double qty) override;
 	virtual void		writeLog(const char* message) override;
+	virtual void		writeLog(const char* message, WTSLogLevel ll) override;
 
 	virtual WTSCommodityInfo*	getCommodityInfo(const char* stdCode) override;
 	virtual WTSSessionInfo*		getSessionInfo(const char* stdCode) override;

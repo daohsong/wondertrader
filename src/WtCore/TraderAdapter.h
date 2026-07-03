@@ -229,6 +229,7 @@ private:
 	ActionPolicyMgr*	_policy_mgr;
 
 	wt_hashmap<std::string, PosItem> _positions;
+	wt_hashmap<std::string, double> _last_fund_available;
 
 	SpinMutex	_mtx_orders;
 	OrderMap*	_orders;

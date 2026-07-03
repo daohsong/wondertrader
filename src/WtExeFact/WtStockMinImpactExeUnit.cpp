@@ -162,7 +162,7 @@ void WtStockMinImpactExeUnit::on_account(const char* currency, double prebalance
 {
 	if (strcmp(currency, "CNY") == 0)
 	{
-		_ctx->writeLog(fmtutil::format("avaliable update {}->:{}", _avaliable, avaliable));
+		_ctx->writeLog(fmtutil::format("avaliable update {}->:{}", _avaliable, avaliable), LL_DEBUG);
 		_avaliable = avaliable;
 	}
 }

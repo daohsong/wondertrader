@@ -255,6 +255,14 @@ void WtArbiExecuter::writeLog(const char* message)
 	WTSLogger::log_dyn_raw("executer", _name.c_str(), LL_INFO, szBuf);
 }
 
+void WtArbiExecuter::writeLog(const char* message, WTSLogLevel ll)
+{
+	static thread_local char szBuf[2048] = { 0 };
+	fmtutil::format_to(szBuf, "[{}]", _name.c_str());
+	strcat(szBuf, message);
+	WTSLogger::log_dyn_raw("executer", _name.c_str(), ll, szBuf);
+}
+
 WTSCommodityInfo* WtArbiExecuter::getCommodityInfo(const char* stdCode)
 {
 	return _stub->get_comm_info(stdCode);

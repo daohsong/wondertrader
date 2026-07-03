@@ -141,6 +141,8 @@ public:
 	 *	返回值		是否注册成功
 	 */
 	virtual bool		registerTimer(const char* stdCode, uint32_t elapse){ return false; }
+
+	virtual void	writeLog(const char* message, WTSLogLevel ll) { writeLog(message); }
 };
 
 //////////////////////////////////////////////////////////////////////////

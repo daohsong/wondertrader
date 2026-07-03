@@ -1520,6 +1520,19 @@ void TraderAdapter::onRspAccount(WTSArray* ayAccounts)
 
 	if(ayAccounts)
 	{
+		for (uint32_t idx = 0; idx < ayAccounts->size(); idx++)
+		{
+			WTSAccountInfo* fundInfo = (WTSAccountInfo*)ayAccounts->at(idx);
+			const char* currency = fundInfo->getCurrency();
+			double avaliable = fundInfo->getAvailable();
+			std::string fundKey = _id + "#" + currency;
+			auto itAvailable = _last_fund_available.find(fundKey);
+			double lastAvaliable = (itAvailable == _last_fund_available.end()) ? 0.0 : itAvailable->second;
+			WTSLogger::log_dyn("trader", _id.c_str(), LL_INFO,
+				"[{}] avaliable update {} {}->:{}", _id.c_str(), currency, lastAvaliable, avaliable);
+			_last_fund_available[fundKey] = avaliable;
+		}
+
 		//通知所有监听接口
 		for (auto sink : _sinks)
 		{
