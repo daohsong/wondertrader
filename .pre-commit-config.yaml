@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cxx-lf-line-endings
+        name: C/C++ source files use LF line endings
+        entry: python3 scripts/check_cxx_line_endings.py
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
