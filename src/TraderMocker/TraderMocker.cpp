@@ -352,9 +352,37 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 					break;
 				}
 
+				auto logCloseReject = [&](const char* reason, const PosItem* pItem, bool positionChecked) {
+					if(pItem != NULL)
+					{
+						const double longValidQty = pItem->_long._volume - pItem->_long._frozen;
+						const double shortValidQty = pItem->_short._volume - pItem->_short._frozen;
+						write_log(_listener, LL_ERROR,
+							"[TraderMocker]close position rejected: reason={}, fullCode={}, raw_code={}, raw_exchg={}, covermode={}, offset_type={}, direction={}, entrust_volume={}, long_volume={}, long_frozen={}, long_validQty={}, short_volume={}, short_frozen={}, short_validQty={}",
+							reason, ct->getFullCode(), entrust->getCode(), entrust->getExchg(), static_cast<int>(commInfo->getCoverMode()), static_cast<int>(entrust->getOffsetType()),
+							static_cast<int>(entrust->getDirection()), entrust->getVolume(), pItem->_long._volume, pItem->_long._frozen, longValidQty, pItem->_short._volume,
+							pItem->_short._frozen, shortValidQty);
+					}
+					else if(positionChecked)
+					{
+						write_log(_listener, LL_ERROR,
+							"[TraderMocker]close position rejected: reason={}, fullCode={}, raw_code={}, raw_exchg={}, covermode={}, offset_type={}, direction={}, entrust_volume={}, positions_size={}",
+							reason, ct->getFullCode(), entrust->getCode(), entrust->getExchg(), static_cast<int>(commInfo->getCoverMode()), static_cast<int>(entrust->getOffsetType()),
+							static_cast<int>(entrust->getDirection()), entrust->getVolume(), _positions.size());
+					}
+					else
+					{
+						write_log(_listener, LL_ERROR,
+							"[TraderMocker]close position rejected: reason={}, fullCode={}, raw_code={}, raw_exchg={}, covermode={}, offset_type={}, direction={}, entrust_volume={}",
+							reason, ct->getFullCode(), entrust->getCode(), entrust->getExchg(), static_cast<int>(commInfo->getCoverMode()), static_cast<int>(entrust->getOffsetType()),
+							static_cast<int>(entrust->getDirection()), entrust->getVolume());
+					}
+				};
+
 				//如果区分平昨平今,而委托的是平昨,则直接拒绝,因为mocker为了简化处理,不考虑昨仓
 				if (commInfo->getCoverMode() == CM_CoverToday && (entrust->getOffsetType() == WOT_CLOSE || entrust->getOffsetType() == WOT_CLOSEYESTERDAY))
 				{
+					logCloseReject("covermode_offset", NULL, false);
 					bPass = false;
 					msg = "没有足够的可平仓位";
 					break;
@@ -364,6 +392,7 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 				auto it = _positions.find(ct->getFullCode());
 				if(it == _positions.end())
 				{
+					logCloseReject("position_missing", NULL, true);
 					bPass = false;
 					msg = "没有足够的可平仓位";
 					break;
@@ -375,6 +404,7 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 				double validQty = isLong ? (pItem._long._volume - pItem._long._frozen) : (pItem._short._volume - pItem._short._frozen);
 				if(decimal::lt(validQty, entrust->getVolume()))
 				{
+					logCloseReject("volume_frozen_insufficient", &pItem, true);
 					bPass = false;
 					msg = "没有足够的可平仓位";
 					break;
