@@ -1,6 +1,6 @@
 ﻿#include <boost/pool/pool.hpp>
 #include <boost/smart_ptr.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/null_mutex.hpp>
 

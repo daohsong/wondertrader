@@ -11,7 +11,7 @@
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/WTSDataDef.hpp"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"

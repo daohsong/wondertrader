@@ -10,7 +10,7 @@
 #include "../Share/decimal.h"
 #include "../Share/StrUtil.hpp"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <filesystem>
 namespace fs = std::filesystem;
 

@@ -15,7 +15,7 @@
 #include "../Share/CpuHelper.hpp"
 #include "../Share/StrUtil.hpp"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
