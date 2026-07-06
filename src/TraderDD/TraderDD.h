@@ -15,7 +15,9 @@
 #include <unordered_map>
 #include <stdint.h>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/asio/strand.hpp>
 
 #include "../Includes/WTSTypes.h"
@@ -50,6 +52,7 @@ public:
 
 private:
 	void doLogin();
+	void doRelease();
 	void qryGDNo();	//查询股东号
 	void qryZJZH();	//查询资金账户
 
@@ -143,13 +146,15 @@ protected:
 	StdUniqueMutex		m_mtxQuery;
 	uint64_t			m_lastQryTime;
 
-	boost::asio::io_service		m_asyncIO;
-	boost::asio::io_service::strand*	m_strandIO;
+	boost::asio::io_context		m_asyncIO;
+	boost::asio::io_context::strand*	m_strandIO;
 	StdThreadPtr		m_thrdWorker;
+	typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> BoostWorker;
+	typedef std::shared_ptr<BoostWorker> BoostWorkerPtr;
+	BoostWorkerPtr		m_worker;
 
 	std::string		m_strModule;
 	DllHandle		m_hInstDD;
 
 	IniHelper		m_iniHelper;
 };
-

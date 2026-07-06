@@ -309,7 +309,7 @@ void TraderHuaX::OnFrontDisconnected(int nReason)
 		_sink->handleEvent(WTE_Close, nReason);
 
 	_state = TS_NOTLOGIN;
-	//_asyncio.post([this](){
+	//boost::asio::post(_asyncio, [this](){
 	//	write_log(_sink, LL_WARN, "[TraderHuaX] Connection lost, relogin in 2 seconds...");
 	//	std::this_thread::sleep_for(std::chrono::seconds(2));
 	//	reconnect();
@@ -586,7 +586,7 @@ void TraderHuaX::OnRspQryShareholderAccount(CTORATstpShareholderAccountField* pS
 			write_log(_sink, LL_INFO, "[TraderHuaX] [{}] Login succeed, trading date: {}...", _user.c_str(), _tradingday);
 
 			_inited = true;
-			_asyncio.post([this] {
+			boost::asio::post(_asyncio, [this] {
 				_sink->onLoginResult(true, 0, _tradingday);
 				_state = TS_ALLREADY;
 			});
@@ -664,7 +664,7 @@ bool TraderHuaX::init(WTSVariant *params)
 	return true;
 }
 
-void TraderHuaX::release()
+void TraderHuaX::doRelease()
 {
 	if (_api)
 	{
@@ -736,15 +736,45 @@ void TraderHuaX::connect()
 
 	if (_thrd_worker == NULL)
 	{
-		boost::asio::io_service::work work(_asyncio);
+		_asyncio.restart();
+		_worker.reset(new BoostWorker(_asyncio.get_executor()));
 		_thrd_worker.reset(new StdThread([this](){
-			while (true)
+			while (!_asyncio.stopped())
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2));
 				_asyncio.run_one();
 				//m_asyncIO.run();
 			}
 		}));
+	}
+}
+
+void TraderHuaX::release()
+{
+	if (_thrd_worker)
+	{
+		if (std::this_thread::get_id() == _thrd_worker->get_id())
+		{
+			doRelease();
+			_worker.reset();
+			_asyncio.stop();
+			_thrd_worker->detach();
+			_thrd_worker = NULL;
+		}
+		else
+		{
+			boost::asio::post(_asyncio, [this]() {
+				doRelease();
+				_worker.reset();
+				_asyncio.stop();
+			});
+			_thrd_worker->join();
+			_thrd_worker = NULL;
+		}
+	}
+	else
+	{
+		doRelease();
 	}
 }
 
@@ -817,7 +847,7 @@ void TraderHuaX::doLogin()
 		write_log(_sink, LL_ERROR, "[TraderHuaX] Login failed: error code {}", erro_code);
 		
 		_state = TS_LOGINFAILED;
-		_asyncio.post([this, erro_code]{
+		boost::asio::post(_asyncio, [this, erro_code]{
 			_sink->onLoginResult(false, erro_code.c_str(), 0);
 		});
 	}

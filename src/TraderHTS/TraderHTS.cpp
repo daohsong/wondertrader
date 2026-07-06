@@ -228,6 +228,13 @@ TraderHTS::TraderHTS()
 
 TraderHTS::~TraderHTS()
 {
+	release();
+
+	if (m_mapLives)
+	{
+		m_mapLives->release();
+		m_mapLives = NULL;
+	}
 
 }
 
@@ -311,10 +318,10 @@ bool TraderHTS::init(WTSVariant* params)
 	return true;
 }
 
-void TraderHTS::release()
+void TraderHTS::doRelease()
 {
 	if (m_mapLives)
-		m_mapLives->release();
+		m_mapLives->clear();
 }
 
 void TraderHTS::reconnect()
@@ -343,10 +350,11 @@ void TraderHTS::connect()
 {
 	if (m_thrdWorker == NULL)
 	{
-		m_strandIO = new boost::asio::io_service::strand(m_asyncIO);
-		boost::asio::io_service::work work(m_asyncIO);
+		m_asyncIO.restart();
+		m_strandIO = new boost::asio::io_context::strand(m_asyncIO);
+		m_worker.reset(new BoostWorker(m_asyncIO.get_executor()));
 		m_thrdWorker.reset(new StdThread([this]() {
-			while (true)
+			while (!m_asyncIO.stopped())
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2));
 				m_asyncIO.run_one();
@@ -357,21 +365,44 @@ void TraderHTS::connect()
 	reconnect();
 }
 
-void TraderHTS::disconnect()
+void TraderHTS::release()
 {
-	m_asyncIO.post([this]() {
-		release();
-	});
-
 	if (m_thrdWorker)
 	{
-		m_asyncIO.stop();
-		m_thrdWorker->join();
-		m_thrdWorker = NULL;
+		if (std::this_thread::get_id() == m_thrdWorker->get_id())
+		{
+			doRelease();
+			m_worker.reset();
+			m_asyncIO.stop();
+			m_thrdWorker->detach();
+			m_thrdWorker = NULL;
 
-		delete m_strandIO;
-		m_strandIO = NULL;
+			delete m_strandIO;
+			m_strandIO = NULL;
+		}
+		else
+		{
+			boost::asio::post(*m_strandIO, [this]() {
+				doRelease();
+				m_worker.reset();
+				m_asyncIO.stop();
+			});
+			m_thrdWorker->join();
+			m_thrdWorker = NULL;
+
+			delete m_strandIO;
+			m_strandIO = NULL;
+		}
 	}
+	else
+	{
+		doRelease();
+	}
+}
+
+void TraderHTS::disconnect()
+{
+	release();
 }
 
 void TraderHTS::htsGetCallback(const char* pTime, const char* pMsg, int nType)
@@ -671,7 +702,7 @@ int TraderHTS::login(const char* user, const char* pass, const char* productInfo
 
 void TraderHTS::qryGDNo()
 {
-	m_strandIO->post([this]() {
+	boost::asio::post(*m_strandIO, [this]() {
 
 		std::cout << "=========== query_gudong_info ============" << std::endl;
 
@@ -722,7 +753,7 @@ void TraderHTS::qryGDNo()
 
 void TraderHTS::doLogin()
 {
-	m_strandIO->post([this]() {
+	boost::asio::post(*m_strandIO, [this]() {
 		if (m_bUseEX)
 		{
 			strcpy(cusreqinfo.AccountId, m_strUser.c_str());  // 客户号
@@ -813,7 +844,7 @@ int TraderHTS::orderInsert(WTSEntrust* entrust)
 	}
 
 	entrust->retain();
-	m_strandIO->post([this, entrust]() {
+	boost::asio::post(*m_strandIO, [this, entrust]() {
 		bool isBuy = entrust->getOffsetType() == WOT_OPEN;
 		bool isSH = strcmp(entrust->getExchg(), "SSE") == 0;
 
@@ -905,7 +936,7 @@ int TraderHTS::orderAction(WTSEntrustAction* action)
 		return -1;
 
 	action->retain();
-	m_strandIO->post([this, action]() {
+	boost::asio::post(*m_strandIO, [this, action]() {
 		//write_log(m_traderSink, LL_INFO, "[TraderHTS]调用撤单接口");
 
 		bool isSH = strcmp(action->getExchg(), "SSE") == 0;
@@ -1379,7 +1410,7 @@ bool TraderHTS::isConnected()
 
 void TraderHTS::triggerQuery()
 {
-	m_strandIO->post([this]() {
+	boost::asio::post(*m_strandIO, [this]() {
 		if (m_queQuery.empty() || m_bInQuery)
 			return;
 
@@ -1388,7 +1419,7 @@ void TraderHTS::triggerQuery()
 		//if (curTime - m_lastQryTime < 1000)
 		//{
 		//	boost::this_thread::sleep(boost::posix_time::milliseconds(50));
-		//	m_strandIO->post([this](){
+		//	boost::asio::post(*m_strandIO, [this](){
 		//		triggerQuery();
 		//	});
 		//	return;

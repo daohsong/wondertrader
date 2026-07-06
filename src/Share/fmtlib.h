@@ -5,10 +5,10 @@
 #endif
 #if defined(WT_USE_STANDALONE_FMT)
 #include <fmt/format.h>
-#elif defined(WT_USE_SPDLOG_BUNDLED_FMT)
-#include <spdlog/fmt/bundled/format.h>
+#elif defined(WT_USE_SPDLOG_FMT_SHIM)
+#include <spdlog/fmt/fmt.h>
 #else
-#error "fmtlib.h requires WT_USE_STANDALONE_FMT or WT_USE_SPDLOG_BUNDLED_FMT from CMake"
+#error "fmtlib.h requires WT_USE_STANDALONE_FMT or WT_USE_SPDLOG_FMT_SHIM from CMake"
 #endif
 #include <type_traits>
 

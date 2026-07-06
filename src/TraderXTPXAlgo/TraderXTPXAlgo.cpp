@@ -390,7 +390,7 @@ void TraderXTPXAlgo::OnDisconnected(uint64_t session_id, int reason)
 	if (_sink)
 		_sink->handleEvent(WTE_Close, reason);
 
-	_asyncio.post([this]() {
+	boost::asio::post(_asyncio, [this]() {
 		write_log(_sink, LL_WARN, "[TraderXTPXAlgo] Connection lost, relogin in 2 seconds...");
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 		doLogin();  // 登录
@@ -833,7 +833,7 @@ bool TraderXTPXAlgo::init(WTSVariant *params)
 	return true;
 }
 
-void TraderXTPXAlgo::release()
+void TraderXTPXAlgo::doRelease()
 {
 	if (_api)
 	{
@@ -908,15 +908,45 @@ void TraderXTPXAlgo::connect()
 
 	if (_thrd_worker == NULL)
 	{
-		_worker.reset(new boost::asio::io_service::work(_asyncio));
+		_asyncio.restart();
+		_worker.reset(new BoostWorker(_asyncio.get_executor()));
 		_thrd_worker.reset(new StdThread([this]() {
-			while (true)
+			while (!_asyncio.stopped())
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2));
 				_asyncio.run_one();
 				//m_asyncIO.run();
 			}
 		}));
+	}
+}
+
+void TraderXTPXAlgo::release()
+{
+	if (_thrd_worker)
+	{
+		if (std::this_thread::get_id() == _thrd_worker->get_id())
+		{
+			doRelease();
+			_worker.reset();
+			_asyncio.stop();
+			_thrd_worker->detach();
+			_thrd_worker = NULL;
+		}
+		else
+		{
+			boost::asio::post(_asyncio, [this]() {
+				doRelease();
+				_worker.reset();
+				_asyncio.stop();
+			});
+			_thrd_worker->join();
+			_thrd_worker = NULL;
+		}
+	}
+	else
+	{
+		doRelease();
 	}
 }
 
@@ -979,7 +1009,7 @@ void TraderXTPXAlgo::doLogin()
 		write_log(_sink, LL_ERROR, "[TraderXTPXAlgo] Login to OMS failed: {}", error_info->error_msg);
 		std::string msg = error_info->error_msg;
 		_state = TS_LOGINFAILED;
-		_asyncio.post([this, msg] {
+		boost::asio::post(_asyncio, [this, msg] {
 			_sink->onLoginResult(false, msg.c_str(), 0);
 		});
 	}
@@ -1020,7 +1050,7 @@ void TraderXTPXAlgo::doLogin()
 
 			_state = TS_LOGINED;
 			_inited = true;
-			_asyncio.post([this] {
+			boost::asio::post(_asyncio, [this] {
 				_sink->onLoginResult(true, 0, _tradingday);
 				_state = TS_ALLREADY;
 			});
@@ -1043,7 +1073,7 @@ void TraderXTPXAlgo::doLogin()
 		write_log(_sink, LL_ERROR, "[TraderXTPXAlgo] Login AlgoBus failed: {}", error_info->error_msg);
 		std::string msg = error_info->error_msg;
 		_state = TS_LOGINFAILED;
-		_asyncio.post([this, msg] {
+		boost::asio::post(_asyncio, [this, msg] {
 			_sink->onLoginResult(false, msg.c_str(), 0);
 		});
 	}
@@ -1084,7 +1114,7 @@ void TraderXTPXAlgo::doLogin()
 
 			_state = TS_LOGINED;
 			_inited = true;
-			_asyncio.post([this] {
+			boost::asio::post(_asyncio, [this] {
 				_sink->onLoginResult(true, 0, _tradingday);
 				_state = TS_ALLREADY;
 			});
@@ -1109,7 +1139,7 @@ void TraderXTPXAlgo::doLogin()
 				write_log(_sink, LL_ERROR, "[TraderXTPXAlgo] Establish channel send error: {}", error_info->error_msg);
 				std::string msg = error_info->error_msg;
 				_state = TS_LOGINFAILED;
-				_asyncio.post([this, msg] {
+				boost::asio::post(_asyncio, [this, msg] {
 					_sink->onLoginResult(false, msg.c_str(), 0);
 				});
 			}

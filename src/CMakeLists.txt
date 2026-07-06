@@ -223,7 +223,7 @@ FIND_PATH(WT_FMT_INCLUDE_DIR NAMES fmt/format.h PATHS
 	${WT_FMT_INCLUDE_PATHS}
 	NO_DEFAULT_PATH
 )
-FIND_PATH(WT_SPDLOG_BUNDLED_FMT_INCLUDE_DIR NAMES spdlog/fmt/bundled/format.h PATHS
+FIND_PATH(WT_SPDLOG_FMT_SHIM_INCLUDE_DIR NAMES spdlog/fmt/fmt.h PATHS
 	${WT_FMT_INCLUDE_PATHS}
 	NO_DEFAULT_PATH
 )
@@ -231,12 +231,12 @@ IF(WT_FMT_INCLUDE_DIR)
 	LIST(APPEND INCS ${WT_FMT_INCLUDE_DIR})
 	ADD_DEFINITIONS(-DWT_USE_STANDALONE_FMT)
 	MESSAGE(STATUS "Using standalone fmt headers at ${WT_FMT_INCLUDE_DIR}")
-ELSEIF(WT_SPDLOG_BUNDLED_FMT_INCLUDE_DIR)
-	LIST(APPEND INCS ${WT_SPDLOG_BUNDLED_FMT_INCLUDE_DIR})
-	ADD_DEFINITIONS(-DWT_USE_SPDLOG_BUNDLED_FMT)
-	MESSAGE(STATUS "Using spdlog bundled fmt headers at ${WT_SPDLOG_BUNDLED_FMT_INCLUDE_DIR}")
+ELSEIF(WT_SPDLOG_FMT_SHIM_INCLUDE_DIR)
+	LIST(APPEND INCS ${WT_SPDLOG_FMT_SHIM_INCLUDE_DIR})
+	ADD_DEFINITIONS(-DWT_USE_SPDLOG_FMT_SHIM)
+	MESSAGE(STATUS "Using spdlog fmt shim headers at ${WT_SPDLOG_FMT_SHIM_INCLUDE_DIR}")
 ELSE()
-	MESSAGE(FATAL_ERROR "Could not find fmt headers. Install standalone fmt (fmt/format.h) or provide spdlog bundled fmt (spdlog/fmt/bundled/format.h) in ${INCS}")
+	MESSAGE(FATAL_ERROR "Could not find fmt headers. Install standalone fmt (fmt/format.h) or provide spdlog fmt shim (spdlog/fmt/fmt.h) in ${INCS}")
 ENDIF()
 
 SET(WT_ENABLE_ZMQ "AUTO" CACHE STRING "Enable ParserZMQ and TraderZMQ targets: AUTO, ON, or OFF")

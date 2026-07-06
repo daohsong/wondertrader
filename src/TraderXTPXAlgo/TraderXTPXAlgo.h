@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 #include <stdint.h>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 
 #include "../API/XTPXAlgo/include/xtp_trader_api.h"
 
@@ -173,6 +175,7 @@ public:
 
 private:
 	void		reconnect();
+	void		doRelease();
 	inline uint32_t			genRequestID();
 	void					doLogin();
 
@@ -229,9 +232,10 @@ private:
 	std::atomic<uint32_t>		_reqid;
 	std::atomic<uint32_t>		_ordref;		//报单引用
 
-	boost::asio::io_service		_asyncio;
+	boost::asio::io_context		_asyncio;
 	StdThreadPtr				_thrd_worker;
-	typedef std::shared_ptr<boost::asio::io_service::work> BoostWorkerPtr;
+	typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> BoostWorker;
+	typedef std::shared_ptr<BoostWorker> BoostWorkerPtr;
 	BoostWorkerPtr				_worker;
 
 	DllHandle		m_hInstXTP;
@@ -243,4 +247,3 @@ private:
 	//订单标记缓存器
 	WtKVCache		m_oidCache;
 };
-

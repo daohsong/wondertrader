@@ -10,7 +10,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 #include <atomic>
 
 #define TRADE_API_USE_STATIC
@@ -145,6 +147,7 @@ public:
 
 private:
 	void		reconnect();
+	void		doRelease();
 	inline uint32_t	genRequestID();
 	void		doLogin(const char* productid);
 
@@ -199,8 +202,11 @@ private:
 
 	std::string		_cust_id;  // 客户号
 
-	boost::asio::io_service		_asyncio;
+	boost::asio::io_context		_asyncio;
 	StdThreadPtr				_thrd_worker;
+	typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> BoostWorker;
+	typedef std::shared_ptr<BoostWorker> BoostWorkerPtr;
+	BoostWorkerPtr				_worker;
 
 	DllHandle		m_hInstATP;
 

@@ -628,7 +628,7 @@ void TraderATP::OnRspOrderStatusInternalAck(const ATPRspOrderStatusAckMsg& order
 
 			//orderInfo->release();
 
-			_asyncio.post([this, orderInfo] {
+			boost::asio::post(_asyncio, [this, orderInfo] {
 				if (_sink)
 					_sink->onPushOrder(orderInfo);
 
@@ -683,7 +683,7 @@ void TraderATP::OnRspOrderStatusAck(const ATPRspOrderStatusAckMsg& order_status_
 
 			//orderInfo->release();
 
-			_asyncio.post([this, orderInfo] {
+			boost::asio::post(_asyncio, [this, orderInfo] {
 				if (_sink)
 					_sink->onPushOrder(orderInfo);
 
@@ -706,7 +706,7 @@ void TraderATP::OnRspCashAuctionTradeER(const ATPRspCashAuctionTradeERMsg& cash_
 	WTSTradeInfo *tRecord = makeTradeRecord(&cash_auction_trade_er);
 	if (tRecord)
 	{
-		_asyncio.post([this, tRecord] {
+		boost::asio::post(_asyncio, [this, tRecord] {
 			if (_sink)
 				_sink->onPushTrade(tRecord);
 
@@ -757,14 +757,14 @@ void TraderATP::OnRspOrderQueryResult(const ATPRspOrderQueryResultMsg &msg)
 		if (ordInfo == NULL)
 			continue;
 
-		_asyncio.post([this, ordInfo] {
+		boost::asio::post(_asyncio, [this, ordInfo] {
 			ayOrders->append(ordInfo, false);
 		});
 	}
 
 	if ((msg.last_index + 1) == msg.total_num)  // 查询完毕
 	{
-		_asyncio.post([this] {
+		boost::asio::post(_asyncio, [this] {
 			if (_sink)
 				_sink->onRspOrders(ayOrders);
 
@@ -788,7 +788,7 @@ void TraderATP::OnRspTradeOrderQueryResult(const ATPRspTradeOrderQueryResultMsg 
 		if (trdInfo == NULL)
 			continue;
 
-		_asyncio.post([this, trdInfo] {
+		boost::asio::post(_asyncio, [this, trdInfo] {
 			ayTrades->append(trdInfo, false);
 		});
 	}
@@ -815,7 +815,7 @@ void TraderATP::OnRspTradeOrderQueryResult(const ATPRspTradeOrderQueryResultMsg 
 
 	if ((msg.last_index + 1) == msg.total_num)  // 查询完毕
 	{
-		_asyncio.post([this] {
+		boost::asio::post(_asyncio, [this] {
 			if (_sink)
 				_sink->onRspTrades(ayTrades);
 
@@ -871,7 +871,7 @@ void TraderATP::OnRspShareQueryResult(const ATPRspShareQueryResultMsg &msg)
 
 	if ((msg.last_index + 1) == msg.total_num)  // 查询完毕
 	{
-		_asyncio.post([this] {
+		boost::asio::post(_asyncio, [this] {
 			WTSArray* ayPos = WTSArray::create();
 
 			if (_positions && _positions->size() > 0)
@@ -958,7 +958,7 @@ bool TraderATP::init(WTSVariant *params)
 	return true;
 }
 
-void TraderATP::release()
+void TraderATP::doRelease()
 {
 	if (_api)
 	{
@@ -1034,9 +1034,10 @@ void TraderATP::connect()
 
 	if (_thrd_worker == NULL)
 	{
-		static boost::asio::io_service::work work(_asyncio);
+		_asyncio.restart();
+		_worker.reset(new BoostWorker(_asyncio.get_executor()));
 		_thrd_worker.reset(new StdThread([this]() {
-			while (true)
+			while (!_asyncio.stopped())
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2));
 				_asyncio.run_one();
@@ -1049,6 +1050,35 @@ void TraderATP::connect()
 void TraderATP::disconnect()
 {
 	release();
+}
+
+void TraderATP::release()
+{
+	if (_thrd_worker)
+	{
+		if (std::this_thread::get_id() == _thrd_worker->get_id())
+		{
+			doRelease();
+			_worker.reset();
+			_asyncio.stop();
+			_thrd_worker->detach();
+			_thrd_worker = NULL;
+		}
+		else
+		{
+			boost::asio::post(_asyncio, [this]() {
+				doRelease();
+				_worker.reset();
+				_asyncio.stop();
+			});
+			_thrd_worker->join();
+			_thrd_worker = NULL;
+		}
+	}
+	else
+	{
+		doRelease();
+	}
 }
 
 bool TraderATP::isConnected()
@@ -1278,7 +1308,7 @@ int TraderATP::queryAccount()
 
 int TraderATP::queryPositions()
 {
-	_asyncio.post([this]() {
+	boost::asio::post(_asyncio, [this]() {
 		{
 			ATPReqShareQueryMsg p;
 			strncpy(p.cust_id, _cust_id.c_str(), 17);
@@ -1331,7 +1361,7 @@ int TraderATP::queryPositions()
 
 int TraderATP::queryOrders()
 {
-	_asyncio.post([this]() {
+	boost::asio::post(_asyncio, [this]() {
 		{
 			ATPReqOrderQueryMsg p;
 			strncpy(p.cust_id, _cust_id.c_str(), 17);
@@ -1349,9 +1379,9 @@ int TraderATP::queryOrders()
 			{
 				write_log(_sink, LL_ERROR, "[TraderATP][{}] Query orders failed: {}", _acctid, ec);
 			}
-			write_log(_sink, LL_INFO, "return num: {}", _return_nums);
+			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			write_log(_sink, LL_INFO, "return num: {}", _return_nums);
+			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 
 			if (_return_nums > 100)
 			{
@@ -1381,7 +1411,7 @@ int TraderATP::queryOrders()
 
 int TraderATP::queryTrades()
 {
-	_asyncio.post([this]() {
+	boost::asio::post(_asyncio, [this]() {
 		{
 			ATPReqTradeOrderQueryMsg p;
 			strncpy(p.cust_id, _cust_id.c_str(), 17);
@@ -1399,9 +1429,9 @@ int TraderATP::queryTrades()
 			{
 				write_log(_sink, LL_ERROR, "[TraderATP][{}] Query trades failed: {}", _acctid, ec);
 			}
-			write_log(_sink, LL_INFO, "return num: {}", _return_nums);
+			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			write_log(_sink, LL_INFO, "return num: {}", _return_nums);
+			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 
 			if (_return_nums > 100)
 			{

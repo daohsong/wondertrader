@@ -10,7 +10,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 
 #include <oes_api/oes_async_api.h>
 
@@ -86,6 +88,7 @@ public:
 
 private:
 	void		reconnect();
+	void		doRelease();
 	void		doLogin();
 
 	inline WTSOrderInfo*	makeOrderInfo(OesOrdCnfmT* orderField);
@@ -116,12 +119,14 @@ private:
 
 	uint32_t		_tradingday;
 
-	boost::asio::io_service		_asyncio;
+	boost::asio::io_context		_asyncio;
 	StdThreadPtr				_thrd_worker;
+	typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> BoostWorker;
+	typedef std::shared_ptr<BoostWorker> BoostWorkerPtr;
+	BoostWorkerPtr				_worker;
 
 	//委托单标记缓存器
 	WtKVCache		m_eidCache;
 	//订单标记缓存器
 	WtKVCache		m_oidCache;
 };
-
