@@ -838,35 +838,33 @@ void TraderATP::OnRspShareQueryResult(const ATPRspShareQueryResultMsg &msg)
 		const std::string exchg = (unit.market_id == ATPMarketIDConst::kShangHai) ? "SSE" : "SZSE";
 
 		WTSContractInfo* contract = _bd_mgr->getContract(unit.security_id, exchg.c_str());
-		if (contract)
+		WTSCommodityInfo* commInfo = contract ? contract->getCommInfo() : NULL;
+		std::string key = fmt::format("{}-{}", unit.security_id, exchg.c_str());
+		WTSPositionItem* pos = (WTSPositionItem*)_positions->get(key);
+		if (pos == NULL)
 		{
-			WTSCommodityInfo* commInfo = contract->getCommInfo();
-			std::string key = fmt::format("{}-{}", unit.security_id, exchg.c_str());
-			WTSPositionItem* pos = (WTSPositionItem*)_positions->get(key);
-			if (pos == NULL)
-			{
-				pos = WTSPositionItem::create(unit.security_id, commInfo->getCurrency(), commInfo->getExchg());
+			pos = WTSPositionItem::create(unit.security_id, commInfo ? commInfo->getCurrency() : "CNY", commInfo ? commInfo->getExchg() : exchg.c_str(), contract ? BT_CASH : BT_UNKNOWN);
+			if (contract)
 				pos->setContractInfo(contract);
-				_positions->add(key, pos, false);
-			}
-			//pos->setDirection(wrapPosDirection(position->position_direction));
-
-			double tmp = (double)(unit.leaves_qty / 100.0 - unit.init_qty / 100.0);
-
-			pos->setNewPosition((tmp >= 0) ? tmp : 0);  // 剩余股份数量N15(2)，包含当日买入部分，拆分合并，申购赎回
-			pos->setPrePosition((double)unit.init_qty / 100.0);  // 日初持仓量N15(2)
-
-			pos->setAvailNewPos(0);
-			pos->setAvailPrePos(unit.available_qty / 100.0);   // 可用股份数量N15(2)
-
-			pos->setMargin(unit.market_value / 10000.0);
-			pos->setDynProfit(unit.profit_loss / 10000.0);
-			pos->setPositionCost(unit.market_value / 10000.0);
-
-			pos->setAvgPrice(unit.cost_price / 100.0);
-
-			write_log(_sink, LL_INFO, "[OnRspShareQueryResult][{}] {}.{}, {}[{}]", msg.account_id, exchg, pos->getCode(), pos->getNewPosition(), pos->getPrePosition());
+			_positions->add(key, pos, false);
 		}
+		//pos->setDirection(wrapPosDirection(position->position_direction));
+
+		double tmp = (double)(unit.leaves_qty / 100.0 - unit.init_qty / 100.0);
+
+		pos->setNewPosition((tmp >= 0) ? tmp : 0);  // 剩余股份数量N15(2)，包含当日买入部分，拆分合并，申购赎回
+		pos->setPrePosition((double)unit.init_qty / 100.0);  // 日初持仓量N15(2)
+
+		pos->setAvailNewPos(0);
+		pos->setAvailPrePos(unit.available_qty / 100.0);   // 可用股份数量N15(2)
+
+		pos->setMargin(unit.market_value / 10000.0);
+		pos->setDynProfit(unit.profit_loss / 10000.0);
+		pos->setPositionCost(unit.market_value / 10000.0);
+
+		pos->setAvgPrice(unit.cost_price / 100.0);
+
+		write_log(_sink, LL_INFO, "[OnRspShareQueryResult][{}] {}.{}, {}[{}]", msg.account_id, exchg, pos->getCode(), pos->getNewPosition(), pos->getPrePosition());
 	}
 
 	if ((msg.last_index + 1) == msg.total_num)  // 查询完毕

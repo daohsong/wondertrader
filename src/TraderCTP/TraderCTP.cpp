@@ -1050,6 +1050,27 @@ void TraderCTP::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInves
 				pos->setAvailPrePos(0);
 			}
 		}
+		else
+		{
+			std::string key = fmt::format("{}-{}", pInvestorPosition->InstrumentID, pInvestorPosition->PosiDirection);
+			WTSPositionItem* pos = (WTSPositionItem*)m_mapPosition->get(key);
+			if (pos == NULL)
+			{
+				pos = WTSPositionItem::create(pInvestorPosition->InstrumentID, "CNY", pInvestorPosition->ExchangeID, BT_UNKNOWN);
+				m_mapPosition->add(key, pos, false);
+			}
+			pos->setDirection(wrapPosDirection(pInvestorPosition->PosiDirection));
+			pos->setNewPosition(pos->getNewPosition() + pInvestorPosition->TodayPosition);
+			pos->setPrePosition(pos->getPrePosition() + pInvestorPosition->Position - pInvestorPosition->TodayPosition);
+			pos->setMargin(pos->getMargin() + pInvestorPosition->UseMargin);
+			pos->setDynProfit(pos->getDynProfit() + pInvestorPosition->PositionProfit);
+			pos->setPositionCost(pos->getPositionCost() + pInvestorPosition->PositionCost);
+
+			double avail = pInvestorPosition->Position - pInvestorPosition->LongFrozen - pInvestorPosition->ShortFrozen;
+			if (avail < 0)
+				avail = 0;
+			pos->setAvailPrePos(pos->getAvailPrePos() + avail);
+		}
 	}
 
 	if (bIsLast)

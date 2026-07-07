@@ -1557,6 +1557,7 @@ void TraderAdapter::onRspAccount(WTSArray* ayAccounts)
 
 void TraderAdapter::onRspPosition(const WTSArray* ayPositions)
 {
+	bool hasUnknownPositions = false;
 	if (ayPositions && ayPositions->size() > 0)
 	{
 		for (auto it = ayPositions->begin(); it != ayPositions->end(); it++)
@@ -1564,7 +1565,18 @@ void TraderAdapter::onRspPosition(const WTSArray* ayPositions)
 			WTSPositionItem* pItem = (WTSPositionItem*)(*it);
 			WTSContractInfo* cInfo = pItem->getContractInfo();
 			if (cInfo == NULL)
+			{
+				const bool hasPosition = !decimal::eq(pItem->getPrePosition(), 0) || !decimal::eq(pItem->getNewPosition(), 0);
+				if (hasPosition)
+				{
+					hasUnknownPositions = true;
+					WTSLogger::log_dyn("trader", _id.c_str(), LL_ERROR,
+						"[{}] missing contract info for nonzero upstream position: {}.{} direction={} pre={} new={} avail_pre={} avail_new={}; check basefiles.contract",
+						_id.c_str(), pItem->getExchg(), pItem->getCode(), pItem->getDirection() == WDT_LONG ? "long" : "short",
+						pItem->getPrePosition(), pItem->getNewPosition(), pItem->getAvailPrePos(), pItem->getAvailNewPos());
+				}
 				continue;
+			}
 
 			WTSCommodityInfo* commInfo = cInfo->getCommInfo();
 			std::string stdCode;
@@ -1589,6 +1601,15 @@ void TraderAdapter::onRspPosition(const WTSArray* ayPositions)
 				pos.s_preavail = pItem->getAvailPrePos();
 				pos.s_prevol = pItem->getPrePosition();
 			}
+		}
+
+		if (hasUnknownPositions)
+		{
+			WTSLogger::log_dyn("trader", _id.c_str(), LL_ERROR,
+				"[{}] Position query blocked by unknown upstream positions; trading channel will not be ready", _id.c_str());
+			if (_notifier)
+				_notifier->notify(id(), "position query blocked by unknown upstream positions");
+			return;
 		}
 
 		for (auto it = _positions.begin(); it != _positions.end(); it++)

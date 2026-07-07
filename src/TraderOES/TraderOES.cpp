@@ -969,30 +969,28 @@ void TraderOES::handle_rsp_positions(SMsgHeadT *pMsgHead, void *pMsgItem, OesQry
 
 	const char* exchg = (OES_MKT_SH_ASHARE == pStkHolding->mktId) ? "SSE" : "SZSE";
 	WTSContractInfo* cInfo = _bd_mgr->getContract(pStkHolding->securityId, exchg);
+	WTSCommodityInfo* commInfo = cInfo ? cInfo->getCommInfo() : NULL;
+	WTSPositionItem* pos = WTSPositionItem::create(pStkHolding->securityId, commInfo ? commInfo->getCurrency() : "CNY", commInfo ? commInfo->getExchg() : exchg, cInfo ? BT_CASH : BT_UNKNOWN);
 	if (cInfo != NULL)
-	{
-		WTSCommodityInfo* commInfo = cInfo->getCommInfo();
-		WTSPositionItem* pos = WTSPositionItem::create(pStkHolding->securityId, commInfo->getCurrency(), commInfo->getExchg());
 		pos->setContractInfo(cInfo);
-		pos->setDirection(WDT_LONG);
+	pos->setDirection(WDT_LONG);
 
-		double preVol = std::max((double)(pStkHolding->originalHld - pStkHolding->totalSellHld), 0.0);
-		double newVol = pStkHolding->originalHld + pStkHolding->totalBuyHld - pStkHolding->totalSellHld - preVol;
+	double preVol = std::max((double)(pStkHolding->originalHld - pStkHolding->totalSellHld), 0.0);
+	double newVol = pStkHolding->originalHld + pStkHolding->totalBuyHld - pStkHolding->totalSellHld - preVol;
 
-		pos->setNewPosition(newVol);
-		pos->setPrePosition(preVol);
+	pos->setNewPosition(newVol);
+	pos->setPrePosition(preVol);
 
-		pos->setMargin(pos->getTotalPosition()*pStkHolding->costPrice/10000.0);
-		pos->setDynProfit(0);
-		pos->setPositionCost(pos->getMargin());
+	pos->setMargin(pos->getTotalPosition()*pStkHolding->costPrice/10000.0);
+	pos->setDynProfit(0);
+	pos->setPositionCost(pos->getMargin());
 
-		pos->setAvgPrice(pStkHolding->costPrice/10000.0);
+	pos->setAvgPrice(pStkHolding->costPrice/10000.0);
 
-		pos->setAvailNewPos(0);
-		pos->setAvailPrePos((double)pStkHolding->sellAvlHld);
+	pos->setAvailNewPos(0);
+	pos->setAvailPrePos((double)pStkHolding->sellAvlHld);
 
-		_positions->append(pos, false);
-	}
+	_positions->append(pos, false);
 
 	if (pQryCursor == NULL || pQryCursor->isEnd)
 	{

@@ -488,31 +488,29 @@ void TraderXTP::OnQueryPosition(XTPQueryStkPositionRsp *position, XTPRI *error_i
 			exchg = "SZSE";
 		code += position->ticker;
 		WTSContractInfo* contract = _bd_mgr->getContract(code.c_str(), exchg.c_str());
-		if (contract)
+		WTSCommodityInfo* commInfo = contract ? contract->getCommInfo() : NULL;
+		std::string key = fmt::format("{}-{}", code.c_str(), position->position_direction);
+		WTSPositionItem* pos = (WTSPositionItem*)_positions->get(key);
+		if (pos == NULL)
 		{
-			WTSCommodityInfo* commInfo = contract->getCommInfo();
-			std::string key = fmt::format("{}-{}", code.c_str(), position->position_direction);
-			WTSPositionItem* pos = (WTSPositionItem*)_positions->get(key);
-			if (pos == NULL)
-			{
-				pos = WTSPositionItem::create(code.c_str(), commInfo->getCurrency(), commInfo->getExchg());
+			pos = WTSPositionItem::create(code.c_str(), commInfo ? commInfo->getCurrency() : "CNY", commInfo ? commInfo->getExchg() : exchg.c_str(), contract ? BT_CASH : BT_UNKNOWN);
+			if (contract)
 				pos->setContractInfo(contract);
-				_positions->add(key, pos, false);
-			}
-			pos->setDirection(wrapPosDirection(position->position_direction));
-
-			pos->setNewPosition((double)(position->total_qty - position->yesterday_position));
-			pos->setPrePosition((double)position->yesterday_position);
-
-			pos->setMargin(position->total_qty*position->avg_price);
-			pos->setDynProfit(0);
-			pos->setPositionCost(position->total_qty*position->avg_price);
-
-			pos->setAvgPrice(position->avg_price);
-
-			pos->setAvailNewPos(0);
-			pos->setAvailPrePos((double)position->sellable_qty);
+			_positions->add(key, pos, false);
 		}
+		pos->setDirection(wrapPosDirection(position->position_direction));
+
+		pos->setNewPosition((double)(position->total_qty - position->yesterday_position));
+		pos->setPrePosition((double)position->yesterday_position);
+
+		pos->setMargin(position->total_qty*position->avg_price);
+		pos->setDynProfit(0);
+		pos->setPositionCost(position->total_qty*position->avg_price);
+
+		pos->setAvgPrice(position->avg_price);
+
+		pos->setAvailNewPos(0);
+		pos->setAvailPrePos((double)position->sellable_qty);
 	}
 
 	if (is_last)
