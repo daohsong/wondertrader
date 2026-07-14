@@ -3,13 +3,14 @@
 #include "../Share/fmtlib.h"
 #include "gtest/gtest/gtest.h"
 
+#include <cstring>
+
 USING_NS_WTP;
 
 TEST(test_lmdb, test_constructor)
 {
-	WtLMDB* db = new WtLMDB();
-	EXPECT_TRUE(db->open("./testdb"));
-	delete db;
+	WtLMDB db;
+	ASSERT_TRUE(db.open("./testdb"));
 }
 
 TEST(test_lmdb, test_query)
@@ -17,7 +18,7 @@ TEST(test_lmdb, test_query)
 	{	
 		//–¥≤È—Ø
 		WtLMDB db(false);
-		EXPECT_TRUE(db.open("./testdb"));
+		ASSERT_TRUE(db.open("./testdb"));
 
 		WtLMDBQuery query(db);
 		EXPECT_FALSE(db.has_error());
@@ -35,7 +36,7 @@ TEST(test_lmdb, test_query)
 	{
 		//∂¡≤È—Ø
 		WtLMDB db(true);
-		EXPECT_TRUE(db.open("./testdb"));
+		ASSERT_TRUE(db.open("./testdb"));
 
 		WtLMDBQuery query(db);
 		EXPECT_FALSE(db.has_error());
@@ -87,7 +88,7 @@ TEST(test_lmdb, test_endian)
 	{
 		//–¥≤È—Ø
 		WtLMDB db(false);
-		EXPECT_TRUE(db.open("./endiandb"));
+		ASSERT_TRUE(db.open("./endiandb"));
 
 		WtLMDBQuery query(db);
 		EXPECT_FALSE(db.has_error());
@@ -106,7 +107,7 @@ TEST(test_lmdb, test_endian)
 	{
 		//∂¡≤È—Ø
 		WtLMDB db(true);
-		EXPECT_TRUE(db.open("./endiandb"));
+		ASSERT_TRUE(db.open("./endiandb"));
 
 		WtLMDBQuery query(db);
 		EXPECT_FALSE(db.has_error());
@@ -114,7 +115,9 @@ TEST(test_lmdb, test_endian)
 
 		uint32_t d = 20220101;
 		std::string v = query.get(makeData(d, true));
-		uint32_t iv = *((uint32_t*)v.data());
+		ASSERT_EQ(sizeof(uint32_t), v.size());
+		uint32_t iv = 0;
+		std::memcpy(&iv, v.data(), sizeof(iv));
 		EXPECT_EQ(iv, d);
 
 		printf("Testing getting enough lower data:\r\n");

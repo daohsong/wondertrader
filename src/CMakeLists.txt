@@ -27,6 +27,8 @@ ENDIF()
 
 PROJECT(WonderTrader)
 
+INCLUDE(CTest)
+
 #3. 环境判断
 IF (WIN32)
 	MESSAGE(STATUS "Operation System is windows")
@@ -595,5 +597,7 @@ ADD_SUBDIRECTORY(TestExecPorter)
 ADD_SUBDIRECTORY(TestPorter)
 ADD_SUBDIRECTORY(TestTrader)
 ADD_SUBDIRECTORY(TestParser)
-ADD_SUBDIRECTORY(TestUnits)
+IF(BUILD_TESTING)
+	ADD_SUBDIRECTORY(TestUnits)
+ENDIF()
 
