@@ -24,6 +24,7 @@ SET(SRCS
 	test_compile_warnings_shareblocks.cpp
 	test_compile_warnings_shmqueue.cpp
 	test_compile_warnings_threadpool.cpp
+	test_contract_identifiers.cpp
 	test_cpuhelper.cpp
 	test_current_dir_compat.cpp
 	test_dllhelper.cpp

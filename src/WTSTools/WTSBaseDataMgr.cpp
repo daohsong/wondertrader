@@ -412,6 +412,11 @@ bool WTSBaseDataMgr::loadCommodities(const char* filename)
 			}
 
 			WTSCommodityInfo* commInfo = WTSCommodityInfo::create(pid.c_str(), name, exchg.c_str(), sid, hid);
+			if (commInfo == NULL)
+			{
+				WTSLogger::error("Commodity {}.{} contains a field that exceeds the supported identifier length", exchg, pid);
+				continue;
+			}
 			parseCommodity(commInfo, jPInfo);
 
 			WTSSessionInfo* sInfo = getSession(sid);
@@ -494,6 +499,11 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 					sid = "ALLDAY";
 
 				commInfo = WTSCommodityInfo::create(pid.c_str(), name, exchg.c_str(), sid.c_str(), hid.c_str());
+				if (commInfo == NULL)
+				{
+					WTSLogger::warn("Automatically generated commodity {}.{} exceeds the supported identifier length, contract skipped", exchg, pid);
+					continue;
+				}
 				parseCommodity(commInfo, jPInfo);
 				WTSSessionInfo* sInfo = getSession(sid.c_str());
 				commInfo->setSessionInfo(sInfo);
@@ -523,6 +533,11 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 				jcInfo->getCString("name"),
 				jcInfo->getCString("exchg"),
 				pid.c_str());
+			if (cInfo == NULL)
+			{
+				WTSLogger::warn("Contract {} contains a field that exceeds the supported identifier length, skipped", code);
+				continue;
+			}
 
 			/*
 			 *	By Wesley @ 2024.04.12
@@ -530,10 +545,13 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 			 *	如果没有配置altcode，则使用code作为altcode
 			 */
 			bool bHasAltCode = jcInfo->has("altcode") && strlen(jcInfo->getCString("altcode")) > 0;
-			if (bHasAltCode)
-				cInfo->setAltCode(jcInfo->getCString("altcode"));
-			else
-				cInfo->setAltCode(code.c_str());
+			const char* altCode = bHasAltCode ? jcInfo->getCString("altcode") : code.c_str();
+			if (!cInfo->setAltCode(altCode))
+			{
+				WTSLogger::warn("Alternative code {} of contract {} exceeds the supported identifier length, skipped", altCode, code);
+				cInfo->release();
+				continue;
+			}
 
 			cInfo->setCommInfo(commInfo);
 

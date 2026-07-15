@@ -11,25 +11,71 @@
 #include "WTSObject.hpp"
 #include "WTSTypes.h"
 #include "FasterDefs.h"
+#include <cstring>
 #include <string>
 
 NS_WTP_BEGIN
 class WTSSessionInfo;
+
+namespace contract_detail
+{
+template<size_t Capacity>
+inline bool fits(const char* value) noexcept
+{
+	return value != nullptr && std::strlen(value) < Capacity;
+}
+
+template<size_t Capacity>
+inline bool fitsJoined(const char* lhs, const char* rhs) noexcept
+{
+	if (lhs == nullptr || rhs == nullptr)
+		return false;
+	const size_t lhsLength = std::strlen(lhs);
+	return lhsLength < Capacity && std::strlen(rhs) < Capacity - lhsLength - 1;
+}
+
+template<size_t Capacity>
+inline void copy(char (&destination)[Capacity], const char* source) noexcept
+{
+	const size_t length = std::strlen(source);
+	std::memcpy(destination, source, length);
+	destination[length] = '\0';
+}
+
+template<size_t Capacity>
+inline void join(char (&destination)[Capacity], const char* lhs, const char* rhs) noexcept
+{
+	const size_t lhsLength = std::strlen(lhs);
+	const size_t rhsLength = std::strlen(rhs);
+	std::memcpy(destination, lhs, lhsLength);
+	destination[lhsLength] = '.';
+	std::memcpy(destination + lhsLength + 1, rhs, rhsLength);
+	destination[lhsLength + rhsLength + 1] = '\0';
+}
+}
 
 class WTSCommodityInfo: public WTSObject
 {
 public:
 	static WTSCommodityInfo* create(const char* pid, const char* name, const char* exchg, const char* session, const char* trdtpl, const char* currency = "CNY") noexcept
 	{
-		WTSCommodityInfo* ret = new WTSCommodityInfo;
-		wt_strcpy(ret->m_strName, name);
-		wt_strcpy(ret->m_strExchg, exchg);
-		wt_strcpy(ret->m_strProduct, pid);
-		wt_strcpy(ret->m_strCurrency, currency);
-		wt_strcpy(ret->m_strSession, session);
-		wt_strcpy(ret->m_strTrdTpl, trdtpl);
+		if (!contract_detail::fits<64>(pid)
+			|| !contract_detail::fits<64>(name)
+			|| !contract_detail::fits<64>(exchg)
+			|| !contract_detail::fits<64>(session)
+			|| !contract_detail::fits<64>(trdtpl)
+			|| !contract_detail::fits<64>(currency)
+			|| !contract_detail::fitsJoined<64>(exchg, pid))
+			return nullptr;
 
-		sprintf(ret->m_strFullPid, "%s.%s", exchg, pid);
+		WTSCommodityInfo* ret = new WTSCommodityInfo;
+		contract_detail::copy(ret->m_strName, name);
+		contract_detail::copy(ret->m_strExchg, exchg);
+		contract_detail::copy(ret->m_strProduct, pid);
+		contract_detail::copy(ret->m_strCurrency, currency);
+		contract_detail::copy(ret->m_strSession, session);
+		contract_detail::copy(ret->m_strTrdTpl, trdtpl);
+		contract_detail::join(ret->m_strFullPid, exchg, pid);
 
 		return ret;
 	}
@@ -170,24 +216,36 @@ class WTSContractInfo :	public WTSObject
 public:
 	static WTSContractInfo* create(const char* code, const char* name, const char* exchg, const char* pid)
 	{
-		WTSContractInfo* ret = new WTSContractInfo;
-		wt_strcpy(ret->m_strCode, code);
-		wt_strcpy(ret->m_strName, name);
-		wt_strcpy(ret->m_strProduct, pid);
-		wt_strcpy(ret->m_strExchg, exchg);
+		if (!contract_detail::fits<32>(code)
+			|| !contract_detail::fits<64>(name)
+			|| !contract_detail::fits<32>(exchg)
+			|| !contract_detail::fits<32>(pid)
+			|| !contract_detail::fitsJoined<64>(exchg, code)
+			|| !contract_detail::fitsJoined<64>(exchg, pid))
+			return nullptr;
 
-		sprintf(ret->m_strFullCode, "%s.%s", exchg, code);
-		sprintf(ret->m_strFullPid, "%s.%s", exchg, pid);
+		WTSContractInfo* ret = new WTSContractInfo;
+		contract_detail::copy(ret->m_strCode, code);
+		contract_detail::copy(ret->m_strName, name);
+		contract_detail::copy(ret->m_strProduct, pid);
+		contract_detail::copy(ret->m_strExchg, exchg);
+		contract_detail::join(ret->m_strFullCode, exchg, code);
+		contract_detail::join(ret->m_strFullPid, exchg, pid);
 
 		return ret;
 	}
 
 	constexpr inline void	setVolScale(uint32_t volScale) noexcept { m_uVolScale = volScale; }
 
-	inline void setAltCode(const char* altCode) noexcept
+	inline bool setAltCode(const char* altCode) noexcept
 	{
-		wt_strcpy(m_strAltCode, altCode);
-		sprintf(m_strFullAltCode, "%s.%s", m_strExchg, altCode);
+		if (!contract_detail::fits<32>(altCode)
+			|| !contract_detail::fitsJoined<64>(m_strExchg, altCode))
+			return false;
+
+		contract_detail::copy(m_strAltCode, altCode);
+		contract_detail::join(m_strFullAltCode, m_strExchg, altCode);
+		return true;
 	}
 
 	constexpr inline void	setVolumeLimits(uint32_t maxMarketVol, uint32_t maxLimitVol, uint32_t minMarketVol = 1, uint32_t minLimitVol = 1) noexcept
