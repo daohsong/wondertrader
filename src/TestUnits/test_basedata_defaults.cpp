@@ -143,3 +143,32 @@ TEST(test_basedata_defaults, explicit_values_override_product_defaults)
 	std::remove(sessions.c_str());
 	std::remove(commodities.c_str());
 }
+
+TEST(test_basedata_defaults, invalid_session_and_commodity_entries_are_skipped_without_ownership)
+{
+	const std::string sessions = write_temp_file("wt_test_sessions_invalid.json", R"({
+		"INVALID": {"name": "missing sections", "offset": 0},
+		"VALID": {
+			"name": "valid",
+			"offset": 0,
+			"sections": [{"from": 930, "to": 1500}]
+		}
+	})");
+	const std::string commodities = write_temp_file("wt_test_comms_invalid.json", R"({
+		"SSE": {
+			"BAD": {"name": "missing session", "session": "NOT_FOUND"}
+		}
+	})");
+
+	{
+		WTSBaseDataMgr mgr;
+		ASSERT_TRUE(mgr.loadSessions(sessions.c_str()));
+		EXPECT_EQ(mgr.getSession("INVALID"), nullptr);
+		ASSERT_NE(mgr.getSession("VALID"), nullptr);
+		ASSERT_TRUE(mgr.loadCommodities(commodities.c_str()));
+		EXPECT_EQ(mgr.getCommodity("SSE", "BAD"), nullptr);
+	}
+
+	std::remove(sessions.c_str());
+	std::remove(commodities.c_str());
+}

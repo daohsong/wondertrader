@@ -99,10 +99,10 @@ WTSBaseDataMgr::~WTSBaseDataMgr()
 		_session_map = NULL;
 	}
 
-	if (_fullpid_map)
+	if (_fullcode_map)
 	{
-		_fullpid_map->release();
-		_fullpid_map = NULL;
+		_fullcode_map->release();
+		_fullcode_map = NULL;
 	}
 
 	if(_pid_map)
@@ -331,7 +331,10 @@ bool WTSBaseDataMgr::loadSessions(const char* filename)
 
 		WTSVariant* jSecs = jVal->get("sections");
 		if (jSecs == NULL || !jSecs->isArray())
+		{
+			sInfo->release();
 			continue;
+		}
 
 		for (uint32_t i = 0; i < jSecs->size(); i++)
 		{
@@ -339,7 +342,7 @@ bool WTSBaseDataMgr::loadSessions(const char* filename)
 			sInfo->addTradingSection(jSec->getUInt32("from"), jSec->getUInt32("to"));
 		}
 
-		_session_map->add(id.c_str(), sInfo);
+		_session_map->add(id.c_str(), sInfo, false);
 	}
 
 	root->release();
@@ -423,6 +426,7 @@ bool WTSBaseDataMgr::loadCommodities(const char* filename)
 			if(sInfo == NULL)
 			{
 				WTSLogger::error("Session {} of {}.{} not exists", sid, exchg, pid);
+				commInfo->release();
 				continue;
 			}
 			commInfo->setSessionInfo(sInfo);
@@ -433,7 +437,7 @@ bool WTSBaseDataMgr::loadCommodities(const char* filename)
 			if (ayInst == NULL)
 			{
 				ayInst = WTSArray::create();
-				_pid_map->add(pid, ayInst);
+				_pid_map->add(pid, ayInst, false);
 			}
 			ayInst->append(commInfo, true);
 
@@ -514,7 +518,7 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 				if (ayInst == NULL)
 				{
 					ayInst = WTSArray::create();
-					_pid_map->add(pid, ayInst);
+					_pid_map->add(pid, ayInst, false);
 				}
 				ayInst->append(commInfo, true);
 
@@ -597,7 +601,7 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 			if(ayInst == NULL)
 			{
 				ayInst = WTSArray::create();
-				_code_map->add(cInfo->getCode(), ayInst);
+				_code_map->add(cInfo->getCode(), ayInst, false);
 			}
 			ayInst->append(cInfo, true);
 			_fullcode_map->add(cInfo->getFullCode(), cInfo, true);
@@ -608,7 +612,7 @@ bool WTSBaseDataMgr::loadContracts(const char* filename)
 				if (ayInst == NULL)
 				{
 					ayInst = WTSArray::create();
-					_code_map->add(cInfo->getAltCode(), ayInst);
+					_code_map->add(cInfo->getAltCode(), ayInst, false);
 				}
 				ayInst->append(cInfo, true);
 
