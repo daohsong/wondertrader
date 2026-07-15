@@ -47,6 +47,7 @@ SET(SRCS
 	test_session.cpp
 	test_sel_task_schedule.cpp
 	test_shm.cpp
+	test_timeutils_format.cpp
 	test_tradermocker_matching.cpp
 	test_utils.cpp
 )

@@ -8,6 +8,7 @@
  * \brief 时间处理的封装
  */
 #pragma once
+#include <cstdio>
 #include <stdint.h>
 #include <sys/timeb.h>
 #ifdef _MSC_VER
@@ -141,10 +142,13 @@ namespace TimeUtils
 		fasttime(now, &tNow, getTZOffset());
 
 		char str[64] = {0};
+		int written = 0;
 		if(bIncludeMilliSec)
-			sprintf(str, "%02d:%02d:%02d,%03d", tNow.tm_hour, tNow.tm_min, tNow.tm_sec, millitm);
+			written = std::snprintf(str, sizeof(str), "%02d:%02d:%02d,%03u", tNow.tm_hour, tNow.tm_min, tNow.tm_sec, millitm);
 		else
-			sprintf(str, "%02d:%02d:%02d", tNow.tm_hour, tNow.tm_min, tNow.tm_sec);
+			written = std::snprintf(str, sizeof(str), "%02d:%02d:%02d", tNow.tm_hour, tNow.tm_min, tNow.tm_sec);
+		if (written < 0 || static_cast<size_t>(written) >= sizeof(str))
+			return "";
 		return str;
 	}
 
@@ -269,12 +273,15 @@ namespace TimeUtils
 		localtime_r(&tt, &t);
 #endif
 		char tm_buf[64] = {'\0'};
+		int written = 0;
 		if (msec > 0) //是否有毫秒
-		   sprintf(tm_buf,"%4d%02d%02d%02d%02d%02d.%03d",t.tm_year+1900, t.tm_mon+1, t.tm_mday,
+		   written = std::snprintf(tm_buf, sizeof(tm_buf), "%4d%02d%02d%02d%02d%02d.%03d", t.tm_year+1900, t.tm_mon+1, t.tm_mday,
 			t.tm_hour, t.tm_min, t.tm_sec, msec);
 		else 
-		   sprintf(tm_buf,"%4d%02d%02d%02d%02d%02d",t.tm_year+1900, t.tm_mon+1, t.tm_mday,
+		   written = std::snprintf(tm_buf, sizeof(tm_buf), "%4d%02d%02d%02d%02d%02d", t.tm_year+1900, t.tm_mon+1, t.tm_mday,
 			t.tm_hour, t.tm_min, t.tm_sec);
+		if (written < 0 || static_cast<size_t>(written) >= sizeof(tm_buf))
+			return "";
 		return tm_buf;
 	};
 
@@ -384,7 +391,7 @@ namespace TimeUtils
 		Time32(uint64_t timeWithMSecs)
 		{
 			time_t _t = timeWithMSecs/1000;
-			_msec = (uint32_t)timeWithMSecs%1000;
+			_msec = static_cast<uint32_t>(timeWithMSecs % 1000);
 #ifdef _WIN32
 			localtime_s(&t, &_t);
 #else
@@ -420,15 +427,18 @@ namespace TimeUtils
 
 		const char* fmt(const char* sfmt = "%Y.%m.%d %H:%M:%S", bool hasMilliSec = false) const
 		{
-			static char buff[1024];
-			uint32_t length = (uint32_t)strftime(buff, 1023, sfmt, &t);
+			thread_local static char buff[1024] = { 0 };
+			buff[0] = '\0';
+			size_t length = strftime(buff, sizeof(buff), sfmt, &t);
+			if (length == 0)
+				buff[0] = '\0';
 			if (hasMilliSec)
-				sprintf(buff + length, ",%03u", _msec);
+				std::snprintf(buff + length, sizeof(buff) - length, ",%03u", _msec);
 			return buff;
 		}
 
 	protected:
-		struct tm t;
+		struct tm t = {};
 		uint32_t _msec;
 	};
 
