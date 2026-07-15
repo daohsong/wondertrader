@@ -96,6 +96,7 @@ SET(WT_BT_CORE_TEST_SRCS
 	test_wtdatawriter_final.cpp
 	test_wtdatawriterad_final.cpp
 	test_wtsvariant_format.cpp
+	test_wtspoolobject.cpp
 )
 
 ADD_EXECUTABLE(WtBtCoreTests ${WT_BT_CORE_TEST_SRCS})

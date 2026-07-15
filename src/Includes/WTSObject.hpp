@@ -99,9 +99,11 @@ public:
 			uint32_t cnt = m_uRefs.fetch_sub(1);
 			if (cnt == 1)
 			{
-				_mutex->lock();
-				_pool->destroy((T*)this);
-				_mutex->unlock();
+				SpinMutex* mutex = _mutex;
+				PoolType* pool = _pool;
+				mutex->lock();
+				pool->destroy(static_cast<T*>(this));
+				mutex->unlock();
 			}
 		}
 		catch (...)
