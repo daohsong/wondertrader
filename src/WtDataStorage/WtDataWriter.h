@@ -19,7 +19,7 @@ NS_WTP_END
 
 USING_NS_WTP;
 
-class WtDataWriter : public IDataWriter
+class WtDataWriter final : public IDataWriter
 {
 public:
 	WtDataWriter();
@@ -240,4 +240,3 @@ private:
 
 	void pushTask(const TaskInfo& task);
 };
-

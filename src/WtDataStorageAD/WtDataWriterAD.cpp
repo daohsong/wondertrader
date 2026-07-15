@@ -41,7 +41,7 @@ extern "C"
 	{
 		if (writer != NULL)
 		{
-			delete writer;
+			delete static_cast<WtDataWriterAD*>(writer);
 			writer = NULL;
 		}
 	}

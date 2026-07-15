@@ -18,7 +18,7 @@ NS_WTP_END
 
 USING_NS_WTP;
 
-class WtDataWriterAD : public IDataWriter
+class WtDataWriterAD final : public IDataWriter
 {
 public:
 	WtDataWriterAD();
@@ -122,4 +122,3 @@ private:
 
 	void pushTask(TaskInfo task);
 };
-
