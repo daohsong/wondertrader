@@ -476,7 +476,7 @@ void WtBtRunner::config(const char* cfgFile, bool isFile /* = true */)
 	{
 		const char* name = cfgMode->getCString("name");
 		int32_t slippage = cfgMode->getInt32("slippage");
-		_cta_mocker = new ExpCtaMocker(&_replayer, name, slippage, &_notifier);
+		_cta_mocker = new ExpCtaMocker(&_replayer, name, slippage, true, &_notifier);
 		_cta_mocker->init_cta_factory(cfgMode);
 		_replayer.register_sink(_cta_mocker, name);
 	}

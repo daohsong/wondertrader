@@ -16,6 +16,7 @@ class ExpCtaMocker : public CtaMocker
 {
 public:
 	ExpCtaMocker(HisDataReplayer* replayer, const char* name, int32_t slippage = 0, bool persistData = true, EventNotifier* notifier = NULL, bool isRatioSlp = false);
+	ExpCtaMocker(HisDataReplayer* replayer, const char* name, int32_t slippage, EventNotifier* notifier) = delete;
 	virtual ~ExpCtaMocker();
 
 public:
@@ -37,4 +38,3 @@ public:
 
 	virtual void on_condition_triggered(const char* stdCode, double target, double price, const char* usertag) override;
 };
-
