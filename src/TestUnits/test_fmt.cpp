@@ -5,6 +5,7 @@
 #include "../Share/Converter.hpp"
 
 #include <charconv>
+#include <cstdio>
 
 
 TEST(test_fmt, test_format)
@@ -115,19 +116,25 @@ TEST(test_fmt, test_itos)
 	uint64_t t1 = ticker.nano_seconds();
 
 	ticker.reset();
+	int written = 0;
 	for (int i = 0; i < times; i++)
 	{
-		sprintf(buffer, "%d", num);
+		written = std::snprintf(buffer, sizeof(buffer), "%d", num);
 	}
 	uint64_t t2 = ticker.nano_seconds();
+	EXPECT_EQ(written, 8);
+	EXPECT_STREQ(buffer, "12346789");
 
-	buffer[9] = '0';
 	ticker.reset();
+	std::to_chars_result result = {};
 	for (int i = 0; i < times; i++)
 	{
-		std::to_chars(buffer, buffer + 64, num);
+		result = std::to_chars(buffer, buffer + sizeof(buffer) - 1, num);
 	}
 	uint64_t t3 = ticker.nano_seconds();
+	ASSERT_EQ(result.ec, std::errc{});
+	*result.ptr = '\0';
+	EXPECT_STREQ(buffer, "12346789");
 	fmt::print("{}", buffer);
 
 	ticker.reset();
@@ -136,5 +143,6 @@ TEST(test_fmt, test_itos)
 		fmt::format_to(buffer, "{}", num);
 	}
 	uint64_t t4 = ticker.nano_seconds();
-	fmt::print("itoa: {} - sprintf: {} - to_chars: {} - fmt: {}\n", t1, t2, t3, t4);
+	EXPECT_STREQ(buffer, "12346789");
+	fmt::print("itoa: {} - snprintf: {} - to_chars: {} - fmt: {}\n", t1, t2, t3, t4);
 }
