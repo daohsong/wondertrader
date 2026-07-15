@@ -39,6 +39,7 @@ SET(SRCS
 	test_header_self_contained_udpcaster.cpp
 	test_header_self_contained_wtdtrunner.cpp
 	test_header_self_contained_wtfiltermgr.cpp
+	test_inihelper.cpp
 	test_kvcache.cpp
 	test_lmdb.cpp
 	test_object_pool.cpp

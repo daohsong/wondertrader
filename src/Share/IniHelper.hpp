@@ -26,7 +26,35 @@ private:
 	std::string					_fname;
 	bool						_loaded;
 
-	static const uint32_t MAX_KEY_LENGTH = 64;
+	static bool buildPath(const char* section, const char* key, std::string& path)
+	{
+		if (section == nullptr || key == nullptr || section[0] == '\0' || key[0] == '\0')
+			return false;
+
+		path.reserve(std::char_traits<char>::length(section) + std::char_traits<char>::length(key) + 1);
+		path.assign(section);
+		path.push_back('.');
+		path.append(key);
+		return true;
+	}
+
+	template<class T>
+	T readSectionValue(const char* section, const char* key, T defaultValue)
+	{
+		std::string path;
+		if (!buildPath(section, key, path))
+			return defaultValue;
+		return readValue<T>(path.c_str(), defaultValue);
+	}
+
+	template<class T>
+	void writeSectionValue(const char* section, const char* key, T value)
+	{
+		std::string path;
+		if (!buildPath(section, key, path))
+			return;
+		writeValue<T>(path.c_str(), value);
+	}
 
 public:
 	IniHelper(): _loaded(false){}
@@ -97,37 +125,27 @@ public:
 
 	std::string	readString(const char* szSec, const char* szKey, const char* defVal = "")
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		return readValue<std::string>(path, defVal);
+		return readSectionValue<std::string>(szSec, szKey, defVal == nullptr ? "" : defVal);
 	}
 
 	int			readInt(const char* szSec, const char* szKey, int defVal = 0)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		return readValue<int>(path, defVal);
+		return readSectionValue<int>(szSec, szKey, defVal);
 	}
 
 	uint32_t	readUInt(const char* szSec, const char* szKey, uint32_t defVal = 0)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		return readValue<uint32_t>(path, defVal);
+		return readSectionValue<uint32_t>(szSec, szKey, defVal);
 	}
 
 	bool		readBool(const char* szSec, const char* szKey, bool defVal = false)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		return readValue<bool>(path, defVal);
+		return readSectionValue<bool>(szSec, szKey, defVal);
 	}
 
 	double		readDouble(const char* szSec, const char* szKey, double defVal = 0.0)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		return readValue<double>(path, defVal);
+		return readSectionValue<double>(szSec, szKey, defVal);
 	}
 
 	int			readSections(FieldArray &aySection)
@@ -186,36 +204,27 @@ public:
 
 	void		writeString(const char* szSec, const char* szKey, const char* val)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		writeValue<std::string>(path, val);
+		if (val != nullptr)
+			writeSectionValue<std::string>(szSec, szKey, val);
 	}
 
 	void		writeInt(const char* szSec, const char* szKey, int val)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		writeValue<int>(path, val);
+		writeSectionValue<int>(szSec, szKey, val);
 	}
 
 	void		writeUInt(const char* szSec, const char* szKey, uint32_t val)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		writeValue<uint32_t>(path, val);
+		writeSectionValue<uint32_t>(szSec, szKey, val);
 	}
 
 	void		writeBool(const char* szSec, const char* szKey, bool val)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		writeValue<bool>(path, val);
+		writeSectionValue<bool>(szSec, szKey, val);
 	}
 
 	void		writeDouble(const char* szSec, const char* szKey, double val)
 	{
-		static char path[MAX_KEY_LENGTH] = { 0 };
-		sprintf(path, "%s.%s", szSec, szKey);
-		writeValue<double>(path, val);
+		writeSectionValue<double>(szSec, szKey, val);
 	}
 };
