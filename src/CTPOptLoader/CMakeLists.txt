@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.20)
 
 #2. 确定工程名
 project(CTPOptLoader LANGUAGES CXX)
-SET(CMAKE_CXX_STANDARD 23)
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/Loader)
 

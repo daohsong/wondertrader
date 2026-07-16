@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.20)
 
 #2. 确定工程名
 project(WtDtCore LANGUAGES CXX)
-SET(CMAKE_CXX_STANDARD 23)
 
 IF(MSVC)
 ELSE(GNUCC)
