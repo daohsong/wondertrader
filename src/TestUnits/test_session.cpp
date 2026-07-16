@@ -30,3 +30,16 @@ TEST(test_session, test_allday)
 
 	sInfo->release();
 }
+
+TEST(test_session, test_midnight_close_boundary)
+{
+	WTSSessionInfo* sInfo = WTSSessionInfo::create("NIGHT", "NIGHT", 0);
+	sInfo->addTradingSection(2100, 0);
+
+	EXPECT_EQ(sInfo->offsetTime(0, false), 2400);
+	EXPECT_TRUE(sInfo->isLastOfSection(0));
+	EXPECT_EQ(sInfo->timeToMinutes(0), 180);
+	EXPECT_EQ(sInfo->timeToSeconds(0), 180*60 - 1);
+
+	sInfo->release();
+}

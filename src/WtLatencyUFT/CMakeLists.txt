@@ -1,5 +1,5 @@
 #1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(WtLatencyUFT LANGUAGES CXX)
@@ -29,10 +29,10 @@ IF (MSVC)
 	LIST(APPEND LIBS ws2_32)
 ELSE(GNUCC)
 	LIST(APPEND LIBS
-		dl
-		pthread
+		${WT_DL_LIB}
+		${WT_THREAD_LIB}
 		boost_thread
-		stdc++fs)
+		${FS_LIB})
 	IF(WIN32)
 		LIST(APPEND LIBS
 			ws2_32 iconv)

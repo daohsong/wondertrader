@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 {
 	cppcli::Option opt(argc, argv);
 
-	auto mParam = opt("-m", "--module", "loader module filepath, CTPLoader.dll for win and libCTPLoader.so for linux as default", false);
+	auto mParam = opt("-m", "--module", "loader module filepath, platform default CTPLoader module if omitted", false);
 	auto cParam = opt("-c", "--config", "configure filepath, config.ini as default", false);
 
 	auto hParam = opt("-h", "--help", "gain help doc", false)->asHelpParam();

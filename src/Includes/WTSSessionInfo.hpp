@@ -157,15 +157,16 @@ public:
 		for(; it != m_tradingTimes.end(); it++)
 		{
 			TradingSection &section = *it;
-			if (section.first <= offTime && offTime <= section.second)
+			uint32_t queryTime = (section.second_raw == uTime) ? section.second : offTime;
+			if (section.first <= queryTime && queryTime <= section.second)
 			{
-				int32_t hour = offTime / 100 - section.first / 100;
-				int32_t minute = offTime % 100 - section.first % 100;
+				int32_t hour = queryTime / 100 - section.first / 100;
+				int32_t minute = queryTime % 100 - section.first % 100;
 				offset += hour*60 + minute;
 				bFound = true;
 				break;
 			}
-			else if(offTime > section.second)	//大于上边界
+			else if(queryTime > section.second)	//大于上边界
 			{
 				int32_t hour = section.second/100 - section.first/100;
 				int32_t minute = section.second%100 - section.first%100;
@@ -254,6 +255,7 @@ public:
 		uint32_t sec = uTime%100;
 		uint32_t h = uTime/10000;
 		uint32_t m = uTime%10000/100;
+		uint32_t rawMin = h*100 + m;
 		uint32_t offMin = offsetTime(h*100 + m, true);
 		h = offMin/100;
 		m = offMin%100;
@@ -267,14 +269,15 @@ public:
 			TradingSection &section = *it;
 			uint32_t startSecs = (section.first/100*60 + section.first%100)*60;
 			uint32_t stopSecs = (section.second/100*60 + section.second%100)*60;
+			uint32_t querySecs = (sec == 0 && section.second_raw == rawMin) ? stopSecs : seconds;
 			//uint32_t s = section.first;
 			//uint32_t e = section.second;
 			//uint32_t hour = (e/100 - s/100);
 			//uint32_t minute = (e%100 - s%100);
-			if(startSecs <= seconds && seconds <= stopSecs)
+			if(startSecs <= querySecs && querySecs <= stopSecs)
 			{
-				offset += seconds-startSecs;
-				if(seconds == stopSecs)
+				offset += querySecs-startSecs;
+				if(querySecs == stopSecs)
 					offset--;
 				bFound = true;
 				break;
@@ -458,7 +461,7 @@ public:
 		for(; it != m_tradingTimes.end(); it++)
 		{
 			TradingSection &section = *it;
-			if(section.second_raw == uTime)
+			if(section.second_raw == uTime || (uTime == 0 && section.second_raw == 2400))
 				return true;
 		}
 
@@ -506,7 +509,11 @@ public:
 	inline uint32_t	offsetTime(uint32_t uTime, bool bAlignLeft) const
 	{
 		if (m_uOffsetMins == 0)
+		{
+			if (!bAlignLeft && uTime == 0)
+				return 2400;
 			return uTime;
+		}
 
 		int32_t curMinute = (uTime/100)*60 + uTime%100;
 		curMinute += m_uOffsetMins;
@@ -531,7 +538,11 @@ public:
 	inline uint32_t	originalTime(uint32_t uTime) const
 	{
 		if (m_uOffsetMins == 0)
+		{
+			if (uTime == 2400)
+				return 0;
 			return uTime;
+		}
 
 		int32_t curMinute = (uTime/100)*60 + uTime%100;
 		curMinute -= m_uOffsetMins;

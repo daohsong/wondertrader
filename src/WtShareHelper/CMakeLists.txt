@@ -1,5 +1,5 @@
 #1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(WtShareHelper LANGUAGES CXX)
@@ -17,7 +17,7 @@ ADD_LIBRARY(WtShareHelper SHARED ${SRCS} ${HDRS})
 
 SET(LIBS
 	boost_filesystem
-	dl
+	${WT_DL_LIB}
 )
 
 IF (WIN32)

@@ -1,6 +1,6 @@
 
 #1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(WtDtServo LANGUAGES CXX)
@@ -27,7 +27,7 @@ SET(LIBS
 IF (MSVC)
 ELSE (GNUCC)
     LIST(APPEND LIBS
-        dl
+        ${WT_DL_LIB}
         boost_filesystem
         )
     IF(WIN32)

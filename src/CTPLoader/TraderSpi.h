@@ -1,6 +1,13 @@
 ﻿#pragma once
-//v6.3.15
-#include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#if defined(__has_include)
+#	if __has_include(<ThostFtdcTraderApi.h>)
+#		include <ThostFtdcTraderApi.h>
+#	else
+#		include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#	endif
+#else
+#	include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#endif
 #include "../Share/StdUtils.hpp"
 #include "../Share/SpinMutex.hpp"
 #include "../Includes/LoaderDef.hpp"

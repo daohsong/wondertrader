@@ -23,6 +23,17 @@ typedef void*		ProcHandle;
 class DLLHelper
 {
 public:
+	static constexpr const char* module_suffix()
+	{
+#ifdef _WIN32
+		return ".dll";
+#elif defined(__APPLE__)
+		return ".dylib";
+#else
+		return ".so";
+#endif
+	}
+
 	static DllHandle load_library(const char *filename)
 	{
 		try
@@ -70,7 +81,7 @@ public:
 	{
 #ifdef _WIN32
 		std::string ret = name;
-		ret += ".dll";
+		ret += module_suffix();
 		return std::move(ret);
 #else
 		std::size_t idx = 0;
@@ -79,7 +90,7 @@ public:
 		std::string ret(name, idx);
 		ret.append(unixPrefix);
 		ret.append(name + idx);
-		ret += ".so";
+		ret += module_suffix();
 		return std::move(ret);
 #endif
 	}

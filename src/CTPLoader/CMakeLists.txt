@@ -1,6 +1,6 @@
 
 #1. 确定CMake的最低版本需求
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 #2. 确定工程名
 project(CTPLoader LANGUAGES CXX)
@@ -20,10 +20,11 @@ LINK_DIRECTORIES(${LNKS})
 
 SET(LIBS
     boost_thread
-    pthread
+    ${WT_THREAD_LIB}
     boost_filesystem
-    dl
+    ${WT_DL_LIB}
     WTSUtils
+    ${WT_ICONV_LIB}
 )
 
 IF(WIN32)
@@ -32,10 +33,18 @@ ENDIF()
 
 #9. 生成可执行文件
 ADD_LIBRARY(CTPLoader SHARED ${SRC})
+TARGET_INCLUDE_DIRECTORIES(CTPLoader PRIVATE ${WT_CTP_INCLUDE_DIRS})
+IF(WT_CTP_STATIC)
+    TARGET_COMPILE_DEFINITIONS(CTPLoader PRIVATE WT_CTP_STATIC)
+ENDIF()
 IF (MSVC)
 ELSE (GNUCC)
     TARGET_LINK_LIBRARIES(CTPLoader ${LIBS})
 ENDIF ()
+
+IF(WT_CTP_STATIC)
+    TARGET_LINK_LIBRARIES(CTPLoader WT::CTP_TRADER)
+ENDIF()
 
 IF (MSVC)
 ELSE (GNUCC)

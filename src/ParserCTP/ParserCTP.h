@@ -10,7 +10,15 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#include "../API/CTP6.3.15/ThostFtdcMdApi.h"
+#if defined(__has_include)
+#	if __has_include(<ThostFtdcMdApi.h>)
+#		include <ThostFtdcMdApi.h>
+#	else
+#		include "../API/CTP6.3.15/ThostFtdcMdApi.h"
+#	endif
+#else
+#	include "../API/CTP6.3.15/ThostFtdcMdApi.h"
+#endif
 #include <map>
 
 NS_WTP_BEGIN
@@ -109,4 +117,3 @@ private:
 	typedef CThostFtdcMdApi* (*CTPCreator)(const char *, const bool, const bool);
 	CTPCreator		m_funcCreator;
 };
-

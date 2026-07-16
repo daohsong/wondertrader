@@ -1,5 +1,5 @@
 #1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(TraderFemas LANGUAGES CXX)
@@ -23,14 +23,14 @@ IF(MSVC)
 ELSE(GNUCC)
 	IF (WIN32)
 		SET(LIBS
-			stdc++fs
-			dl
+			${FS_LIB}
+			${WT_DL_LIB}
 			ws2_32
 		)
 	ELSE(UNIX)
 		SET(LIBS
-			stdc++fs
-			dl
+			${FS_LIB}
+			${WT_DL_LIB}
 		)
 	ENDIF()
 ENDIF()

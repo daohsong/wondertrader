@@ -1,8 +1,15 @@
 ﻿#include <string>
 #include <map>
 #include <set>
-//v6.3.15
-#include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#if defined(__has_include)
+#	if __has_include(<ThostFtdcTraderApi.h>)
+#		include <ThostFtdcTraderApi.h>
+#	else
+#		include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#	endif
+#else
+#	include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
+#endif
 #include "TraderSpi.h"
 
 #include "../Share/IniHelper.hpp"
@@ -108,11 +115,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		MODULE_NAME = ctp->getCString("module");
 		if (MODULE_NAME.empty())
 		{
-#ifdef _WIN32
-			MODULE_NAME = "./thosttraderapi_se.dll";
-#else
-			MODULE_NAME = "./thosttraderapi_se.so";
-#endif
+			MODULE_NAME = DLLHelper::wrap_module("./thosttraderapi_se", "");
 		}
 
 		root->release();
@@ -143,11 +146,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 
 		map_files = ini.readString("config", "mapfiles", "");
 
-#ifdef _WIN32
-		MODULE_NAME = ini.readString("ctp", "module", "./thosttraderapi_se.dll");
-#else
-		MODULE_NAME = ini.readString("ctp", "module", "./thosttraderapi_se.so");
-#endif
+		MODULE_NAME = ini.readString("ctp", "module", DLLHelper::wrap_module("./thosttraderapi_se", "").c_str());
 	}
 	else
 	{
@@ -180,11 +179,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		MODULE_NAME = ctp->getCString("module");
 		if(MODULE_NAME.empty())
 		{
-#ifdef _WIN32
-			MODULE_NAME = "./thosttraderapi_se.dll";
-#else
-			MODULE_NAME = "./thosttraderapi_se.so";
-#endif
+			MODULE_NAME = DLLHelper::wrap_module("./thosttraderapi_se", "");
 		}
 		root->release();
 	}
@@ -249,6 +244,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		
 	}
 
+#ifndef WT_CTP_STATIC
 	// 初始化UserApi
 	DllHandle dllInst = DLLHelper::load_library(MODULE_NAME.c_str());
 	if (dllInst == NULL)
@@ -264,10 +260,15 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 #endif
 	if (g_ctpCreator == NULL)
 		printf("Loading CreateFtdcTraderApi failed\r\n");
+#endif
 
 	std::string flowPath = fmtutil::format("./CTPFlow/{}/{}/", BROKER_ID, INVESTOR_ID);
 	boost::filesystem::create_directories(flowPath.c_str());
+#ifdef WT_CTP_STATIC
+	pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi(flowPath.c_str());
+#else
 	pUserApi = g_ctpCreator(flowPath.c_str());
+#endif
 	CTraderSpi* pUserSpi = new CTraderSpi();
 	pUserApi->RegisterSpi((CThostFtdcTraderSpi*)pUserSpi);			// 注册事件类
 	pUserApi->SubscribePublicTopic(THOST_TERT_QUICK);					// 注册公有流

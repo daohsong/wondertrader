@@ -1,6 +1,6 @@
 
 #1. 确定CMake的最低版本需求
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 #2. 确定工程名
 project(WtCore LANGUAGES CXX)

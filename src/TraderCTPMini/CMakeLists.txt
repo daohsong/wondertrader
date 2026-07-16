@@ -1,5 +1,5 @@
 #1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(TraderCTPMini LANGUAGES CXX)
@@ -19,9 +19,10 @@ ADD_LIBRARY(TraderCTPMini SHARED ${SRC})
 IF(MSVC)
 ELSE(GNUCC)
 	SET(LIBS
-		pthread
-		stdc++fs
-		dl
+		${WT_THREAD_LIB}
+		${FS_LIB}
+		boost_filesystem
+		${WT_DL_LIB}
 		)
 	TARGET_LINK_LIBRARIES(TraderCTPMini ${LIBS})
 ENDIF()

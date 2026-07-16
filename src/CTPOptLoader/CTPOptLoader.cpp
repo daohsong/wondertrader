@@ -105,11 +105,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		MODULE_NAME = cfg->getCString("module");
 		if (MODULE_NAME.empty())
 		{
-#ifdef _WIN32
-			MODULE_NAME = "./soptthosttraderapi_se.dll";
-#else
-			MODULE_NAME = "./soptthosttraderapi_se.so";
-#endif
+			MODULE_NAME = DLLHelper::wrap_module("./soptthosttraderapi_se", "");
 		}
 
 		root->release();
@@ -137,11 +133,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		ONLYINCFG = wt_stricmp(ini.readString("config", "onlyincfg", "false").c_str(), "true") == 0;
 		INCREMENTAL = wt_stricmp(ini.readString("config", "incremental", "false").c_str(), "true") == 0;
 
-#ifdef _WIN32
-		MODULE_NAME = ini.readString("config", "module", "./soptthosttraderapi_se.dll");
-#else
-		MODULE_NAME = ini.readString("config", "module", "./soptthosttraderapi_se.so");
-#endif
+		MODULE_NAME = ini.readString("config", "module", DLLHelper::wrap_module("./soptthosttraderapi_se", "").c_str());
 	}
 	else
 	{
@@ -176,11 +168,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		MODULE_NAME = cfg->getCString("module");
 		if (MODULE_NAME.empty())
 		{
-#ifdef _WIN32
-			MODULE_NAME = "./soptthosttraderapi_se.dll";
-#else
-			MODULE_NAME = "./soptthosttraderapi_se.so";
-#endif
+			MODULE_NAME = DLLHelper::wrap_module("./soptthosttraderapi_se", "");
 		}
 		root->release();
 	}
@@ -188,11 +176,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 	if(!StdFile::exists(MODULE_NAME.c_str()))
 	{
 		MODULE_NAME = getBinDir();
-#ifdef _WIN32
-		MODULE_NAME += "traders/soptthosttraderapi_se.dll";
-#else
-		MODULE_NAME += "traders/soptthosttraderapi_se.so";
-#endif
+		MODULE_NAME += DLLHelper::wrap_module("traders/soptthosttraderapi_se", "");
 	}
 
 	if(FRONT_ADDR.empty() || BROKER_ID.empty() || INVESTOR_ID.empty() || PASSWORD.empty() || SAVEPATH.empty())

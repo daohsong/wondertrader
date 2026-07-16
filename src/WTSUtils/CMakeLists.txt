@@ -1,6 +1,6 @@
 
 #1. 确定CMake的最低版本需求
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 #2. 确定工程名
 project(WTSUtils LANGUAGES C CXX)
@@ -30,3 +30,4 @@ INCLUDE_DIRECTORIES(${INCS})
 
 #8. 编译成动态库，并生成库文件
 add_library(WTSUtils STATIC ${SRCS} ${HDRS})
+target_link_libraries(WTSUtils PUBLIC ${WT_ICONV_LIB})

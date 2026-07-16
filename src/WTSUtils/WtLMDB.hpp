@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <errno.h>
 #endif
 
 #include "../Includes/WTSMarcos.h"
@@ -66,7 +67,8 @@ public:
 #if _WIN32
 			_mkdir(path);
 #else
-			mkdir(path, 777);
+			if (mkdir(path, 0777) != 0 && errno != EEXIST)
+				return false;
 #endif
 		}
 

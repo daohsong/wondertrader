@@ -3,7 +3,13 @@
 #ifndef FMT_HEADER_ONLY
 #define FMT_HEADER_ONLY
 #endif
+#if defined(WT_USE_STANDALONE_FMT)
+#include <fmt/format.h>
+#elif defined(WT_USE_SPDLOG_BUNDLED_FMT)
 #include <spdlog/fmt/bundled/format.h>
+#else
+#error "fmtlib.h requires WT_USE_STANDALONE_FMT or WT_USE_SPDLOG_BUNDLED_FMT from CMake"
+#endif
 #include <type_traits>
 
 //	By patch @ 2026.06.24
