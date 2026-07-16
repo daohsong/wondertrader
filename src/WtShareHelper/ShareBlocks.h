@@ -1,8 +1,11 @@
 ﻿#pragma once
 #include <stdint.h>
+#include <cstddef>
 #include <memory>
+#include <type_traits>
 
 #include "../Share/BoostMappingFile.hpp"
+#include "../Share/ShmWireLayout.hpp"
 #include "../Share/fmtlib.h"
 #include "../Includes/FasterDefs.h"
 
@@ -15,93 +18,28 @@ namespace shareblock
 	const char BLK_FLAG[] = "&^%$#@!\0";
 
 	constexpr int FLAG_SIZE = 8;
-	constexpr int MAX_SEC_CNT = 64;
-	constexpr int MAX_KEY_CNT = 128;
-	constexpr int MAX_CMD_SIZE = 64;
+	constexpr int MAX_SEC_CNT = wt::shm_wire::kMaxSectionCount;
+	constexpr int MAX_KEY_CNT = wt::shm_wire::kMaxKeyCount;
+	constexpr int MAX_CMD_SIZE = wt::shm_wire::kMaxCommandSize;
+	constexpr uint32_t CMD_BLOCK_CAPACITY = wt::shm_wire::kCommandCapacity;
 
-	typedef enum tagValueType : uint64_t
-	{
-		SMVT_INT32 = 1,
-		SMVT_UINT32 = 2,
-		SMVT_INT64 = 3,
-		SMVT_UINT64 = 4,
-		SMVT_DOUBLE = 5,
-		SMVT_STRING = 6
-	} ValueType;
+	using ValueType = wt::shm_wire::ValueType;
+	constexpr ValueType SMVT_INT32 = wt::shm_wire::SMVT_INT32;
+	constexpr ValueType SMVT_UINT32 = wt::shm_wire::SMVT_UINT32;
+	constexpr ValueType SMVT_INT64 = wt::shm_wire::SMVT_INT64;
+	constexpr ValueType SMVT_UINT64 = wt::shm_wire::SMVT_UINT64;
+	constexpr ValueType SMVT_DOUBLE = wt::shm_wire::SMVT_DOUBLE;
+	constexpr ValueType SMVT_STRING = wt::shm_wire::SMVT_STRING;
+	inline constexpr const std::size_t (&SMVT_SIZES)[7] = wt::shm_wire::kValueSizes;
+	inline constexpr const std::size_t (&SMVT_ALIGNMENTS)[7] = wt::shm_wire::kValueAlignments;
 
-	const std::size_t SMVT_SIZES[] = { 0,4,4,8,8,8,64 };
-
-	#pragma pack(push, 1)
-	typedef struct _KeyInfo
-	{
-		char		_key[32];
-		ValueType	_type;
-		uint32_t	_offset;
-		uint64_t	_updatetime;
-	} KeyInfo;
-
-	/*
-	 *	小节信息
-	 */
-	typedef struct _SectionInfo
-	{
-		char		_name[32];
-		KeyInfo		_keys[MAX_KEY_CNT];
-		uint16_t	_count;			//数据条数，即key的个数
-		uint16_t	_state;			//状态：0-无效，1-生效
-		uint32_t	_offset;		//记录下一个可分配地址的偏移量
-		uint64_t	_updatetime;
-		char		_data[1024];	//极端情况下，128个double，刚好是1024，考虑到还有一些int和string，算下来刚好
-
-		template<typename T>
-		T* get(uint32_t offset)
-		{
-			return (T*)(_data + offset);
-		}
-
-		_SectionInfo()
-		{
-			memset(this, 0, sizeof(_SectionInfo));
-		}
-	} SecInfo;
-
-	typedef struct _ShmBlock
-	{
-		char		_flag[8];
-		char		_name[32];
-		SecInfo		_sections[MAX_SEC_CNT];
-		uint64_t	_updatetime;
-		uint32_t	_count;
-
-		_ShmBlock()
-		{
-			memset(this, 0, sizeof(_ShmBlock));
-		}
-	} ShmBlock;
-
-	typedef struct _CmdInfo
-	{
-		uint32_t	_state;
-		char		_command[MAX_CMD_SIZE];
-
-		_CmdInfo() { memset(this, 0, sizeof(_CmdInfo)); }
-	} CmdInfo;
-
-	template <int N = 128>
-	struct _CmdBlock
-	{
-		uint32_t	_capacity = N;
-	 	volatile uint32_t	_readable;
-		volatile uint32_t	_writable;
-		uint32_t	_cmdpid;
-		CmdInfo		_commands[N];
-
-		_CmdBlock():_readable(UINT32_MAX),_writable(0),_cmdpid(0){}
-	};
-
-	typedef _CmdBlock<128>	CmdBlock;
-
-	#pragma pack(pop)
+	using KeyInfo = wt::shm_wire::KeyInfo;
+	using SecInfo = wt::shm_wire::SectionInfo;
+	using ShmBlock = wt::shm_wire::ShmBlock;
+	using CmdInfo = wt::shm_wire::CommandInfo;
+	template <int N = static_cast<int>(CMD_BLOCK_CAPACITY)>
+	using _CmdBlock = wt::shm_wire::CommandBlock<N>;
+	using CmdBlock = wt::shm_wire::CmdBlock;
 
 
 	class ShareBlocks

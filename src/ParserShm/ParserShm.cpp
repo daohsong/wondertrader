@@ -12,6 +12,7 @@
 #include "../Includes/WTSDataDef.hpp"
 #include "../Includes/IBaseDataMgr.h"
 #include "../Includes/WTSContractInfo.hpp"
+#include "../Share/AtomicCompat.hpp"
 #include "../Share/CpuHelper.hpp"
 #include "../Share/StrUtil.hpp"
 
@@ -19,6 +20,9 @@
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
+#include <cstdint>
+#include <exception>
+
 template<typename... Args>
 inline void write_log(IParserSpi* sink, WTSLogLevel ll, const char* format, const Args&... args) noexcept
 {
@@ -38,6 +42,14 @@ inline void write_log(IParserSpi* sink, WTSLogLevel ll, const char* format, cons
 #define UDP_MSG_PUSHTRANS	0x203	//逐笔成交
 
 #define NODATA_FLAG 0xfffffffffffffffe
+
+namespace
+{
+uint64_t load_readable_index(ParserShm::CastQueue* queue)
+{
+	return wt::atomic_load_u64(queue->_readable, std::memory_order_acquire);
+}
+}
 
 
 extern "C"
@@ -104,10 +116,59 @@ bool ParserShm::connect()
 			continue;
 		}
 
-		_mapfile.reset(new BoostMappingFile);
-		_mapfile->map(_path.c_str());
-		_queue = (CastQueue*)_mapfile->addr();
-		uint32_t cast_pid = _queue->_pid;
+		void* queue_base = NULL;
+		wt::shm_wire::ValidationError validation = wt::shm_wire::ValidationError::unexpected_size;
+		const auto initialize_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+		while (!_stopped && std::chrono::steady_clock::now() < initialize_deadline)
+		{
+			_mapfile.reset(new BoostMappingFile);
+			try
+			{
+				if (_mapfile->map(_path.c_str()))
+				{
+					queue_base = _mapfile->addr();
+					validation = wt::shm_wire::validate_cast_queue<8 * 1024>(
+						queue_base, _mapfile->size());
+					if (validation == wt::shm_wire::ValidationError::ok)
+						break;
+					if (validation != wt::shm_wire::ValidationError::bad_magic
+						&& validation != wt::shm_wire::ValidationError::unexpected_size)
+						break;
+				}
+			}
+			catch (const std::exception&)
+			{
+				validation = wt::shm_wire::ValidationError::unexpected_size;
+			}
+
+			_mapfile.reset();
+			queue_base = NULL;
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+
+		if (validation != wt::shm_wire::ValidationError::ok)
+		{
+			write_log(_sink, LL_ERROR, "[ParserShm] rejected {}: {}", _path,
+				wt::shm_wire::validation_error_message(validation));
+			_queue = NULL;
+			_mapfile.reset();
+			return;
+		}
+		_queue = static_cast<CastQueue*>(queue_base);
+		uint32_t cast_pid = wt::atomic_load_u32(_queue->_pid, std::memory_order_acquire);
+		const auto pid_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+		while (!_stopped && cast_pid == 0 && std::chrono::steady_clock::now() < pid_deadline)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			cast_pid = wt::atomic_load_u32(_queue->_pid, std::memory_order_acquire);
+		}
+		if (cast_pid == 0)
+		{
+			write_log(_sink, LL_ERROR, "[ParserShm] {} remained in initializing state", _path);
+			_queue = NULL;
+			_mapfile.reset();
+			return;
+		}
 
 		if (_sink)
 		{
@@ -127,14 +188,22 @@ bool ParserShm::connect()
 		while(!_stopped)
 		{
 			//如果pid不同，说明datakit重启了
-			if(cast_pid != _queue->_pid)
+			const uint32_t next_pid = wt::atomic_load_u32(_queue->_pid, std::memory_order_acquire);
+			if (next_pid == 0)
+			{
+				std::this_thread::yield();
+				continue;
+			}
+			if(cast_pid != next_pid)
 			{
 				lastIdx = UINT64_MAX;
 				write_log(_sink, LL_WARN, "ShareMemory queue has been reset justnow");
-				cast_pid = _queue->_pid;
+				cast_pid = next_pid;
 			}
+
+			const uint64_t readable = load_readable_index(_queue);
 			
-			if (_queue->_readable == UINT64_MAX)	//刚分配好，还没数据进来
+			if (readable == UINT64_MAX)	//刚分配好，还没数据进来
 			{
 				lastIdx = NODATA_FLAG;
 				if(_check_span != 0)
@@ -144,7 +213,7 @@ bool ParserShm::connect()
 
 			if (lastIdx == UINT64_MAX)	//有数据，第一次检查，则直接定位到最后一条数据
 			{
-				lastIdx = _queue->_readable;
+				lastIdx = readable;
 				if (_check_span != 0)
 					std::this_thread::sleep_for(std::chrono::microseconds(_check_span));
 				continue;
@@ -153,7 +222,7 @@ bool ParserShm::connect()
 			{
 				lastIdx = 0;
 			}
-			else if (lastIdx >= _queue->_readable)	//没有新的数据进来
+			else if (lastIdx >= readable)	//没有新的数据进来
 			{
 				if (_check_span != 0)
 					std::this_thread::sleep_for(std::chrono::microseconds(_check_span));

@@ -1,10 +1,39 @@
 ﻿#include "ShareBlocks.h"
 #include "../Share/BoostFile.hpp"
+#include "../Share/AtomicCompat.hpp"
 #include "../Share/TimeUtils.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Includes/WTSTypes.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <new>
+
 using namespace shareblock;
+
+namespace
+{
+uint32_t cmd_index_load_relaxed(uint32_t& value)
+{
+	return wt::atomic_load_u32(value, std::memory_order_relaxed);
+}
+
+uint32_t cmd_index_load_acquire(uint32_t& value)
+{
+	return wt::atomic_load_u32(value, std::memory_order_acquire);
+}
+
+void cmd_index_store_relaxed(uint32_t& target, uint32_t value)
+{
+	wt::atomic_store_u32(target, value, std::memory_order_relaxed);
+}
+
+void cmd_index_store_release(uint32_t& target, uint32_t value)
+{
+	wt::atomic_store_u32(target, value, std::memory_order_release);
+}
+}
 
 bool ShareBlocks::init_master(const char* name, const char* path/* = ""*/)
 {
@@ -16,18 +45,90 @@ bool ShareBlocks::init_master(const char* name, const char* path/* = ""*/)
 	if (filename.empty())
 		filename = name;
 
-	if(!StdFile::exists(filename.c_str()))
+	const bool fileExists = StdFile::exists(filename.c_str());
+	bool needsInitialize = !fileExists;
+	if (!fileExists)
 	{
 		BoostFile bf;
-		bf.create_new_file(filename.c_str());
-		bf.truncate_file(sizeof(ShmBlock));
+		if (!bf.create_new_file(filename.c_str()) || !bf.truncate_file(sizeof(ShmBlock)))
+		{
+			write_log(LL_ERROR, "Failed to create shared domain file {}", filename.c_str());
+			bf.close_file();
+			_shm_blocks.erase(name);
+			return false;
+		}
 		bf.close_file();
+	}
+	else
+	{
+		const uint64_t fileSize = BoostFile::get_file_size(filename.c_str());
+		if (fileSize == 0)
+		{
+			BoostFile bf;
+			if (!bf.open_existing_file(filename.c_str()) || !bf.truncate_file(sizeof(ShmBlock)))
+			{
+				write_log(LL_ERROR, "Failed to resize empty shared domain file {}", filename.c_str());
+				bf.close_file();
+				_shm_blocks.erase(name);
+				return false;
+			}
+			bf.close_file();
+			needsInitialize = true;
+		}
+		else if (fileSize != sizeof(ShmBlock))
+		{
+			write_log(LL_ERROR, "Shared domain file {} has unexpected size {}, expected {}",
+				filename.c_str(), fileSize, sizeof(ShmBlock));
+			_shm_blocks.erase(name);
+			return false;
+		}
 	}
 
 	shm._domain.reset(new BoostMappingFile);
-	shm._domain->map(filename.c_str());
+	try
+	{
+		if (!shm._domain->map(filename.c_str()))
+		{
+			write_log(LL_ERROR, "Failed to map shared domain file {}", filename.c_str());
+			shm._domain.reset();
+			_shm_blocks.erase(name);
+			return false;
+		}
+	}
+	catch (const std::exception& error)
+	{
+		write_log(LL_ERROR, "Failed to map shared domain file {}: {}", filename.c_str(), error.what());
+		shm._domain.reset();
+		_shm_blocks.erase(name);
+		return false;
+	}
+
+	void* blockBase = shm._domain->addr();
+	if (needsInitialize)
+	{
+		if (!wt::atomic_is_aligned(blockBase, alignof(ShmBlock)))
+		{
+			write_log(LL_ERROR, "Shared domain file {} has an under-aligned mapping base", filename.c_str());
+			shm._domain.reset();
+			_shm_blocks.erase(name);
+			return false;
+		}
+		new(blockBase) ShmBlock();
+	}
+
+	const wt::shm_wire::ValidationError validation =
+		wt::shm_wire::validate_shm_block(blockBase, shm._domain->size());
+	if (validation != wt::shm_wire::ValidationError::ok)
+	{
+		write_log(LL_ERROR, "Shared domain file {} rejected: {}", filename.c_str(),
+			wt::shm_wire::validation_error_message(validation));
+		shm._domain.reset();
+		_shm_blocks.erase(name);
+		return false;
+	}
+
 	shm._master = true;
-	shm._block = (ShmBlock*)shm._domain->addr();
+	shm._block = static_cast<ShmBlock*>(blockBase);
 
 	/*
 	 *	By Wesley @ 2023.09.20
@@ -96,11 +197,46 @@ bool ShareBlocks::init_slave(const char* name, const char* path/* = ""*/)
 
 	if (!StdFile::exists(filename.c_str()))
 		return false;
+	if (BoostFile::get_file_size(filename.c_str()) != sizeof(ShmBlock))
+	{
+		write_log(LL_ERROR, "Shared domain file {} does not use wire layout version {}",
+			filename.c_str(), wt::shm_wire::kLayoutVersion);
+		_shm_blocks.erase(name);
+		return false;
+	}
 
 	shm._domain.reset(new BoostMappingFile);
-	shm._domain->map(filename.c_str());
+	try
+	{
+		if (!shm._domain->map(filename.c_str()))
+		{
+			shm._domain.reset();
+			_shm_blocks.erase(name);
+			return false;
+		}
+	}
+	catch (const std::exception& error)
+	{
+		write_log(LL_ERROR, "Failed to map shared domain file {}: {}", filename.c_str(), error.what());
+		shm._domain.reset();
+		_shm_blocks.erase(name);
+		return false;
+	}
+
+	void* blockBase = shm._domain->addr();
+	const wt::shm_wire::ValidationError validation =
+		wt::shm_wire::validate_shm_block(blockBase, shm._domain->size());
+	if (validation != wt::shm_wire::ValidationError::ok)
+	{
+		write_log(LL_ERROR, "Shared domain file {} rejected: {}", filename.c_str(),
+			wt::shm_wire::validation_error_message(validation));
+		shm._domain.reset();
+		_shm_blocks.erase(name);
+		return false;
+	}
+
 	shm._master = false;
-	shm._block = (ShmBlock*)shm._domain->addr();
+	shm._block = static_cast<ShmBlock*>(blockBase);
 	shm._blocktime = shm._block->_updatetime;
 
 	//slave模式下，应该需要加载一下
@@ -256,6 +392,7 @@ void* ShareBlocks::make_valid(const char* domain, const char* section, const cha
 		return nullptr;
 
 	std::size_t len = SMVT_SIZES[vType];
+	const std::size_t alignment = SMVT_ALIGNMENTS[vType];
 
 	ShmPair& shm = (ShmPair&)it->second;
 	KeyInfo* keyInfo = nullptr;
@@ -320,7 +457,8 @@ void* ShareBlocks::make_valid(const char* domain, const char* section, const cha
 			return nullptr;
 		}
 
-		if (secInfo->_offset + len > 1024)
+		const std::size_t alignedOffset = (secInfo->_offset + alignment - 1) & ~(alignment - 1);
+		if (alignedOffset > sizeof(secInfo->_data) || len > sizeof(secInfo->_data) - alignedOffset)
 		{
 			write_log(LL_ERROR, "Secion {}.{} has no enough bytes for new kv pair", domain, section);
 			return nullptr;
@@ -329,12 +467,12 @@ void* ShareBlocks::make_valid(const char* domain, const char* section, const cha
 		keyInfo = &secInfo->_keys[secInfo->_count];
 		wt_strcpy(keyInfo->_key, key);
 		keyInfo->_updatetime = TimeUtils::getLocalTimeNow();
-		keyInfo->_offset = secInfo->_offset;
+		keyInfo->_offset = static_cast<uint32_t>(alignedOffset);
 		kvPair->_keys[key] = keyInfo;
 
 		//字符串固定最大长度为64
 		secInfo->_count++;
-		secInfo->_offset += (uint32_t)len;
+		secInfo->_offset = static_cast<uint32_t>(alignedOffset + len);
 	}
 	else
 	{
@@ -682,36 +820,123 @@ bool ShareBlocks::init_cmder(const char* name, bool isCmder /* = false */, const
 	if (filename.empty())
 		filename = ".cmd";
 
-	if (!StdFile::exists(filename.c_str()))
+	const bool fileExists = StdFile::exists(filename.c_str());
+	bool needsInitialize = !fileExists;
+	if (!fileExists)
 	{
 		BoostFile bf;
-		bf.create_new_file(filename.c_str());
-		bf.truncate_file(sizeof(CmdBlock));
+		if (!bf.create_new_file(filename.c_str()) || !bf.truncate_file(sizeof(CmdBlock)))
+		{
+			write_log(LL_ERROR, "Failed to create command block file {}", filename.c_str());
+			bf.close_file();
+			_cmd_blocks.erase(name);
+			return false;
+		}
 		bf.close_file();
+	}
+	else
+	{
+		const uint64_t fileSize = BoostFile::get_file_size(filename.c_str());
+		if (fileSize == 0)
+		{
+			BoostFile bf;
+			if (!bf.open_existing_file(filename.c_str()) || !bf.truncate_file(sizeof(CmdBlock)))
+			{
+				write_log(LL_ERROR, "Failed to resize empty command block file {}", filename.c_str());
+				bf.close_file();
+				_cmd_blocks.erase(name);
+				return false;
+			}
+			bf.close_file();
+			needsInitialize = true;
+		}
+		else if (fileSize != sizeof(CmdBlock))
+		{
+			write_log(LL_ERROR, "Command block file {} has unexpected size {}, expected {}",
+				filename.c_str(), fileSize, sizeof(CmdBlock));
+			_cmd_blocks.erase(name);
+			return false;
+		}
 	}
 
 	cmdPair._domain.reset(new BoostMappingFile);
-	cmdPair._domain->map(filename.c_str());
+	try
+	{
+		if (!cmdPair._domain->map(filename.c_str()))
+		{
+			write_log(LL_ERROR, "Failed to map command block file {}", filename.c_str());
+			cmdPair._domain.reset();
+			_cmd_blocks.erase(name);
+			return false;
+		}
+	}
+	catch (const std::exception& e)
+	{
+		write_log(LL_ERROR, "Failed to map command block file {}: {}", filename.c_str(), e.what());
+		cmdPair._domain.reset();
+		_cmd_blocks.erase(name);
+		return false;
+	}
+	catch (...)
+	{
+		write_log(LL_ERROR, "Failed to map command block file {}: unknown exception", filename.c_str());
+		cmdPair._domain.reset();
+		_cmd_blocks.erase(name);
+		return false;
+	}
+	void* blockBase = cmdPair._domain->addr();
+	if (needsInitialize)
+	{
+		if (!wt::atomic_is_aligned(blockBase, alignof(CmdBlock)))
+		{
+			write_log(LL_ERROR, "Command block {} has an under-aligned mapping base", filename.c_str());
+			cmdPair._domain.reset();
+			_cmd_blocks.erase(name);
+			return false;
+		}
+		new(blockBase) CmdBlock();
+	}
+
+	const wt::shm_wire::ValidationError validation =
+		wt::shm_wire::validate_command_block<static_cast<int>(CMD_BLOCK_CAPACITY)>(
+			blockBase, cmdPair._domain->size());
+	if (validation != wt::shm_wire::ValidationError::ok)
+	{
+		write_log(LL_ERROR, "Command block {} rejected: {}", filename.c_str(),
+			wt::shm_wire::validation_error_message(validation));
+		cmdPair._domain.reset();
+		_cmd_blocks.erase(name);
+		return false;
+	}
+
 	cmdPair._cmder = isCmder;
-	cmdPair._block = (CmdBlock*)cmdPair._domain->addr();
-	if(cmdPair._block->_capacity == 0)
-		new(cmdPair._domain->addr()) CmdBlock();
+	cmdPair._block = static_cast<CmdBlock*>(blockBase);
 
 	if(cmdPair._cmder)
+	{
 #ifdef _MSC_VER
-		cmdPair._block->_cmdpid = _getpid();
+		const uint32_t process_id = static_cast<uint32_t>(_getpid());
 #else
-		cmdPair._block->_cmdpid = getpid();
+		const uint32_t process_id = static_cast<uint32_t>(getpid());
 #endif
+		wt::atomic_store_u32(cmdPair._block->_cmdpid, process_id, std::memory_order_release);
+	}
   
 	
 	//启动的时候都做一下偏移
-	cmdPair._block->_writable %= cmdPair._block->_capacity;
-	if(cmdPair._block->_readable != UINT32_MAX)
+	uint32_t writable = cmd_index_load_relaxed(cmdPair._block->_writable) % cmdPair._block->_capacity;
+	cmd_index_store_relaxed(cmdPair._block->_writable, writable);
+
+	uint32_t readable = cmd_index_load_acquire(cmdPair._block->_readable);
+	if(readable != UINT32_MAX)
 	{
-		cmdPair._block->_readable %= cmdPair._block->_capacity;
-		if (cmdPair._block->_readable > cmdPair._block->_writable)
-			cmdPair._block->_writable += cmdPair._block->_capacity;
+		readable %= cmdPair._block->_capacity;
+		cmd_index_store_relaxed(cmdPair._block->_readable, readable);
+		if (readable > writable)
+		{
+			writable += cmdPair._block->_capacity;
+			cmd_index_store_relaxed(cmdPair._block->_writable, writable);
+		}
 	}
 
 	return true;
@@ -729,22 +954,23 @@ bool ShareBlocks::add_cmd(const char* name, const char* cmd)
 		return false;
 
 #ifdef _MSC_VER
-    if (cmdPair._block->_cmdpid != _getpid())
+	const uint32_t process_id = static_cast<uint32_t>(_getpid());
 #else
-	if (cmdPair._block->_cmdpid != getpid())
+	const uint32_t process_id = static_cast<uint32_t>(getpid());
 #endif
-	
+	if (wt::atomic_load_u32(cmdPair._block->_cmdpid, std::memory_order_acquire) != process_id)
 		return false;
 
 	/*
 	 *	先移动写的下标，然后写入数据
 	 *	写完了以后，再移动读的下标
 	 */
-	uint32_t wIdx = cmdPair._block->_writable++;
+	uint32_t wIdx = cmd_index_load_relaxed(cmdPair._block->_writable);
+	cmd_index_store_relaxed(cmdPair._block->_writable, wIdx + 1);
 	uint32_t realIdx = wIdx % cmdPair._block->_capacity;
 	cmdPair._block->_commands[realIdx]._state = 0;
 	strcpy(cmdPair._block->_commands[realIdx]._command, cmd);
-	cmdPair._block->_readable = wIdx;
+	cmd_index_store_release(cmdPair._block->_readable, wIdx);
 	return true;
 }
 
@@ -763,23 +989,25 @@ const char* ShareBlocks::get_cmd(const char* name, uint32_t& lastIdx)
 	if (cmdPair._cmder)
 		return "";
 
+	const uint32_t readable = cmd_index_load_acquire(cmdPair._block->_readable);
+
 	//说明刚启动，之前的命令全部作废
-	if (cmdPair._block->_readable == UINT32_MAX)
+	if (readable == UINT32_MAX)
 	{
 		lastIdx = 999999;
 		return "";
 	}
-	else if (lastIdx == UINT32_MAX && cmdPair._block->_readable != UINT32_MAX)
+	else if (lastIdx == UINT32_MAX)
 	{
-		lastIdx = cmdPair._block->_readable;
+		lastIdx = readable;
 		return "";
 	}
-	else if(lastIdx == 999999 && cmdPair._block->_readable != UINT32_MAX)
+	else if(lastIdx == 999999)
 	{
 		lastIdx = 0;
 		return cmdPair._block->_commands[lastIdx]._command;
 	}
-	else if(lastIdx >= cmdPair._block->_readable)
+	else if(lastIdx >= readable)
 	{
 		return "";
 	}
