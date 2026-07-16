@@ -1,4 +1,7 @@
-﻿#pragma once
+#pragma once
+#include <cstring>
+#include <functional>
+
 #include "SpinMutex.hpp"
 #include "BoostFile.hpp"
 #include "StdUtils.hpp"
@@ -36,7 +39,7 @@ private:
 	typedef struct CacheBlock
 	{
 		char		_blk_flag[FLAG_SIZE];
-		volatile uint32_t	_size;
+		uint32_t	_size;
 		uint32_t	_capacity;
 		uint32_t	_date;
 		CacheItem	_items[0];
@@ -55,33 +58,48 @@ private:
 	} CacheBlockPair;
 
 	CacheBlockPair	_cache;
-	SpinMutex		_lock;
+	mutable SpinMutex	_lock;
 	wt_hashmap<std::string, uint32_t> _indice;
 	CacheLogger		_logger = nullptr;
 
 private:
 	bool	resize(uint32_t newCap) noexcept
 	{
-		if (_cache._file == NULL)
+		if (_cache._file == NULL || _cache._block == NULL)
 			return false;
 
 		//调用该函数之前,应该保证线程安全了
 		CacheBlock* cBlock = _cache._block;
 		if (cBlock->_capacity >= newCap)
-			return _cache._file->addr();
+			return _cache._file->addr() != NULL;
 
 		std::string filename = _cache._file->filename();
-		uint64_t uOldSize = sizeof(CacheBlock) + sizeof(CacheItem)*cBlock->_capacity;
 		uint64_t uNewSize = sizeof(CacheBlock) + sizeof(CacheItem)*newCap;
-		std::string data;
-		data.resize((std::size_t)(uNewSize - uOldSize), 0);
 		try
 		{
 			BoostFile f;
-			f.open_existing_file(filename.c_str());
-			f.seek_to_end();
-			f.write_file(data.c_str(), data.size());
+			if (!f.open_existing_file(filename.c_str()))
+			{
+				if (_logger) _logger("Opening cache file failed while resizing");
+				return false;
+			}
+			if (!f.truncate_file((std::size_t)uNewSize))
+			{
+				if (_logger) _logger("Truncating cache file failed while resizing");
+				return false;
+			}
 			f.close_file();
+
+			BoostMFPtr newFile(new BoostMappingFile());
+			if (!newFile->map(filename.c_str()))
+			{
+				if (_logger) _logger("Mapping cache file failed");
+				return false;
+			}
+
+			_cache._file = newFile;
+			_cache._block = (CacheBlock*)_cache._file->addr();
+			_cache._block->_capacity = newCap;
 		}
 		catch (std::exception&)
 		{
@@ -89,35 +107,17 @@ private:
 			return false;
 		}
 
-
-		_cache._file.reset();
-		BoostMappingFile* pNewMf = new BoostMappingFile();
-		try
-		{
-			if (!pNewMf->map(filename.c_str()))
-			{
-				delete pNewMf;
-				if (_logger) _logger("Mapping cache file failed");
-				return false;
-			}
-		}
-		catch (std::exception&)
-		{
-			if (_logger) _logger("Got an exception while mapping cache file");
-			return false;
-		}
-
-		_cache._file.reset(pNewMf);
-
-		_cache._block = (CacheBlock*)_cache._file->addr();
-		_cache._block->_capacity = newCap;
 		return true;
 	}
 
 public:
 	bool	init(const char* filename, uint32_t uDate, CacheLogger logger = nullptr) noexcept
 	{
+		SpinLock guard(_lock);
+
 		_logger = logger;
+		_indice.clear();
+		_cache._block = NULL;
 		bool isNew = false;
 		if (!StdFile::exists(filename))
 		{
@@ -166,11 +166,11 @@ public:
 				if (realSz != uSize)
 				{
 					uint32_t realCap = (uint32_t)((realSz - sizeof(CacheBlock)) / sizeof(CacheItem));
-					uint32_t markedCap =  _cache._block->_capacity;
+					uint32_t markedSize = _cache._block->_size;
 					//文件大小不匹配,一般是因为capacity改了,但是实际没扩容
 					//这是做一次扩容即可
 					 _cache._block->_capacity = realCap;
-					 _cache._block->_size = (realCap < markedCap) ? realCap : markedCap;
+					 _cache._block->_size = (realCap < markedSize) ? realCap : markedSize;
 				}
 
 			} while (false);
@@ -185,29 +185,37 @@ public:
 
 	inline void clear() noexcept
 	{
+		SpinLock guard(_lock);
 		if (_cache._block == NULL)
 			return;
-
-		_lock.lock();
 		_indice.clear();
 
-		memset(_cache._block->_items, 0, sizeof(CacheItem)*_cache._block->_capacity);
+		for (uint32_t i = 0; i < _cache._block->_capacity; i++)
+			_cache._block->_items[i] = CacheItem();
 		_cache._block->_size = 0;
-
-		_lock.unlock();
 	}
 
 	inline const char*	get(const char* key) const  noexcept
 	{
+		thread_local char value[64] = { 0 };
+		SpinLock guard(_lock);
+		if (_cache._block == NULL)
+			return "";
+
 		auto it = _indice.find(key);
 		if (it == _indice.end())
 			return "";
 
-		return _cache._block->_items[it->second]._val;
+		wt_strcpy(value, _cache._block->_items[it->second]._val);
+		return value;
 	}
 
 	void	put(const char* key, const char*val, std::size_t len = 0)  noexcept
 	{
+		SpinLock guard(_lock);
+		if (_cache._block == NULL)
+			return;
+
 		auto it = _indice.find(key);
 		if (it != _indice.end())
 		{
@@ -217,20 +225,24 @@ public:
 		{
 			if (_cache._block->_size == _cache._block->_capacity)
 			{
-				_lock.lock();
-				resize(_cache._block->_capacity * 2);
-				_lock.unlock();
+				if (!resize(_cache._block->_capacity * 2))
+					return;
 			}
 
-			uint32_t idx = _cache._block->_size++;
+			uint32_t idx = _cache._block->_size;
 			wt_strcpy(_cache._block->_items[idx]._key, key);
 			wt_strcpy(_cache._block->_items[idx]._val, val, len);
+			_cache._block->_size = idx + 1;
 			_indice[key] = idx;
 		}
 	}
 
 	void	put_if_none(const char* key, const char*val, std::size_t len = 0)  noexcept
 	{
+		SpinLock guard(_lock);
+		if (_cache._block == NULL)
+			return;
+
 		auto it = _indice.find(key);
 		if (it != _indice.end())
 			return;
@@ -238,25 +250,27 @@ public:
 		{
 			if (_cache._block->_size == _cache._block->_capacity)
 			{
-				_lock.lock();
-				resize(_cache._block->_capacity * 2);
-				_lock.unlock();
+				if (!resize(_cache._block->_capacity * 2))
+					return;
 			}
 
-			uint32_t idx = _cache._block->_size++;
+			uint32_t idx = _cache._block->_size;
 			wt_strcpy(_cache._block->_items[idx]._key, key);
 			wt_strcpy(_cache._block->_items[idx]._val, val, len);
+			_cache._block->_size = idx + 1;
 			_indice[key] = idx;
 		}
 	}
 
 	inline bool	has(const char* key) const  noexcept
 	{
+		SpinLock guard(_lock);
 		return (_indice.find(key) != _indice.end());
 	}
 
 	inline uint32_t size() const noexcept
 	{
+		SpinLock guard(_lock);
 		if (_cache._block == NULL)
 			return 0;
 
@@ -265,6 +279,7 @@ public:
 
 	inline uint32_t capacity() const noexcept
 	{
+		SpinLock guard(_lock);
 		if (_cache._block == NULL)
 			return 0;
 
