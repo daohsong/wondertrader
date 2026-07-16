@@ -1,17 +1,21 @@
-﻿/*!
+/*!
  * \file DLLHelper.hpp
  * \project	WonderTrader
  *
  * \author Wesley
  * \date 2020/03/30
- * 
+ *
  * \brief 动态库辅助类,主要是把跨平台的差异封装起来,方便调用
  */
 #pragma once
-#include <string>
 
-#ifdef _MSC_VER
-#include <wtypes.h>
+#include "ModuleNameCompat.hpp"
+
+#include <string>
+#include <type_traits>
+
+#ifdef _WIN32
+#include <windows.h>
 typedef HMODULE		DllHandle;
 typedef void*		ProcHandle;
 #else
@@ -34,21 +38,30 @@ public:
 #endif
 	}
 
-	static DllHandle load_library(const char *filename)
+	static DllHandle load_library(const char* filename)
 	{
 		try
 		{
-#ifdef _MSC_VER
-			return ::LoadLibrary(filename);
+			clear_last_error();
+#ifdef _WIN32
+			DllHandle ret = ::LoadLibraryA(filename);
+			if (ret == NULL)
+				set_last_error_from_system();
+			return ret;
 #else
 			DllHandle ret = dlopen(filename, RTLD_NOW);
 			if (ret == NULL)
-				printf("%s\n", dlerror());
+			{
+				const char* err = dlerror();
+				if (err != NULL)
+					set_last_error(err);
+			}
 			return ret;
 #endif
 		}
-		catch(...)
+		catch (...)
 		{
+			set_last_error("unexpected exception while loading dynamic library");
 			return NULL;
 		}
 	}
@@ -58,7 +71,7 @@ public:
 		if (NULL == handle)
 			return;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 		::FreeLibrary(handle);
 #else
 		dlclose(handle);
@@ -68,30 +81,78 @@ public:
 	static ProcHandle get_symbol(DllHandle handle, const char* name)
 	{
 		if (NULL == handle)
+		{
+			set_last_error("invalid library handle");
 			return NULL;
+		}
+		if (name == NULL)
+		{
+			set_last_error("invalid symbol name");
+			return NULL;
+		}
 
-#ifdef _MSC_VER
-		return ::GetProcAddress(handle, name);
+#ifdef _WIN32
+		clear_last_error();
+		ProcHandle ret = reinterpret_cast<ProcHandle>(::GetProcAddress(handle, name));
+		if (ret == NULL)
+			set_last_error_from_system();
+		return ret;
 #else
-		return dlsym(handle, name);
+		(void)dlerror();
+		ProcHandle ret = dlsym(handle, name);
+		const char* err = dlerror();
+		if (err != NULL)
+			set_last_error(err);
+		else
+			clear_last_error();
+		return ret;
 #endif
+	}
+
+	template <class Fn>
+	static Fn get_typed_symbol(DllHandle handle, const char* name)
+	{
+		static_assert(std::is_pointer<Fn>::value
+			&& std::is_function<typename std::remove_pointer<Fn>::type>::value,
+			"Fn must be a function pointer type");
+		return reinterpret_cast<Fn>(get_symbol(handle, name));
+	}
+
+	static const std::string& last_error()
+	{
+		return last_error_storage();
 	}
 
 	static std::string wrap_module(const char* name, const char* unixPrefix = "lib")
 	{
 #ifdef _WIN32
-		std::string ret = name;
-		ret += module_suffix();
-		return std::move(ret);
+		return ModuleNameCompat::wrap_module_name(name, "", module_suffix(), false, true);
 #else
-		std::size_t idx = 0;
-		while (!isalpha(name[idx]))
-			idx++;
-		std::string ret(name, idx);
-		ret.append(unixPrefix);
-		ret.append(name + idx);
-		ret += module_suffix();
-		return std::move(ret);
+		return ModuleNameCompat::wrap_module_name(name, unixPrefix, module_suffix(), true);
 #endif
+	}
+
+private:
+	static void clear_last_error()
+	{
+		last_error_storage().clear();
+	}
+
+	static void set_last_error(const char* error)
+	{
+		last_error_storage() = error == NULL ? std::string() : std::string(error);
+	}
+
+#ifdef _WIN32
+	static void set_last_error_from_system()
+	{
+		last_error_storage() = "Windows error " + std::to_string(::GetLastError());
+	}
+#endif
+
+	static std::string& last_error_storage()
+	{
+		static thread_local std::string error;
+		return error;
 	}
 };

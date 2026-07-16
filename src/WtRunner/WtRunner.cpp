@@ -19,16 +19,15 @@
 #include "../WTSTools/WTSLogger.h"
 #include "../WTSUtils/WTSCfgLoader.h"
 #include "../WTSUtils/SignalHook.hpp"
+#include "../Share/CurrentDirCompat.hpp"
 #include "../Share/StrUtil.hpp"
-
-#include <boost/filesystem.hpp>
 
 const char* getBinDir()
 {
 	static std::string basePath;
 	if (basePath.empty())
 	{
-		basePath = boost::filesystem::initial_path<boost::filesystem::path>().string();
+		basePath = wt_current_working_directory();
 
 		basePath = StrUtil::standardisePath(basePath);
 	}

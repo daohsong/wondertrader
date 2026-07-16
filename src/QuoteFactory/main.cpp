@@ -13,6 +13,7 @@
 #include "../WTSTools/WTSBaseDataMgr.h"
 #include "../WTSTools/WTSLogger.h"
 #include "../WTSUtils/WTSCfgLoader.h"
+#include "../Share/CurrentDirCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/cppcli.hpp"
 
@@ -52,7 +53,7 @@ const char* getBinDir()
 	static std::string basePath;
 	if (basePath.empty())
 	{
-		basePath = boost::filesystem::initial_path<boost::filesystem::path>().string();
+		basePath = wt_current_working_directory();
 
 		basePath = StrUtil::standardisePath(basePath);
 	}
@@ -328,4 +329,3 @@ int main(int argc, char* argv[])
 	
 	return 0;
 }
-

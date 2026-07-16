@@ -9,15 +9,10 @@
  */
 #include "WtHelper.h"
 
+#include "../Share/CurrentDirCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include <filesystem>
 namespace fs = std::filesystem;
-
-#ifdef _MSC_VER
-#include <direct.h>
-#else	//UNIX
-#include <unistd.h>
-#endif
 
 std::string WtHelper::_inst_dir;
 std::string WtHelper::_out_dir = "./outputs_bt/";
@@ -27,14 +22,7 @@ std::string WtHelper::getCWD()
 	static std::string _cwd;
 	if(_cwd.empty())
 	{
-		char   buffer[255];
-#ifdef _MSC_VER
-		_getcwd(buffer, 255);
-#else	//UNIX
-		getcwd(buffer, 255);
-#endif
-		_cwd = buffer;
-		_cwd = StrUtil::standardisePath(_cwd);
+		_cwd = StrUtil::standardisePath(wt_current_working_directory());
 	}	
 	return _cwd;
 }

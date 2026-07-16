@@ -9,17 +9,12 @@
  */
 #include "WtHelper.h"
 
+#include "../Share/CurrentDirCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/StdUtils.hpp"
 
 #include <filesystem>
 namespace fs = std::filesystem;
-
-#ifdef _MSC_VER
-#include <direct.h>
-#else	//UNIX
-#include <unistd.h>
-#endif
 
 uint32_t WtHelper::_cur_date = 0;
 uint32_t WtHelper::_cur_time = 0;
@@ -34,13 +29,7 @@ std::string WtHelper::getCWD()
 	static std::string _cwd;
 	if(_cwd.empty())
 	{
-		char   buffer[256];
-#ifdef _MSC_VER
-		_getcwd(buffer, 255);
-#else	//UNIX
-		getcwd(buffer, 255);
-#endif
-		_cwd = StrUtil::standardisePath(buffer);
+		_cwd = StrUtil::standardisePath(wt_current_working_directory());
 	}	
 	return _cwd;
 }

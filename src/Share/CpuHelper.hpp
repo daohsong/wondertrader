@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <climits>
 #include <cstdint>
 #include <thread>
@@ -8,8 +8,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#elif defined(__APPLE__)
-#else
+#elif defined(__linux__)
 #include <pthread.h>
 #include <sched.h>
 #include <string.h>
@@ -38,24 +37,25 @@ public:
 		DWORD_PTR mask = SetThreadAffinityMask(hThread, (DWORD_PTR{1} << i));
 		return (mask != 0);
 	}
-#elif defined(__APPLE__)
-	static bool bind_core(uint32_t i)
-	{
-		(void)i;
-		// macOS affinity tags are not precise CPU core bindings.
-		return false;
-	}
-#else
+#elif defined(__linux__)
 	static bool bind_core(uint32_t i)
 	{
 		uint32_t cores = get_cpu_cores();
 		if (i >= cores)
 			return false;
+		if (i >= CPU_SETSIZE)
+			return false;
 
 		cpu_set_t mask;
 		CPU_ZERO(&mask);
 		CPU_SET(i, &mask);
-		return (pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask) >= 0);
+		return (pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask) == 0);
+	}
+#else
+	static bool bind_core(uint32_t i)
+	{
+		(void)i;
+		return false;
 	}
 #endif
 };
