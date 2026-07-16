@@ -5,8 +5,6 @@
 #ifdef _WIN32
 #	ifdef _MSC_VER
 #include "StackWalker.h"
-#pragma comment(lib, "psapi.lib")
-#pragma comment(lib, "dbghelp.lib")
 void print_stack_trace(TracerLogCallback cb)
 {
 	cb("Uncaught exception");

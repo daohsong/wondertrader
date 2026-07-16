@@ -644,7 +644,12 @@ int main()
 		char cmd;
 		for (;;)
 		{
-			scanf("%c", &cmd);
+			if (scanf("%c", &cmd) != 1)
+			{
+				g_exitNow = true;
+				cmd = '0';
+				break;
+			}
 
 			if(cmd >= '0' && cmd <= '9')
 				break;

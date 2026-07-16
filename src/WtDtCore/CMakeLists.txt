@@ -5,19 +5,31 @@ cmake_minimum_required(VERSION 3.20)
 #2. 确定工程名
 project(WtDtCore LANGUAGES CXX)
 
-IF(MSVC)
-ELSE(GNUCC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-ENDIF()
-
-SET(LIBRARY_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/libs)
-
 #7. 添加源码
-FILE(GLOB SRCS *.cpp)
-FILE( GLOB HDRS *.h *.hpp)
+SET(SRCS
+	DataManager.cpp
+	IndexWorkerMgr.cpp
+	ParserAdapter.cpp
+	ShmCaster.cpp
+	StateMonitor.cpp
+	UDPCaster.cpp
+	WtHelper.cpp
+)
+SET(HDRS
+	DataManager.h
+	IDataCaster.h
+	IndexWorkerMgr.h
+	ParserAdapter.h
+	ShmCaster.h
+	StatHelper.hpp
+	StateMonitor.h
+	UDPCaster.h
+	WtHelper.h
+)
 
 
 ADD_LIBRARY(WtDtCore STATIC ${SRCS} ${HDRS})
+SET_TARGET_PROPERTIES(WtDtCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
 TARGET_LINK_LIBRARIES(WtDtCore
 	PUBLIC WT::BoostFilesystem WT::BoostThread WT::BoostAtomic
 	PRIVATE WT::fmt

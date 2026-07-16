@@ -6,10 +6,15 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 PROJECT(WtIndexFactory LANGUAGES CXX)
 
 #7. 添加源码
-file(GLOB SRCS "*.cpp")
-file(GLOB HDRS "*.h")
+SET(SRCS
+	WtBlkIdxWorker.cpp
+	WtIndexFactory.cpp
+)
+SET(HDRS
+	WtBlkIdxWorker.h
+	WtIndexFactory.h
+)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
 
 ADD_LIBRARY(WtIndexFactory SHARED ${SRCS} ${HDRS})
 TARGET_LINK_LIBRARIES(WtIndexFactory PRIVATE WT::fmt WT::Boost)
@@ -26,6 +31,6 @@ ELSE (UNIX)
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()
 

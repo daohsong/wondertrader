@@ -5,19 +5,39 @@ cmake_minimum_required(VERSION 3.20)
 #2. 确定工程名
 project(WtUftCore LANGUAGES CXX)
 
-IF(MSVC)
-ELSE(GNUCC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-ENDIF()
-
-SET(LIBRARY_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/libs)
-
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	ActionPolicyMgr.cpp
+	EventNotifier.cpp
+	ParserAdapter.cpp
+	ShareManager.cpp
+	TraderAdapter.cpp
+	UftStraContext.cpp
+	UftStrategyMgr.cpp
+	WtHelper.cpp
+	WtUftDtMgr.cpp
+	WtUftEngine.cpp
+	WtUftTicker.cpp
+)
+SET(HDRS
+	ActionPolicyMgr.h
+	EventNotifier.h
+	ITrdNotifySink.h
+	ParserAdapter.h
+	ShareManager.h
+	TraderAdapter.h
+	UftDataDefs.h
+	UftStraContext.h
+	UftStrategyMgr.h
+	WtHelper.h
+	WtUftDtMgr.h
+	WtUftEngine.h
+	WtUftTicker.h
+)
 
 
 ADD_LIBRARY(WtUftCore STATIC ${SRCS} ${HDRS})
+SET_TARGET_PROPERTIES(WtUftCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
 TARGET_LINK_LIBRARIES(WtUftCore
 	PUBLIC WT::fmt WT::BoostFilesystem
 	PRIVATE WT::RapidJSON

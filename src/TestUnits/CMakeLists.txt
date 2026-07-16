@@ -5,18 +5,55 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 #2. 确定工程名
 PROJECT(TestUnits LANGUAGES CXX)
 
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/TestUnits)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp ./gtest/*.cc)
-
+SET(SRCS
+	gtest/gtest-death-test.cc
+	gtest/gtest-filepath.cc
+	gtest/gtest-port.cc
+	gtest/gtest-printers.cc
+	gtest/gtest-test-part.cc
+	gtest/gtest-typed-test.cc
+	gtest/gtest.cc
+	main.cpp
+	test_asio_compat.cpp
+	test_atomic_compat.cpp
+	test_basedata_defaults.cpp
+	test_codehelper.cpp
+	test_compile_warnings_kvcache.cpp
+	test_compile_warnings_shareblocks.cpp
+	test_compile_warnings_shmqueue.cpp
+	test_compile_warnings_threadpool.cpp
+	test_cpuhelper.cpp
+	test_current_dir_compat.cpp
+	test_dllhelper.cpp
+	test_fastestmap.cpp
+	test_filesystem_compat.cpp
+	test_fmt.cpp
+	test_header_self_contained_asio_compat.cpp
+	test_header_self_contained_eventnotifier_wtcore.cpp
+	test_header_self_contained_eventnotifier_wtuftcore.cpp
+	test_header_self_contained_filesystem_compat.cpp
+	test_header_self_contained_stdutils.cpp
+	test_header_self_contained_udpcaster.cpp
+	test_header_self_contained_wtdtrunner.cpp
+	test_header_self_contained_wtfiltermgr.cpp
+	test_kvcache.cpp
+	test_lmdb.cpp
+	test_object_pool.cpp
+	test_platform_pause.cpp
+	test_session.cpp
+	test_shm.cpp
+	test_tradermocker_matching.cpp
+	test_utils.cpp
+)
 SET(LIBS
 	WtDtCore
     WTSTools
 	WTSUtils
     WtShareHelper)
 IF (MSVC)
-ELSE(GNUCC)
+ELSE()
     LIST(APPEND LIBS WT::Platform ${FS_LIB})
 	IF(WIN32)
 		LIST(APPEND LIBS iconv)
@@ -41,7 +78,7 @@ SET_TESTS_PROPERTIES(WonderTrader.TestUnits PROPERTIES
 )
 
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	SET_TARGET_PROPERTIES(TestUnits PROPERTIES
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()

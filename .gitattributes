@@ -6,3 +6,8 @@
 *.hh    text eol=lf
 *.hpp   text eol=lf
 *.hxx   text eol=lf
+
+# Legacy CMakeLists files are still CRLF. Treat CR as part of the line ending
+# during whitespace checks until those files are normalized in a dedicated,
+# reviewable formatting change.
+**/CMakeLists.txt whitespace=cr-at-eol

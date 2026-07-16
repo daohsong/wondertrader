@@ -5,11 +5,23 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 #2. 确定工程名
 PROJECT(WtDtServo LANGUAGES CXX)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/WtDtPorter)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	ParserAdapter.cpp
+	WtDataManager.cpp
+	WtDtRunner.cpp
+	WtDtServo.cpp
+	WtHelper.cpp
+)
+SET(HDRS
+	ParserAdapter.h
+	PorterDefs.h
+	WtDataManager.h
+	WtDtRunner.h
+	WtDtServo.h
+	WtHelper.h
+)
 
 IF(MSVC)
     list (APPEND SRCS ../Common/mdump.cpp)
@@ -23,7 +35,7 @@ SET(LIBS
     WTSUtils
 )
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
     LIST(APPEND LIBS
         WT::Platform
         WT::BoostFilesystem
@@ -35,9 +47,9 @@ ENDIF()
 
 TARGET_LINK_LIBRARIES(WtDtServo PUBLIC ${LIBS})
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
     SET_TARGET_PROPERTIES(WtDtServo PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()

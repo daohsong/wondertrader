@@ -5,17 +5,23 @@ cmake_minimum_required(VERSION 3.20)
 #2. 确定工程名
 project(WTSTools LANGUAGES CXX)
 
-IF(MSVC)
-ELSE(GNUCC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-ENDIF()
-
-SET(LIBRARY_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/libs)
-
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	CsvHelper.cpp
+	WTSBaseDataMgr.cpp
+	WTSDataFactory.cpp
+	WTSHotMgr.cpp
+	WTSLogger.cpp
+)
+SET(HDRS
+	CsvHelper.h
+	WTSBaseDataMgr.h
+	WTSDataFactory.h
+	WTSHotMgr.h
+	WTSLogger.h
+)
 
 ADD_LIBRARY(WTSTools ${SRCS} ${HDRS})
+SET_TARGET_PROPERTIES(WTSTools PROPERTIES POSITION_INDEPENDENT_CODE ON)
 TARGET_INCLUDE_DIRECTORIES(WTSTools PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../WTSUtils/yamlcpp")
 TARGET_LINK_LIBRARIES(WTSTools PUBLIC WT::fmt WT::Boost)

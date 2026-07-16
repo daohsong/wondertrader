@@ -4,11 +4,23 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 #2. 确定工程名
 PROJECT(WtBtPorter LANGUAGES CXX)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/WtBtPorter)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	ExpCtaMocker.cpp
+	ExpHftMocker.cpp
+	ExpSelMocker.cpp
+	WtBtPorter.cpp
+	WtBtRunner.cpp
+)
+SET(HDRS
+	ExpCtaMocker.h
+	ExpHftMocker.h
+	ExpSelMocker.h
+	PorterDefs.h
+	WtBtPorter.h
+	WtBtRunner.h
+)
 
 IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
@@ -23,7 +35,7 @@ IF(MSVC)
 		WTSTools
 		WTSUtils
 	)
-ELSE(GNUCC)
+ELSE()
 	SET(LIBS
 		WtBtCore
 		WTSTools
@@ -44,6 +56,6 @@ ELSE (UNIX)
 	SET_TARGET_PROPERTIES(WtBtPorter PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()
 

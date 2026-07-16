@@ -4,11 +4,21 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 #2. 确定工程名
 PROJECT(TraderDumper LANGUAGES CXX)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/WtPorter)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	Dumper.cpp
+	TraderAdapter.cpp
+	TraderDumper.cpp
+	WtHelper.cpp
+)
+SET(HDRS
+	Dumper.h
+	PorterDefs.h
+	TraderAdapter.h
+	TraderDumper.h
+	WtHelper.h
+)
 
 IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
@@ -22,7 +32,7 @@ SET(LIBS
 	WTSUtils
 	)
 IF(MSVC)
-ELSE(GNUCC)
+ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
 		${FS_LIB}
@@ -37,9 +47,9 @@ ENDIF()
 
 TARGET_LINK_LIBRARIES(TraderDumper PUBLIC ${LIBS})
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	SET_TARGET_PROPERTIES(TraderDumper PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()

@@ -17,15 +17,7 @@
 #include "../Includes/ITraderApi.h"
 #include "../Includes/WTSCollection.hpp"
 
-#if defined(__has_include)
-#	if __has_include(<ThostFtdcTraderApi.h>)
-#		include <ThostFtdcTraderApi.h>
-#	else
-#		include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
-#	endif
-#else
-#	include "../API/CTP6.3.15/ThostFtdcTraderApi.h"
-#endif
+#include <ThostFtdcTraderApi.h>
 
 #include "../Share/StdUtils.hpp"
 #include "../Share/DLLHelper.hpp"

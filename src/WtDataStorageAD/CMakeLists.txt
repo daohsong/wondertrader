@@ -4,11 +4,22 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 #2. 确定工程名
 PROJECT(WtDataStorageAD LANGUAGES CXX)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	WtBtDtReaderAD.cpp
+	WtDataReaderAD.cpp
+	WtDataWriterAD.cpp
+	WtRdmDtReaderAD.cpp
+)
+SET(HDRS
+	DataDefineAD.h
+	LMDBKeys.h
+	WtBtDtReaderAD.h
+	WtDataReaderAD.h
+	WtDataWriterAD.h
+	WtRdmDtReaderAD.h
+)
 
 ADD_LIBRARY(WtDataStorageAD SHARED ${SRCS} ${HDRS})
 TARGET_LINK_LIBRARIES(WtDataStorageAD PRIVATE WT::fmt)
@@ -18,10 +29,8 @@ SET(LIBS
 )
 
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	LIST(APPEND LIBS
-		WT::Platform
-		WT::BoostFilesystem
 		WT::Platform
 		${FS_LIB}
 		)
@@ -32,10 +41,10 @@ ENDIF()
 TARGET_LINK_LIBRARIES(WtDataStorageAD PUBLIC ${LIBS})
 
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	SET_TARGET_PROPERTIES(WtDataStorageAD PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()
 

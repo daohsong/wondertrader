@@ -10,15 +10,7 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#if defined(__has_include)
-#	if __has_include(<ThostFtdcMdApi.h>)
-#		include <ThostFtdcMdApi.h>
-#	else
-#		include "../API/CTP6.3.15/ThostFtdcMdApi.h"
-#	endif
-#else
-#	include "../API/CTP6.3.15/ThostFtdcMdApi.h"
-#endif
+#include <ThostFtdcMdApi.h>
 #include <map>
 
 NS_WTP_BEGIN

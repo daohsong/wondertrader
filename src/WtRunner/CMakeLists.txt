@@ -3,12 +3,16 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 #2. 确定工程名
 PROJECT(WtRunner LANGUAGES CXX)
-
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/WtRunner)
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	WtRunner.cpp
+	main.cpp
+)
+SET(HDRS
+	WtRunner.h
+)
 
 IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
@@ -23,7 +27,7 @@ SET(LIBS
 
 IF (MSVC)
 	LIST(APPEND LIBS ws2_32)
-ELSE(GNUCC)
+ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
 		WT::BoostFilesystem
@@ -36,18 +40,20 @@ ELSE(GNUCC)
 ENDIF()
 
 ADD_EXECUTABLE(WtRunner ${SRCS} ${HDRS})
+wt_set_target_output_directory(WtRunner WtRunner)
 TARGET_LINK_LIBRARIES(WtRunner PRIVATE WT::fmt)
 TARGET_LINK_LIBRARIES(WtRunner PRIVATE ${LIBS})
 
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	SET_TARGET_PROPERTIES(WtRunner PROPERTIES
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()
 
-file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}/parsers/)
-file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}/traders/)
-file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}/executer/)
+wt_make_target_subdirectories(WtRunner parsers traders executer)
+wt_add_deployment_target(WtRunner_deploy WtRunner
+	MANAGED_SUBDIRECTORIES parsers traders executer
+)
 
 SET(WT_RUNNER_POST_BUILD_DEPENDS
 	ParserUDP
@@ -58,76 +64,41 @@ SET(WT_RUNNER_POST_BUILD_DEPENDS
 	WtRiskMonFact
 	WtMsgQue
 )
-SET(WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}ParserUDP${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/parsers/
-)
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy ParserUDP parsers)
 
 IF(TARGET TraderCTP)
 	LIST(APPEND WT_RUNNER_POST_BUILD_DEPENDS TraderCTP)
-	LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderCTP${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-	)
+	wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderCTP traders)
 ENDIF()
 
 IF(TARGET TraderXTP)
 	LIST(APPEND WT_RUNNER_POST_BUILD_DEPENDS TraderXTP)
-	LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderXTP${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-	)
+	wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderXTP traders)
 ENDIF()
 
-LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderMocker${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-)
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderMocker traders)
 
 IF(TARGET TraderCTPMini)
 	LIST(APPEND WT_RUNNER_POST_BUILD_DEPENDS TraderCTPMini)
-	LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderCTPMini${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-	)
+	wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderCTPMini traders)
 ENDIF()
 
 IF(TARGET TraderCTPOpt)
 	LIST(APPEND WT_RUNNER_POST_BUILD_DEPENDS TraderCTPOpt)
-	LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderCTPOpt${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-	)
+	wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderCTPOpt traders)
 ENDIF()
 
 IF(TARGET TraderFemas)
 	LIST(APPEND WT_RUNNER_POST_BUILD_DEPENDS TraderFemas)
-	LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}TraderFemas${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/traders/
-	)
+	wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy TraderFemas traders)
 ENDIF()
 
-LIST(APPEND WT_RUNNER_POST_BUILD_COMMANDS
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}WtExeFact${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/executer/
-
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}WtDataStorage${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/
-
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}WtDataStorageAD${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/
-
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}WtRiskMonFact${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/
-
-	COMMAND ${CMAKE_COMMAND} -E
-	copy ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin/${PREFIX}WtMsgQue${SUFFIX} ${EXECUTABLE_OUTPUT_PATH}/
-)
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy WtExeFact executer)
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy WtDataStorage "")
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy WtDataStorageAD "")
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy WtRiskMonFact "")
+wt_copy_and_deploy_target_if_exists(WtRunner WtRunner_deploy WtMsgQue "")
 
 add_dependencies(WtRunner ${WT_RUNNER_POST_BUILD_DEPENDS})
-add_custom_command(TARGET WtRunner POST_BUILD
-	${WT_RUNNER_POST_BUILD_COMMANDS}
-	COMMENT "depends modules copied")
 
 

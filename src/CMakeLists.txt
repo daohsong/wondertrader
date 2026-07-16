@@ -1,9 +1,10 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.21)
 
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtPlatform.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtCxxStandard.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtDependencies.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtAtomic.cmake)
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtInstall.cmake)
 
 IF(CMAKE_OSX_ARCHITECTURES)
 	LIST(LENGTH CMAKE_OSX_ARCHITECTURES WT_OSX_ARCH_COUNT)
@@ -184,6 +185,15 @@ IF(BUILD_TESTING)
 			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_target_dependency_policy.cmake
 	)
 	SET_TESTS_PROPERTIES(WonderTrader.TargetDependencyPolicy PROPERTIES LABELS cmake)
+
+	ADD_TEST(
+		NAME WonderTrader.CopyTarget
+		COMMAND ${CMAKE_COMMAND}
+			-DWT_COPY_TARGET_HELPER=${CMAKE_CURRENT_LIST_DIR}/cmake/WtCopyTarget.cmake
+			-DWT_COPY_TARGET_TEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cmake-tests/copy-target
+			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_wt_copy_target.cmake
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.CopyTarget PROPERTIES LABELS cmake TIMEOUT 120)
 
 	ADD_TEST(
 		NAME WonderTrader.ZmqDependency

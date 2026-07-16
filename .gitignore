@@ -1,2 +1,6 @@
 dist/*
 .xmake
+/build/
+/uft_demo.share
+**/__pycache__/
+*.py[cod]

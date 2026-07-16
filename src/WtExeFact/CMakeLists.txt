@@ -5,20 +5,37 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 PROJECT(WtExeFact LANGUAGES CXX)
 
 #7. 添加源码
-file(GLOB SRCS *.cpp)
-file(GLOB HDRS *.h)
+SET(SRCS
+	WtDiffMinImpactExeUnit.cpp
+	WtExeFact.cpp
+	WtMinImpactExeUnit.cpp
+	WtOrdMon.cpp
+	WtStockMinImpactExeUnit.cpp
+	WtStockVWapExeUnit.cpp
+	WtTWapExeUnit.cpp
+	WtVWapExeUnit.cpp
+)
+SET(HDRS
+	WtDiffMinImpactExeUnit.h
+	WtExeFact.h
+	WtMinImpactExeUnit.h
+	WtOrdMon.h
+	WtStockMinImpactExeUnit.h
+	WtStockVWapExeUnit.h
+	WtTWapExeUnit.h
+	WtVWapExeUnit.h
+)
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
 
 ADD_LIBRARY(WtExeFact SHARED ${SRCS} ${HDRS})
 TARGET_LINK_LIBRARIES(WtExeFact PUBLIC WT::fmt WT::RapidJSON)
 
 IF (MSVC)
-ELSE (GNUCC)
+ELSE()
 	SET_TARGET_PROPERTIES(WtExeFact PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
+        BUILD_RPATH_USE_ORIGIN ON)
 ENDIF ()
 
