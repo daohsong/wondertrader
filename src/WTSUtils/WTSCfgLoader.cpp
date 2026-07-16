@@ -11,9 +11,11 @@ namespace rj = rapidjson;
 
 bool json_to_variant(const rj::Value& root, WTSVariant* params)
 {
-	if (root.IsObject() && params->type() != WTSVariant::VT_Object)
+	if (!root.IsObject() && !root.IsArray())
 		return false;
 
+	if (root.IsObject() && params->type() != WTSVariant::VT_Object)
+		return false;
 	if (root.IsArray() && params->type() != WTSVariant::VT_Array)
 		return false;
 
@@ -25,6 +27,8 @@ bool json_to_variant(const rj::Value& root, WTSVariant* params)
 			const rj::Value& item = m.value;
 			switch (item.GetType())
 			{
+			case rj::kNullType:
+				break;
 			case rj::kObjectType:
 			{
 				WTSVariant* subObj = WTSVariant::createObject();
@@ -68,6 +72,8 @@ bool json_to_variant(const rj::Value& root, WTSVariant* params)
 		{
 			switch (item.GetType())
 			{
+			case rj::kNullType:
+				break;
 			case rj::kObjectType:
 			{
 				WTSVariant* subObj = WTSVariant::createObject();
@@ -128,9 +134,11 @@ WTSVariant* WTSCfgLoader::load_from_json(const char* content)
 #include "../WTSUtils/yamlcpp/yaml.h"
 bool yaml_to_variant(const YAML::Node& root, WTSVariant* params)
 {
-	if (root.IsNull() && params->type() != WTSVariant::VT_Object)
+	if (!root.IsMap() && !root.IsSequence())
 		return false;
 
+	if (root.IsMap() && params->type() != WTSVariant::VT_Object)
+		return false;
 	if (root.IsSequence() && params->type() != WTSVariant::VT_Array)
 		return false;
 
@@ -141,6 +149,9 @@ bool yaml_to_variant(const YAML::Node& root, WTSVariant* params)
 		const YAML::Node& item = isMap ? m.second : m;
 		switch (item.Type())
 		{
+		case YAML::NodeType::Undefined:
+		case YAML::NodeType::Null:
+			break;
 		case YAML::NodeType::Map:
 		{
 			WTSVariant* subObj = WTSVariant::createObject();

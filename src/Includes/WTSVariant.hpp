@@ -13,18 +13,15 @@
 #include "WTSObject.hpp"
 #include "WTSCollection.hpp"
 
+#include <charconv>
+#include <iomanip>
+#include <limits>
+#include <locale>
+#include <sstream>
 #include <string>
 #include <string.h>
 #include <vector>
 #include <map>
-
-#ifdef _MSC_VER
-#define INT64_FMT	"%I64d"
-#define UINT64_FMT	"%I64u"
-#else
-#define INT64_FMT	"%ld"
-#define UINT64_FMT	"%lu"
-#endif
 
 
 NS_WTP_BEGIN
@@ -60,13 +57,29 @@ protected:
 	WTSVariant() :_type(VT_Null){}
 
 private:
+	template <typename Integer>
+	static inline std::string integerToString(Integer value)
+	{
+		char buffer[std::numeric_limits<Integer>::digits10 + 3] = {};
+		auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+		if (result.ec != std::errc())
+			return std::string();
+		return std::string(buffer, result.ptr);
+	}
+
+	static inline std::string realToString(double value)
+	{
+		std::ostringstream output;
+		output.imbue(std::locale::classic());
+		output << std::fixed << std::setprecision(10) << value;
+		return output.str();
+	}
+
 	static inline WTSVariant* create(int32_t i32)
 	{
 		WTSVariant* ret = new WTSVariant();
 		ret->_type = VT_Int32;
-		char s[32] = { 0 };
-		sprintf(s, "%d", i32);
-		ret->_value._string = new std::string(s);
+		ret->_value._string = new std::string(integerToString(i32));
 		return ret;
 	}
 
@@ -74,9 +87,7 @@ private:
 	{
 		WTSVariant* ret = new WTSVariant();
 		ret->_type = VT_Uint32;
-		char s[32] = { 0 };
-		sprintf(s, "%u", u32);
-		ret->_value._string = new std::string(s);
+		ret->_value._string = new std::string(integerToString(u32));
 		return ret;
 	}
 
@@ -84,9 +95,7 @@ private:
 	{
 		WTSVariant* ret = new WTSVariant();
 		ret->_type = VT_Int64;
-		char s[32] = { 0 };
-		sprintf(s, INT64_FMT, i64);
-		ret->_value._string = new std::string(s);
+		ret->_value._string = new std::string(integerToString(i64));
 		return ret;
 	}
 
@@ -94,9 +103,7 @@ private:
 	{
 		WTSVariant* ret = new WTSVariant();
 		ret->_type = VT_Uint64;
-		char s[32] = { 0 };
-		sprintf(s, UINT64_FMT, u64);
-		ret->_value._string = new std::string(s);
+		ret->_value._string = new std::string(integerToString(u64));
 		return ret;
 	}
 
@@ -104,9 +111,7 @@ private:
 	{
 		WTSVariant* ret = new WTSVariant();
 		ret->_type = VT_Real;
-		char s[32] = { 0 };
-		sprintf(s, "%.10f", _real);
-		ret->_value._string = new std::string(s);
+		ret->_value._string = new std::string(realToString(_real));
 		return ret;
 	}
 
