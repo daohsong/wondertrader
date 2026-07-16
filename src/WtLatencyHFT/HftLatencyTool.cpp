@@ -188,12 +188,12 @@ namespace hft
 		/*
 		*	执行单元名称
 		*/
-		virtual const char* getName() { return "TestStrategy"; }
+		virtual const char* getName() override { return "TestStrategy"; }
 
 		/*
 		*	所属执行器工厂名称
 		*/
-		virtual const char* getFactName() { return "TestStrategyFact"; }
+		virtual const char* getFactName() override { return "TestStrategyFact"; }
 
 
 		virtual void on_init(IHftStraCtx* ctx) override
@@ -201,7 +201,7 @@ namespace hft
 			ctx->stra_sub_ticks("SHFE.rb.2205");
 		}
 
-		virtual void on_tick(IHftStraCtx* ctx, const char* code, WTSTickData* newTick)
+		virtual void on_tick(IHftStraCtx* ctx, const char* code, WTSTickData* newTick) override
 		{
 			//ctx->stra_sell("SHFE.rb.2205", 2300, 1, "", HFT_OrderFlag_Nor);
 			ctx->stra_buy("SHFE.rb.2205", 2300, 1, "", HFT_OrderFlag_Nor);

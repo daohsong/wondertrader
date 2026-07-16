@@ -32,7 +32,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 //IBtDtReader
 public:
-	virtual void init(WTSVariant* cfg, IBtDtReaderSink* sink);
+	virtual void init(WTSVariant* cfg, IBtDtReaderSink* sink) override;
 
 	virtual bool read_raw_bars(const char* exchg, const char* code, WTSKlinePeriod period, std::string& buffer) override;
 	virtual bool read_raw_ticks(const char* exchg, const char* code, uint32_t uDate, std::string& buffer) override;

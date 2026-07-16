@@ -164,12 +164,12 @@ namespace uft
 		/*
 		*	执行单元名称
 		*/
-		virtual const char* getName() { return "TestStrategy"; }
+		virtual const char* getName() override { return "TestStrategy"; }
 
 		/*
 		*	所属执行器工厂名称
 		*/
-		virtual const char* getFactName() { return "TestStrategyFact"; }
+		virtual const char* getFactName() override { return "TestStrategyFact"; }
 
 
 		virtual void on_init(IUftStraCtx* ctx) override
@@ -177,7 +177,7 @@ namespace uft
 			ctx->stra_sub_ticks("SHFE.rb2205");
 		}
 
-		virtual void on_tick(IUftStraCtx* ctx, const char* code, WTSTickData* newTick)
+		virtual void on_tick(IUftStraCtx* ctx, const char* code, WTSTickData* newTick) override
 		{
 			//WTSLogger::debug("{}", __FUNCTION__);
 			ctx->stra_enter_long("SHFE.rb2205", 2300, 1, 0);

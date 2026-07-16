@@ -213,7 +213,11 @@ typedef SSIZE_T	ssize_t;
 #ifdef __GNUC__
 /** Put infrequently used env functions in separate section */
 # ifdef __APPLE__
-#  define	ESECT	__attribute__ ((section("__TEXT,text_env")))
+#  if (((__clang_major__ << 8) | __clang_minor__) >= 0x0302) || (((__GNUC__ << 8) | __GNUC_MINOR__) >= 0x0403)
+#   define	ESECT	__attribute__ ((cold))
+#  else
+#   define	ESECT	__attribute__ ((section("__TEXT,text_env,regular,pure_instructions")))
+#  endif
 # else
 #  define	ESECT	__attribute__ ((section("text_env")))
 # endif

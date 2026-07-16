@@ -35,7 +35,7 @@ public:
 	void setTrader(TraderAdapter* trader);
 
 public:
-	virtual uint32_t id() { return _context_id; }
+	virtual uint32_t id() override { return _context_id; }
 
 	virtual void on_init() override;
 

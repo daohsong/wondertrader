@@ -233,7 +233,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //IRdmDtReader
 public:
-	virtual void init(WTSVariant* cfg, IRdmDtReaderSink* sink);
+	virtual void init(WTSVariant* cfg, IRdmDtReaderSink* sink) override;
 
 	virtual WTSOrdDtlSlice*	readOrdDtlSliceByRange(const char* stdCode, uint64_t stime, uint64_t etime = 0) override;
 	virtual WTSOrdQueSlice*	readOrdQueSliceByRange(const char* stdCode, uint64_t stime, uint64_t etime = 0) override;

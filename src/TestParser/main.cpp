@@ -115,7 +115,7 @@ public:
 	}
 
 public:
-	virtual IBaseDataMgr*	getBaseDataMgr()
+	virtual IBaseDataMgr*	getBaseDataMgr() override
 	{
 		return &g_bdMgr;
 	}

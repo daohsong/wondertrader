@@ -106,7 +106,7 @@ protected:
 	void	dump_chart_info();
 
 public:
-	virtual uint32_t id() { return _context_id; }
+	virtual uint32_t id() override { return _context_id; }
 
 	//回调函数
 	virtual void on_init() override;

@@ -347,7 +347,7 @@ public:
 	}
 
 public:
-	virtual void handleEvent(WTSTraderEvent e, int32_t ec)
+	virtual void handleEvent(WTSTraderEvent e, int32_t ec) override
 	{
 		if(e == WTE_Connect)
 		{
@@ -370,7 +370,7 @@ public:
 		WTSLogger::log_raw(ll, message);
 	}
 
-	virtual void onLoginResult(bool bSucc, const char* msg, uint32_t tradingdate)
+	virtual void onLoginResult(bool bSucc, const char* msg, uint32_t tradingdate) override
 	{
 		if(bSucc)
 		{
@@ -387,7 +387,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onRspEntrust(WTSEntrust* entrust, WTSError *err)
+	virtual void onRspEntrust(WTSEntrust* entrust, WTSError *err) override
 	{
 		if(err)
 		{
@@ -398,7 +398,7 @@ public:
 		
 	}
 
-	virtual void onRspAccount(WTSArray* ayAccounts)
+	virtual void onRspAccount(WTSArray* ayAccounts) override
 	{
 		if(ayAccounts != NULL)
 		{
@@ -413,7 +413,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onRspPosition(const WTSArray* ayPositions)
+	virtual void onRspPosition(const WTSArray* ayPositions) override
 	{
 		uint32_t cnt = 0;
 		if (ayPositions != NULL)
@@ -438,7 +438,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onRspOrders(const WTSArray* ayOrders)
+	virtual void onRspOrders(const WTSArray* ayOrders) override
 	{
 		uint32_t cnt = 0;
 		if (ayOrders != NULL)
@@ -464,7 +464,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onRspTrades(const WTSArray* ayTrades)
+	virtual void onRspTrades(const WTSArray* ayTrades) override
 	{
 		uint32_t cnt = 0;
 		if (ayTrades != NULL)
@@ -475,7 +475,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onRspSettlementInfo(uint32_t uDate, const char* content)
+	virtual void onRspSettlementInfo(uint32_t uDate, const char* content) override
 	{
 		WTSLogger::info("[{}]{} 收到结算信息", m_strUniUser, uDate);
 		WTSLogger::info(content);
@@ -483,7 +483,7 @@ public:
 		g_condOpt.notify_all();
 	}
 
-	virtual void onPushOrder(WTSOrderInfo* orderInfo)
+	virtual void onPushOrder(WTSOrderInfo* orderInfo) override
 	{
 		std::string orderid = StrUtil::trim(orderInfo->getOrderID());
 		if(orderInfo->getOrderState() != WOS_Canceled)
@@ -523,7 +523,7 @@ public:
 		}
 	}
 
-	virtual void onPushTrade(WTSTradeInfo* tradeRecord)
+	virtual void onPushTrade(WTSTradeInfo* tradeRecord) override
 	{
 		WTSLogger::info("[{}] 收到成交回报，代码:{}, 价格:{}, 数量: {}, 用户标记: {}", 
 			m_strUniUser, tradeRecord->getCode(), tradeRecord->getPrice(), tradeRecord->getVolume(), tradeRecord->getUserTag());
@@ -553,7 +553,7 @@ public:
 	}
 
 public:
-	virtual IBaseDataMgr*	getBaseDataMgr()
+	virtual IBaseDataMgr*	getBaseDataMgr() override
 	{
 		return &g_bdMgr;
 	}

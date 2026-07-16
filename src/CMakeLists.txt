@@ -6,6 +6,7 @@ INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtDependencies.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtAtomic.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtFilesystem.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtInstall.cmake)
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtWarnings.cmake)
 
 IF(CMAKE_OSX_ARCHITECTURES)
 	LIST(LENGTH CMAKE_OSX_ARCHITECTURES WT_OSX_ARCH_COUNT)
@@ -123,6 +124,19 @@ ENDIF()
 MESSAGE(STATUS "WT platform: system=${WT_SYSTEM} arch=${WT_ARCH} shared_suffix=${WT_SHARED_SUFFIX} runtime_subdir=${WT_RUNTIME_SUBDIR}")
 
 IF(BUILD_TESTING)
+	FIND_PACKAGE(Python3 COMPONENTS Interpreter REQUIRED)
+
+	IF(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+		ADD_TEST(
+			NAME WonderTrader.LmdbAppleSection
+			COMMAND ${CMAKE_COMMAND}
+				-DWT_C_COMPILER=${CMAKE_C_COMPILER}
+				-DWT_LMDB_SOURCE=${CMAKE_CURRENT_LIST_DIR}/WTSUtils/lmdb/mdb.c
+				-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_lmdb_apple_section.cmake
+		)
+		SET_TESTS_PROPERTIES(WonderTrader.LmdbAppleSection PROPERTIES LABELS cmake)
+	ENDIF()
+
 	ADD_TEST(
 		NAME WonderTrader.PlatformVars
 		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_wt_platform.cmake
@@ -160,6 +174,42 @@ IF(BUILD_TESTING)
 			WILL_FAIL TRUE
 		)
 	ENDFOREACH()
+
+	ADD_TEST(
+		NAME WonderTrader.WarningPolicy
+		COMMAND ${CMAKE_COMMAND}
+			-S ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/warnings
+			-B ${CMAKE_CURRENT_BINARY_DIR}/cmake-tests/warnings
+			-DWT_WARNINGS_MODULE=${CMAKE_CURRENT_LIST_DIR}/cmake/WtWarnings.cmake
+			-DWT_ENABLE_WARNINGS=ON
+			-DWT_WARNINGS_AS_ERRORS=ON
+			-DWT_WARNING_LEVEL=BASELINE
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.WarningPolicy PROPERTIES LABELS cmake)
+
+	ADD_TEST(
+		NAME WonderTrader.WarningPolicy.invalid_level
+		COMMAND ${CMAKE_COMMAND}
+			-S ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/warnings
+			-B ${CMAKE_CURRENT_BINARY_DIR}/cmake-tests/warnings-invalid
+			-DWT_WARNINGS_MODULE=${CMAKE_CURRENT_LIST_DIR}/cmake/WtWarnings.cmake
+			-DWT_WARNING_LEVEL=INVALID
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.WarningPolicy.invalid_level PROPERTIES
+		LABELS cmake
+		WILL_FAIL TRUE
+	)
+
+	ADD_TEST(
+		NAME WonderTrader.WarningBudget
+		COMMAND ${CMAKE_COMMAND}
+			-DWT_PYTHON=${Python3_EXECUTABLE}
+			-DWT_WARNING_BUDGET_SCRIPT=${CMAKE_CURRENT_LIST_DIR}/../scripts/warning_budget.py
+			-DWT_SOURCE_ROOT=${CMAKE_CURRENT_LIST_DIR}/..
+			-DWT_WARNING_TEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cmake-tests/warning-budget
+			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_warning_budget.cmake
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.WarningBudget PROPERTIES LABELS cmake)
 
 	ADD_TEST(
 		NAME WonderTrader.HeaderDependencies
@@ -261,6 +311,7 @@ ENDIF()
 
 WT_SETUP_CXX_STANDARD()
 MESSAGE(STATUS "WonderTrader C++ standard: C++${WT_CXX_STANDARD} (minimum C++17, extensions disabled)")
+WT_SETUP_WARNINGS()
 
 SET(WT_DEP_INCLUDE_PATHS "${WT_DEP_PREFIX_INCLUDE_DIR}")
 SET(WT_DEP_LIBRARY_PATHS "${WT_DEP_PREFIX_LIBRARY_DIR}")
@@ -975,3 +1026,13 @@ IF(WT_CXX_TARGET_COUNT EQUAL 0)
 	MESSAGE(FATAL_ERROR "C++ standard contract did not find any build targets")
 ENDIF()
 MESSAGE(STATUS "Applied the C++ standard contract to ${WT_CXX_TARGET_COUNT} targets")
+
+# WTSUtils currently combines project sources with vendored LMDB, yaml-cpp and
+# zstd sources in one target. Keep those external sources outside the warning
+# policy until they are split into separate targets.
+SET(WT_WARNING_EXCLUDED_TARGETS WTSUtils)
+WT_CONFIGURE_WARNING_TARGETS_IN_DIRECTORY("${CMAKE_CURRENT_SOURCE_DIR}" WT_WARNING_TARGET_COUNT)
+IF(WT_WARNING_TARGET_COUNT EQUAL 0)
+	MESSAGE(FATAL_ERROR "Warning policy did not find any project targets")
+ENDIF()
+MESSAGE(STATUS "Applied the warning policy to ${WT_WARNING_TARGET_COUNT} project targets")
