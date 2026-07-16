@@ -79,10 +79,10 @@ Build and run `TestUnits` from the repository root:
 
 ```sh
 /opt/homebrew/bin/cmake --build src/build_all --config Release --target TestUnits --parallel 4
-printf '\n' | src/build_all/build_arm64/Release/bin/TestUnits/TestUnits
+src/build_all/build_arm64/Release/bin/TestUnits/TestUnits
 ```
 
-`TestUnits` waits for Enter before exiting; pipe a newline in non-interactive runs as shown above.
+`TestUnits` is non-interactive and returns a non-zero status when a test fails.
 
 ## CTP
 
@@ -100,6 +100,10 @@ To enable CTP on macOS arm64, provide an external macOS arm64 CTP SDK and config
 If direct/static SDK linkage is required, also pass `-DWT_CTP_STATIC=ON`.
 
 ## Status
+
+The environment above verified the original minimal macOS arm64 path. The
+subsequent portability rebuild has not yet been rerun on macOS, so Linux
+validation of that branch must not be treated as current macOS evidence.
 
 Completed for macOS arm64:
 
