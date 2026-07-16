@@ -1,0 +1,22 @@
+if(NOT WT_SOURCE_DIR)
+	message(FATAL_ERROR "WT_SOURCE_DIR is required")
+endif()
+
+file(GLOB_RECURSE WT_CMAKE_LISTS "${WT_SOURCE_DIR}/*/CMakeLists.txt")
+set(WT_DIRECTORY_STATE_VIOLATIONS "")
+foreach(WT_CMAKE_LIST IN LISTS WT_CMAKE_LISTS)
+	file(RELATIVE_PATH WT_CMAKE_LIST_RELATIVE "${WT_SOURCE_DIR}" "${WT_CMAKE_LIST}")
+	# These two standalone legacy modules are repaired and gated in the orphan-module phase.
+	if(WT_CMAKE_LIST_RELATIVE MATCHES "^Trader(DD|HTS)/CMakeLists\\.txt$")
+		continue()
+	endif()
+	file(READ "${WT_CMAKE_LIST}" WT_CMAKE_CONTENT)
+	if(WT_CMAKE_CONTENT MATCHES "(^|\n)[ \t]*(INCLUDE_DIRECTORIES|LINK_DIRECTORIES|LINK_LIBRARIES|ADD_DEFINITIONS)[ \t]*\\(")
+		list(APPEND WT_DIRECTORY_STATE_VIOLATIONS "${WT_CMAKE_LIST_RELATIVE}")
+	endif()
+endforeach()
+
+if(WT_DIRECTORY_STATE_VIOLATIONS)
+	list(JOIN WT_DIRECTORY_STATE_VIOLATIONS ", " WT_DIRECTORY_STATE_TEXT)
+	message(FATAL_ERROR "Directory-scoped dependency state remains in: ${WT_DIRECTORY_STATE_TEXT}")
+endif()

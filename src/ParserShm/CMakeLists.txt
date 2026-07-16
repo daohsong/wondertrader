@@ -12,27 +12,26 @@ SET(SRC
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 ADD_LIBRARY(ParserShm SHARED ${SRC})
+TARGET_LINK_LIBRARIES(ParserShm PRIVATE WT::fmt)
 
 IF(MSVC)
 	SET(LIBS )
 ELSE(GNUCC)
 	IF (WIN32)
 		SET(LIBS
-			boost_thread
+			WT::BoostThread
             ${FS_LIB}
 		)
 	ELSE(UNIX)
 		SET(LIBS
-			boost_thread
-			boost_filesystem
+			WT::BoostThread
+			WT::BoostFilesystem
             ${FS_LIB}
 		)
 	ENDIF()
 ENDIF()
-TARGET_LINK_LIBRARIES(ParserShm ${LIBS})
+TARGET_LINK_LIBRARIES(ParserShm PUBLIC ${LIBS})
 
 IF (MSVC)
 ELSE (GNUCC)

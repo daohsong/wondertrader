@@ -13,8 +13,6 @@ ENDIF()
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/libs)
 
-LIST(APPEND INCS "./yamlcpp")
-
 #7. 添加源码
 file(GLOB SRCS "*.cpp" "./zstdlib/*.c" "./yamlcpp/*.cpp" "./lmdb/*.c")
 file(GLOB HDRS "*.h" "./zstdlib/*.h")
@@ -25,8 +23,8 @@ ELSE (GNUCC)
 LIST(APPEND SRCS "./StackTracer/StackTracer.cpp")
 ENDIF()
 
-INCLUDE_DIRECTORIES(${INCS})
-
 #8. 编译成动态库，并生成库文件
 add_library(WTSUtils STATIC ${SRCS} ${HDRS})
+target_include_directories(WTSUtils PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/yamlcpp")
+TARGET_LINK_LIBRARIES(WTSUtils PRIVATE WT::RapidJSON)
 target_link_libraries(WTSUtils PUBLIC ${WT_ICONV_LIB})

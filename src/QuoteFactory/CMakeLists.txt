@@ -13,8 +13,6 @@ IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
 ENDIF()
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 
 SET(LIBS
 	WTSTools
@@ -25,10 +23,10 @@ IF(MSVC)
 	LIST(APPEND LIBS ws2_32)
 ELSE(GNUCC)
 	LIST(APPEND LIBS
-		${WT_DL_LIB}
-		boost_filesystem
-        boost_thread
-        ${WT_THREAD_LIB}
+		WT::Platform
+		WT::BoostFilesystem
+        WT::BoostThread
+        WT::Platform
 		${FS_LIB}
 		)
 	if(WIN32)
@@ -39,7 +37,8 @@ ENDIF()
 
 #9. 生成可执行文件
 ADD_EXECUTABLE(QuoteFactory ${SRCS})
-TARGET_LINK_LIBRARIES(QuoteFactory ${LIBS})
+TARGET_LINK_LIBRARIES(QuoteFactory PRIVATE WT::fmt)
+TARGET_LINK_LIBRARIES(QuoteFactory PRIVATE ${LIBS})
 
 IF (MSVC)
 ELSE (GNUCC)

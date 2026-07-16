@@ -14,9 +14,8 @@ IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
 ENDIF()
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 ADD_LIBRARY(WtDtPorter SHARED ${SRCS} ${HDRS})
+TARGET_LINK_LIBRARIES(WtDtPorter PRIVATE WT::fmt)
 
 SET(LIBS
 	WtDtCore
@@ -26,10 +25,9 @@ SET(LIBS
 IF(MSVC)
 ELSE(GNUCC)
 	LIST(APPEND LIBS
-		${WT_DL_LIB}
-		${WT_THREAD_LIB}
-		boost_filesystem
-		boost_thread
+		WT::Platform
+		WT::BoostFilesystem
+		WT::BoostThread
 		${FS_LIB}
 		)
 	IF(WIN32)
@@ -39,7 +37,7 @@ ELSE(GNUCC)
 	ENDIF()
 ENDIF()
 
-TARGET_LINK_LIBRARIES(WtDtPorter ${LIBS})
+TARGET_LINK_LIBRARIES(WtDtPorter PUBLIC ${LIBS})
 IF (MSVC)
 ELSE (GNUCC)
 	SET_TARGET_PROPERTIES(WtDtPorter PROPERTIES

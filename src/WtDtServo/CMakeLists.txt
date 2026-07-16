@@ -15,9 +15,8 @@ IF(MSVC)
     list (APPEND SRCS ../Common/mdump.cpp)
 ENDIF()
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 ADD_LIBRARY(WtDtServo SHARED ${SRCS} ${HDRS})
+TARGET_LINK_LIBRARIES(WtDtServo PRIVATE WT::fmt)
 
 SET(LIBS
     WTSTools
@@ -26,15 +25,15 @@ SET(LIBS
 IF (MSVC)
 ELSE (GNUCC)
     LIST(APPEND LIBS
-        ${WT_DL_LIB}
-        boost_filesystem
+        WT::Platform
+        WT::BoostFilesystem
         )
     IF(WIN32)
         LIST(APPEND LIBS iconv)
     ENDIF()
 ENDIF()
 
-TARGET_LINK_LIBRARIES(WtDtServo ${LIBS})
+TARGET_LINK_LIBRARIES(WtDtServo PUBLIC ${LIBS})
 IF (MSVC)
 ELSE (GNUCC)
     SET_TARGET_PROPERTIES(WtDtServo PROPERTIES

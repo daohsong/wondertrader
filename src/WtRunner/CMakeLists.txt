@@ -14,8 +14,6 @@ IF(MSVC)
 	list (APPEND SRCS ../Common/mdump.cpp)
 ENDIF()
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 
 SET(LIBS
 	WtCore
@@ -27,10 +25,9 @@ IF (MSVC)
 	LIST(APPEND LIBS ws2_32)
 ELSE(GNUCC)
 	LIST(APPEND LIBS
-		${WT_DL_LIB}
-		${WT_THREAD_LIB}
-		boost_filesystem
-		boost_thread
+		WT::Platform
+		WT::BoostFilesystem
+		WT::BoostThread
 		${FS_LIB})
 	IF(WIN32)
 		LIST(APPEND LIBS
@@ -39,7 +36,8 @@ ELSE(GNUCC)
 ENDIF()
 
 ADD_EXECUTABLE(WtRunner ${SRCS} ${HDRS})
-TARGET_LINK_LIBRARIES(WtRunner ${LIBS})
+TARGET_LINK_LIBRARIES(WtRunner PRIVATE WT::fmt)
+TARGET_LINK_LIBRARIES(WtRunner PRIVATE ${LIBS})
 
 IF (MSVC)
 ELSE (GNUCC)

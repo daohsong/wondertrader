@@ -14,11 +14,9 @@ SET(LIBS
 	WtExecMon
 )
 
-INCLUDE_DIRECTORIES(${INCS})
-LINK_DIRECTORIES(${LNKS})
 
 LIST(APPEND LIBS
-    ${WT_DL_LIB}
+    WT::Platform
     )
 
 ADD_EXECUTABLE(TestExecPorter ${SRCS})

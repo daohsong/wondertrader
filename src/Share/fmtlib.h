@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#ifndef FMT_HEADER_ONLY
-#define FMT_HEADER_ONLY
-#endif
 #if defined(WT_USE_STANDALONE_FMT)
 #include <fmt/format.h>
 #elif defined(WT_USE_SPDLOG_FMT_SHIM)
