@@ -94,7 +94,7 @@ bool EventNotifier::init(WTSVariant* cfg)
 
 	if (_worker == NULL)
 	{
-		auto work = boost::asio::make_work_guard(_asyncio);
+		auto work = wt_asio::make_work_guard(_asyncio);
 		_worker.reset(new StdThread([this]() {
 			while (!_stopped)
 			{
@@ -115,7 +115,7 @@ void EventNotifier::notify_log(const char* tag, const char* message)
 
 	std::string strTag = tag;
 	std::string strMsg = message;
-	boost::asio::post(_asyncio, [this, strTag, strMsg]() {
+	wt_asio::post(_asyncio, [this, strTag, strMsg]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);
@@ -143,7 +143,7 @@ void EventNotifier::notify_event(const char* message)
 		return;
 
 	std::string strMsg = message;
-	boost::asio::post(_asyncio, [this, strMsg]() {
+	wt_asio::post(_asyncio, [this, strMsg]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);
@@ -170,7 +170,7 @@ void EventNotifier::notify(const char* trader, const char* message)
 
 	std::string strTrader = trader;
 	std::string strMsg = message;
-	boost::asio::post(_asyncio, [this, strTrader, strMsg]() {
+	wt_asio::post(_asyncio, [this, strTrader, strMsg]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);
@@ -199,7 +199,7 @@ void EventNotifier::notify(const char* trader, uint32_t localid, const char* std
 	std::string strTrader = trader;
 	std::string strCode = stdCode;
 	trdInfo->retain();
-	boost::asio::post(_asyncio, [this, strTrader, strCode, localid, trdInfo]() {
+	wt_asio::post(_asyncio, [this, strTrader, strCode, localid, trdInfo]() {
 		std::string data;
 		tradeToJson(strTrader.c_str(), localid, strCode.c_str(), trdInfo, data);
 		if (_publisher)
@@ -216,7 +216,7 @@ void EventNotifier::notify(const char* trader, uint32_t localid, const char* std
 	std::string strTrader = trader;
 	std::string strCode = stdCode;
 	ordInfo->retain();
-	boost::asio::post(_asyncio, [this, strTrader, strCode, localid, ordInfo]() {
+	wt_asio::post(_asyncio, [this, strTrader, strCode, localid, ordInfo]() {
 		std::string data;
 		orderToJson(strTrader.c_str(), localid, strCode.c_str(), ordInfo, data);
 		if (_publisher)
@@ -309,7 +309,7 @@ void EventNotifier::notify_chart_index(uint64_t time, const char* straId, const 
 	std::string sid = straId;
 	std::string iname = idxName;
 	std::string lname = lineName;
-	boost::asio::post(_asyncio, [this, time, sid, iname, lname, val]() {
+	wt_asio::post(_asyncio, [this, time, sid, iname, lname, val]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);
@@ -340,7 +340,7 @@ void EventNotifier::notify_chart_marker(uint64_t time, const char* straId, doubl
 	std::string sid = straId;
 	std::string sIcon = icon;
 	std::string sTag = tag;
-	boost::asio::post(_asyncio, [this, time, sid, sIcon, sTag, price]() {
+	wt_asio::post(_asyncio, [this, time, sid, sIcon, sTag, price]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);
@@ -371,7 +371,7 @@ void EventNotifier::notify_trade(const char* straId, const char* stdCode, bool i
 	std::string sid = straId;
 	std::string code = stdCode;
 	std::string tag = userTag;
-	boost::asio::post(_asyncio, [this, sid, code, tag, isLong, isOpen, curTime, price]() {
+	wt_asio::post(_asyncio, [this, sid, code, tag, isLong, isOpen, curTime, price]() {
 		std::string data;
 		{
 			rj::Document root(rj::kObjectType);

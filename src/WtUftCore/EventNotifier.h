@@ -9,14 +9,12 @@
  */
 #pragma once
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/post.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/ip/address.hpp>
+#include <cstdint>
+#include <string>
 
 #include "../Includes/WTSMarcos.h"
 #include "../Includes/WTSObject.hpp"
+#include "../Share/AsioCompat.hpp"
 #include "../Share/StdUtils.hpp"
 
 typedef unsigned long(*FuncCreateMQServer)(const char*);
@@ -62,7 +60,7 @@ private:
 	FuncRegCallbacks	_register;
 
 	bool			_stopped;
-	boost::asio::io_context		_asyncio;
+	wt_asio::io_context		_asyncio;
 	StdThreadPtr				_worker;
 };
 

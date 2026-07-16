@@ -106,11 +106,11 @@ bool ParserXeleSkt::init( WTSVariant* config )
 	if (_gpsize == 0)
 		_gpsize = 1000;
 
-	ip::address addr = ip::make_address(_tcp_host);
-	_tcp_ep = ip::tcp::endpoint(addr, _tcp_port);
+	wt_asio::ip::address addr = wt_asio::ip::make_address(_tcp_host);
+	_tcp_ep = wt_asio::tcp_endpoint(addr, _tcp_port);
 
-	addr = ip::make_address("0.0.0.0");
-	_mcast_ep = ip::udp::endpoint(addr, _mcast_port);
+	addr = wt_asio::ip::make_address("0.0.0.0");
+	_mcast_ep = wt_asio::udp_endpoint(addr, _mcast_port);
 
 	return true;
 }
@@ -136,17 +136,19 @@ bool ParserXeleSkt::reconnect()
 			_udp_socket = NULL;
 		}
 
-		_udp_socket = new ip::udp::socket(_io_service);
+		_udp_socket = new wt_asio::udp_socket(_io_service);
 
 		_udp_socket->open(_mcast_ep.protocol());
-		_udp_socket->set_option(ip::udp::socket::reuse_address(true));
+		_udp_socket->set_option(wt_asio::udp_socket::reuse_address(true));
 		_udp_socket->bind(_mcast_ep);
-		_udp_socket->set_option(ip::multicast::join_group(ip::make_address_v4(_mcast_host.c_str()), ip::make_address_v4(_local_host.c_str())));
+		_udp_socket->set_option(wt_asio::ip::multicast::join_group(
+			wt_asio::ip::make_address_v4(_mcast_host.c_str()),
+			wt_asio::ip::make_address_v4(_local_host.c_str())));
 
-		_udp_socket->async_receive_from(buffer(_udp_buffer), _udp_ep,
+		_udp_socket->async_receive_from(wt_asio::buffer(_udp_buffer), _udp_ep,
 			boost::bind(&ParserXeleSkt::handle_udp_read, this,
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+			wt_asio::placeholders::error,
+			wt_asio::placeholders::bytes_transferred));
 	}
 	write_log(_sink, LL_INFO, "[ParserXeleSkt] Ready to receive from multicast tunnel {}:{}...", _mcast_host, _mcast_port);
 	return true;
@@ -154,9 +156,9 @@ bool ParserXeleSkt::reconnect()
 
 bool ParserXeleSkt::prepare()
 {
-	boost::asio::io_context io_context;
-	ip::tcp::socket s(io_context);
-	boost::system::error_code ec;
+	wt_asio::io_context ioContext;
+	wt_asio::tcp_socket s(ioContext);
+	wt_asio::error_code ec;
 	s.connect(_tcp_ep, ec);
 	if(ec)
 	{
@@ -174,7 +176,7 @@ bool ParserXeleSkt::prepare()
 	auto snap_size = sizeof(CXeleShfeSnapShot) + sizeof(CXeleShfeMarketHead);
 	for (;;)
 	{
-		std::size_t reply_length = boost::asio::read(s, boost::asio::buffer(buffer), ec);
+		std::size_t reply_length = wt_asio::read(s, wt_asio::buffer(buffer), ec);
 		if (ec)
 		{
 			//接收错误
@@ -265,7 +267,7 @@ bool ParserXeleSkt::connect()
 {
 	if(reconnect())
 	{
-		_thrd_parser.reset(new StdThread(boost::bind(&io_context::run, &_io_service)));
+		_thrd_parser.reset(new StdThread(boost::bind(&wt_asio::io_context::run, &_io_service)));
 	}
 	else
 	{
@@ -285,7 +287,7 @@ bool ParserXeleSkt::disconnect()
 	}
 
 	_stopped = true;
-	boost::asio::post(_strand, boost::bind(&ParserXeleSkt::doOnDisconnected, this));
+	wt_asio::post(_strand, boost::bind(&ParserXeleSkt::doOnDisconnected, this));
 
 	return true;
 }
@@ -328,7 +330,7 @@ void ParserXeleSkt::registerSpi( IParserSpi* listener )
 }
 
 
-void ParserXeleSkt::handle_udp_read(const boost::system::error_code& e, std::size_t bytes_transferred)
+void ParserXeleSkt::handle_udp_read(const wt_asio::error_code& e, std::size_t bytes_transferred)
 {
 	if(e)
 	{
@@ -350,10 +352,10 @@ void ParserXeleSkt::handle_udp_read(const boost::system::error_code& e, std::siz
 
 	extract_buffer(bytes_transferred);
 
-	_udp_socket->async_receive_from(buffer(_udp_buffer), _udp_ep,
+	_udp_socket->async_receive_from(wt_asio::buffer(_udp_buffer), _udp_ep,
 		boost::bind(&ParserXeleSkt::handle_udp_read, this,
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+			wt_asio::placeholders::error,
+			wt_asio::placeholders::bytes_transferred));
 }
 
 #define XELE_MD_EPOCH 1546272000 // unix timestamp of 2019/1/1 0:0:0

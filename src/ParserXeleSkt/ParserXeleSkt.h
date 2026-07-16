@@ -10,20 +10,14 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Includes/WTSCollection.hpp"
+#include "../Share/AsioCompat.hpp"
 #include "../Share/StdUtils.hpp"
 
 #include <queue>
 
-#include <boost/asio.hpp>
 #include <boost/array.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/post.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/ip/address.hpp>
 
 USING_NS_WTP;
-using namespace boost::asio;
 
 class ParserXeleSkt : public IParserApi
 {
@@ -50,7 +44,7 @@ public:
 
 
 private:
-	void	handle_udp_read(const boost::system::error_code& e, std::size_t bytes_transferred);
+	void	handle_udp_read(const wt_asio::error_code& e, std::size_t bytes_transferred);
 
 	bool	prepare();
 
@@ -70,14 +64,14 @@ private:
 	std::string	_local_host;
 	uint32_t	_gpsize;
 
-	ip::udp::endpoint	_mcast_ep;
-	ip::udp::endpoint	_udp_ep;
-	ip::tcp::endpoint	_tcp_ep;
-	io_context			_io_service;
+	wt_asio::udp_endpoint	_mcast_ep;
+	wt_asio::udp_endpoint	_udp_ep;
+	wt_asio::tcp_endpoint	_tcp_ep;
+	wt_asio::io_context		_io_service;
 
-	io_context::strand	_strand;
+	wt_asio::io_strand		_strand;
 
-	ip::udp::socket*	_udp_socket;
+	wt_asio::udp_socket*	_udp_socket;
 
 	boost::array<char, 4096> _udp_buffer;
 
@@ -94,4 +88,3 @@ private:
 
 	wt_hashmap<int, double> _price_scales;
 };
-

@@ -10,11 +10,15 @@
 #pragma once
 #include "IDataCaster.h"
 #include "../Includes/WTSObject.hpp"
+#include "../Share/AsioCompat.hpp"
 #include "../Share/StdUtils.hpp"
 
-#include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <queue>
+#include <utility>
+#include <vector>
 
 NS_WTP_BEGIN
 	class WTSVariant;
@@ -31,7 +35,7 @@ public:
 	UDPCaster();
 	~UDPCaster();
 
-	typedef boost::asio::ip::udp::endpoint EndPoint;
+	typedef wt_asio::udp_endpoint EndPoint;
 	typedef struct tagUDPReceiver
 	{
 		EndPoint	_ep;
@@ -49,8 +53,8 @@ public:
 	typedef std::vector<UDPReceiverPtr>		ReceiverList;
 
 private:
-	void	handle_send_broad(const EndPoint& ep, const boost::system::error_code& error, std::size_t bytes_transferred); 
-	void	handle_send_multi(const EndPoint& ep, const boost::system::error_code& error, std::size_t bytes_transferred); 
+	void	handle_send_broad(const EndPoint& ep, const wt_asio::error_code& error, std::size_t bytes_transferred);
+	void	handle_send_multi(const EndPoint& ep, const wt_asio::error_code& error, std::size_t bytes_transferred);
 
 	void	do_receive();
 
@@ -71,7 +75,7 @@ public:
 	virtual void	broadcast(WTSTransData* curTrans) override;
 
 private:
-	typedef boost::asio::ip::udp::socket	UDPSocket;
+	typedef wt_asio::udp_socket	UDPSocket;
 	typedef std::shared_ptr<UDPSocket>		UDPSocketPtr;
 
 	enum 
@@ -79,7 +83,7 @@ private:
 		max_length = 2048 
 	};
 
-	boost::asio::ip::udp::endpoint	m_senderEP;
+	wt_asio::udp_endpoint	m_senderEP;
 	char			m_data[max_length];
 
 	//广播
@@ -94,7 +98,7 @@ private:
 	MulticastList	m_listFlatGroup;
 	MulticastList	m_listJsonGroup;
 	MulticastList	m_listRawGroup;
-	boost::asio::io_context		m_ioservice;
+	wt_asio::io_context		m_ioservice;
 	StdThreadPtr	m_thrdIO;
 
 	StdThreadPtr	m_thrdCast;

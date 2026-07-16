@@ -102,14 +102,16 @@ void UDPCaster::start(int sport)
 {
 	if (!m_listFlatRecver.empty() || !m_listJsonRecver.empty() || !m_listRawRecver.empty())
 	{
-		m_sktBroadcast.reset(new UDPSocket(m_ioservice, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)));
-		boost::asio::socket_base::broadcast option(true);
+		m_sktBroadcast.reset(new UDPSocket(
+			m_ioservice, wt_asio::udp_endpoint(wt_asio::ip::udp::v4(), 0)));
+		wt_asio::socket_base::broadcast option(true);
 		m_sktBroadcast->set_option(option);
 	}
 
 	try
 	{
-		m_sktSubscribe.reset(new UDPSocket(m_ioservice, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), sport)));
+		m_sktSubscribe.reset(new UDPSocket(
+			m_ioservice, wt_asio::udp_endpoint(wt_asio::ip::udp::v4(), sport)));
 	}
 	catch(...)
 	{
@@ -144,8 +146,8 @@ void UDPCaster::stop()
 
 void UDPCaster::do_receive()
 {
-	m_sktSubscribe->async_receive_from(boost::asio::buffer(m_data, max_length), m_senderEP,
-		[this](boost::system::error_code ec, std::size_t bytes_recvd)
+	m_sktSubscribe->async_receive_from(wt_asio::buffer(m_data, max_length), m_senderEP,
+		[this](wt_asio::error_code ec, std::size_t bytes_recvd)
 	{
 		if(ec)
 		{
@@ -188,8 +190,8 @@ void UDPCaster::do_receive()
 					memcpy(&pkt->_data, &curTick->getTickStruct(), sizeof(WTSTickStruct));
 					curTick->release();
 					m_sktSubscribe->async_send_to(
-						boost::asio::buffer(*data, data->size()), m_senderEP,
-						[this, data](const boost::system::error_code& ec, std::size_t /*bytes_sent*/)
+						wt_asio::buffer(*data, data->size()), m_senderEP,
+						[this, data](const wt_asio::error_code& ec, std::size_t /*bytes_sent*/)
 					{
 						delete data;
 						if (ec)
@@ -204,8 +206,8 @@ void UDPCaster::do_receive()
 		{
 			std::string* data = new std::string("Can not indentify the command");
 			m_sktSubscribe->async_send_to(
-				boost::asio::buffer(*data, data->size()), m_senderEP,
-				[this, data](const boost::system::error_code& ec, std::size_t /*bytes_sent*/)
+				wt_asio::buffer(*data, data->size()), m_senderEP,
+				[this, data](const wt_asio::error_code& ec, std::size_t /*bytes_sent*/)
 			{
 				delete data;
 				if (ec)
@@ -223,7 +225,7 @@ bool UDPCaster::addBRecver(const char* remote, int port, int type /* = 0 */)
 {
 	try
 	{
-		boost::asio::ip::address_v4 addr = boost::asio::ip::make_address_v4(remote);
+		wt_asio::ip::address_v4 addr = wt_asio::ip::make_address_v4(remote);
 		UDPReceiverPtr item(new UDPReceiver(EndPoint(addr, port), type));
 		if(type == 0)
 			m_listFlatRecver.emplace_back(item);
@@ -245,10 +247,11 @@ bool UDPCaster::addMRecver(const char* remote, int port, int sendport, int type 
 {
 	try
 	{
-		boost::asio::ip::address_v4 addr = boost::asio::ip::make_address_v4(remote);
+		wt_asio::ip::address_v4 addr = wt_asio::ip::make_address_v4(remote);
 		UDPReceiverPtr item(new UDPReceiver(EndPoint(addr, port), type));
-		UDPSocketPtr sock(new UDPSocket(m_ioservice, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), sendport)));
-		boost::asio::ip::multicast::join_group option(item->_ep.address());
+		UDPSocketPtr sock(new UDPSocket(
+			m_ioservice, wt_asio::udp_endpoint(wt_asio::ip::udp::v4(), sendport)));
+		wt_asio::ip::multicast::join_group option(item->_ep.address());
 		sock->set_option(option);
 		if(type == 0)
 			m_listFlatGroup.emplace_back(std::make_pair(sock, item));
@@ -363,11 +366,11 @@ void UDPCaster::do_broadcast(WTSObject* data, uint32_t dataType)
 						}
 
 						//广播
-						boost::system::error_code ec;
+						wt_asio::error_code ec;
 						for (auto it = m_listRawRecver.begin(); it != m_listRawRecver.end(); it++)
 						{
 							const UDPReceiverPtr& receiver = (*it);
-							m_sktBroadcast->send_to(boost::asio::buffer(buf_raw), receiver->_ep, 0, ec);
+							m_sktBroadcast->send_to(wt_asio::buffer(buf_raw), receiver->_ep, 0, ec);
 							if (ec)
 							{
 								WTSLogger::error("Error occured while sending to ({}:{}): {}({})", 
@@ -379,7 +382,7 @@ void UDPCaster::do_broadcast(WTSObject* data, uint32_t dataType)
 						for (auto it = m_listRawGroup.begin(); it != m_listRawGroup.end(); it++)
 						{
 							const MulticastPair& item = *it;
-							it->first->send_to(boost::asio::buffer(buf_raw), item.second->_ep, 0, ec);
+							it->first->send_to(wt_asio::buffer(buf_raw), item.second->_ep, 0, ec);
 							if (ec)
 							{
 								WTSLogger::error("Error occured while sending to ({}:{}): {}({})",
@@ -399,7 +402,7 @@ void UDPCaster::do_broadcast(WTSObject* data, uint32_t dataType)
 	}
 }
 
-void UDPCaster::handle_send_broad(const EndPoint& ep, const boost::system::error_code& error, std::size_t bytes_transferred)
+void UDPCaster::handle_send_broad(const EndPoint& ep, const wt_asio::error_code& error, std::size_t bytes_transferred)
 {
 	if(error)
 	{
@@ -407,11 +410,10 @@ void UDPCaster::handle_send_broad(const EndPoint& ep, const boost::system::error
 	}
 }
 
-void UDPCaster::handle_send_multi(const EndPoint& ep, const boost::system::error_code& error, std::size_t bytes_transferred)
+void UDPCaster::handle_send_multi(const EndPoint& ep, const wt_asio::error_code& error, std::size_t bytes_transferred)
 {
 	if(error)
 	{
 		WTSLogger::error("Multicasting of market data failed, remote addr: {}, error message: {}", ep.address().to_string().c_str(), error.message().c_str());
 	}
 }
-
