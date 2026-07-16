@@ -8,6 +8,7 @@
  * \brief 
  */
 #pragma once
+#include <cstddef>
 #include <queue>
 #include <sstream>
 
@@ -225,32 +226,23 @@ private:
 
 	typedef struct _OrderInfo
 	{
-		bool	_isBuy;
-		char	_code[32];
-		double	_price;
-		double	_total;
-		double	_left;
-		char	_usertag[32];
+		static constexpr std::size_t CODE_CAPACITY = 32;
+		static constexpr std::size_t USER_TAG_CAPACITY = 32;
+
+		bool	_isBuy = false;
+		char	_code[CODE_CAPACITY] = {};
+		double	_price = 0.0;
+		double	_total = 0.0;
+		double	_left = 0.0;
+		char	_usertag[USER_TAG_CAPACITY] = {};
 		
-		uint32_t	_localid;
+		uint32_t	_localid = 0;
 
-		bool	_proced_after_placed;	//下单后是否处理过			
+		bool	_proced_after_placed = false;	//下单后是否处理过			
 
-		_OrderInfo()
-		{
-			memset(this, 0, sizeof(_OrderInfo));
-		}
-
-		_OrderInfo(const struct _OrderInfo& rhs)
-		{
-			memcpy(this, &rhs, sizeof(_OrderInfo));
-		}
-
-		_OrderInfo& operator =(const struct _OrderInfo& rhs)
-		{
-			memcpy(this, &rhs, sizeof(_OrderInfo));
-			return *this;
-		}
+		_OrderInfo() = default;
+		_OrderInfo(const struct _OrderInfo&) = delete;
+		_OrderInfo& operator =(const struct _OrderInfo&) = delete;
 
 	} OrderInfo;
 	typedef std::shared_ptr<OrderInfo> OrderInfoPtr;
@@ -341,4 +333,3 @@ protected:
 	typedef WTSHashMap<std::string>	TickCache;
 	TickCache*	_ticks;
 };
-

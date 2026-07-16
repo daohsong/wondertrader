@@ -1291,6 +1291,8 @@ bool TraderAdapter::cancel(uint32_t localid)
 OrderIDs TraderAdapter::cancel(const char* stdCode, bool isBuy, double qty /* = 0 */)
 {
 	CodeHelper::CodeInfo cInfo = CodeHelper::extractStdCode(stdCode, NULL);
+	if (qty < 0)
+		qty = -qty;
 
 	OrderIDs ret;
 

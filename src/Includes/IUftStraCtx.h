@@ -241,7 +241,7 @@ public:
 	virtual double stra_get_price(const char* stdCode) = 0;
 
 	/*
-	 *	获取未完成手数，买入为正，卖出为负
+	 *	获取活动委托的未完成总手数，返回值始终非负
 	 *	@stdCode	代码，格式如SSE.600000
 	 */
 	virtual double stra_get_undone(const char* stdCode) = 0;

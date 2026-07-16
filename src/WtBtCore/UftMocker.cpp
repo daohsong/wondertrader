@@ -390,12 +390,13 @@ void UftMocker::on_session_end(uint32_t curTDate)
 double UftMocker::stra_get_undone(const char* stdCode)
 {
 	double ret = 0;
+	StdLocker<StdRecurMutex> lock(_mtx_ords);
 	for (auto it = _orders.begin(); it != _orders.end(); it++)
 	{
 		const OrderInfoPtr& ordInfo = it->second;
 		if (strcmp(ordInfo->_code, stdCode) == 0)
 		{
-			ret += ordInfo->_left * ordInfo->_isLong ? 1 : -1;
+			ret += ordInfo->_left;
 		}
 	}
 
@@ -409,11 +410,11 @@ bool UftMocker::stra_cancel(uint32_t localid)
 		OrderInfoPtr ordInfo;
 
 		{
+			StdLocker<StdRecurMutex> lock(_mtx_ords);
 			auto it = _orders.find(localid);
 			if (it == _orders.end())
 				return;
 
-			StdLocker<StdRecurMutex> lock(_mtx_ords);
 			ordInfo = it->second;
 		}
 		
@@ -454,14 +455,20 @@ bool UftMocker::stra_cancel(uint32_t localid)
 OrderIDs UftMocker::stra_cancel_all(const char* stdCode)
 {
 	OrderIDs ret;
-	uint32_t cnt = 0;
-	for (auto it = _orders.begin(); it != _orders.end(); it++)
+	const bool isAll = strlen(stdCode) == 0;
 	{
-		const OrderInfoPtr& ordInfo = it->second;
-		if(strcmp(ordInfo->_code, stdCode) == 0)
+		StdLocker<StdRecurMutex> lock(_mtx_ords);
+		for (auto it = _orders.begin(); it != _orders.end(); it++)
 		{
-			stra_cancel(it->first);
+			const OrderInfoPtr& ordInfo = it->second;
+			if(isAll || strcmp(ordInfo->_code, stdCode) == 0)
+				ret.emplace_back(it->first);
 		}
+	}
+
+	for (uint32_t localid : ret)
+	{
+		stra_cancel(localid);
 	}
 
 	return ret;

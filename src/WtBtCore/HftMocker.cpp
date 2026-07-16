@@ -15,6 +15,7 @@
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/WTSContractInfo.hpp"
 #include "../Share/FilesystemCompat.hpp"
+#include "../Share/FixedString.hpp"
 #include "../Share/decimal.h"
 #include "../Share/TimeUtils.hpp"
 #include "../Share/StrUtil.hpp"
@@ -531,12 +532,13 @@ void HftMocker::on_session_end(uint32_t curTDate)
 double HftMocker::stra_get_undone(const char* stdCode)
 {
 	double ret = 0;
+	StdLocker<StdRecurMutex> lock(_mtx_ords);
 	for (auto it = _orders.begin(); it != _orders.end(); it++)
 	{
-		OrderInfoPtr ordInfo = it->second;
+		const OrderInfoPtr& ordInfo = it->second;
 		if (strcmp(ordInfo->_code, stdCode) == 0)
 		{
-			ret += ordInfo->_left * ordInfo->_isBuy ? 1 : -1;
+			ret += ordInfo->_left * (ordInfo->_isBuy ? 1.0 : -1.0);
 		}
 	}
 
@@ -572,21 +574,28 @@ bool HftMocker::stra_cancel(uint32_t localid)
 OrderIDs HftMocker::stra_cancel(const char* stdCode, bool isBuy, double qty /* = 0 */)
 {
 	OrderIDs ret;
-	uint32_t cnt = 0;
-	for (auto it = _orders.begin(); it != _orders.end(); it++)
+	std::vector<std::pair<uint32_t, double>> candidates;
 	{
-		OrderInfoPtr ordInfo = it->second;
-		if(ordInfo->_isBuy == isBuy && strcmp(ordInfo->_code, stdCode) == 0)
+		StdLocker<StdRecurMutex> lock(_mtx_ords);
+		for (auto it = _orders.begin(); it != _orders.end(); it++)
 		{
-			double left = ordInfo->_left;
-			stra_cancel(it->first);
-			ret.emplace_back(it->first);
-			cnt++;
-			if (left < qty)
-				qty -= left;
-			else
-				break;
+			const OrderInfoPtr& ordInfo = it->second;
+			if(ordInfo->_isBuy == isBuy && strcmp(ordInfo->_code, stdCode) == 0)
+				candidates.emplace_back(it->first, ordInfo->_left);
 		}
+	}
+
+	if (qty < 0)
+		qty = -qty;
+
+	double selectedQty = 0;
+	for (const auto& candidate : candidates)
+	{
+		stra_cancel(candidate.first);
+		ret.emplace_back(candidate.first);
+		selectedQty += candidate.second;
+		if (!decimal::eq(qty, 0.0) && decimal::ge(selectedQty, qty))
+			break;
 	}
 
 	return ret;
@@ -594,6 +603,13 @@ OrderIDs HftMocker::stra_cancel(const char* stdCode, bool isBuy, double qty /* =
 
 OrderIDs HftMocker::stra_buy(const char* stdCode, double price, double qty, const char* userTag, int flag /* = 0 */, bool bForceClose /* = false */)
 {
+	if (!wt::fits_fixed_string<OrderInfo::CODE_CAPACITY>(stdCode)
+		|| !wt::fits_fixed_string<OrderInfo::USER_TAG_CAPACITY>(userTag))
+	{
+		log_error("Entrust error: code or user tag exceeds the HFT order buffer");
+		return OrderIDs();
+	}
+
 	WTSCommodityInfo* commInfo = _replayer->get_commodity_info(stdCode);
 	if (commInfo == NULL)
 	{
@@ -611,8 +627,8 @@ OrderIDs HftMocker::stra_buy(const char* stdCode, double price, double qty, cons
 
 	OrderInfoPtr order(new OrderInfo);
 	order->_localid = localid;
-	strcpy(order->_code, stdCode);
-	strcpy(order->_usertag, userTag);
+	wt::assign_fixed_string(order->_code, stdCode);
+	wt::assign_fixed_string(order->_usertag, userTag);
 	order->_isBuy = true;
 	order->_price = price;
 	order->_total = qty;
@@ -786,6 +802,13 @@ bool HftMocker::procOrder(uint32_t localid)
 
 OrderIDs HftMocker::stra_sell(const char* stdCode, double price, double qty, const char* userTag, int flag /* = 0 */, bool bForceClose /* = false */)
 {
+	if (!wt::fits_fixed_string<OrderInfo::CODE_CAPACITY>(stdCode)
+		|| !wt::fits_fixed_string<OrderInfo::USER_TAG_CAPACITY>(userTag))
+	{
+		log_error("Entrust error: code or user tag exceeds the HFT order buffer");
+		return OrderIDs();
+	}
+
 	WTSCommodityInfo* commInfo = _replayer->get_commodity_info(stdCode);
 	if (commInfo == NULL)
 	{
@@ -814,8 +837,8 @@ OrderIDs HftMocker::stra_sell(const char* stdCode, double price, double qty, con
 
 	OrderInfoPtr order(new OrderInfo);
 	order->_localid = localid;
-	strcpy(order->_code, stdCode);
-	strcpy(order->_usertag, userTag);
+	wt::assign_fixed_string(order->_code, stdCode);
+	wt::assign_fixed_string(order->_usertag, userTag);
 	order->_isBuy = false;
 	order->_price = price;
 	order->_total = qty;

@@ -242,7 +242,8 @@ void WtHftStraDemo::on_channel_ready(IHftStraCtx* ctx)
 		_ctx->stra_log_info(fmt::format("{}有不在管理中的未完成单 {} 手,全部撤销", _code, undone).c_str());
 
 		bool isBuy = (undone > 0);
-		OrderIDs ids = _ctx->stra_cancel(_code.c_str(), isBuy, undone);
+		double cancelQty = isBuy ? undone : -undone;
+		OrderIDs ids = _ctx->stra_cancel(_code.c_str(), isBuy, cancelQty);
 		for (auto localid : ids)
 		{
 			_orders.insert(localid);

@@ -82,7 +82,9 @@ SET(WT_BT_CORE_TEST_SRCS
 	gtest/gtest-typed-test.cc
 	gtest/gtest.cc
 	main.cpp
+	test_hftmocker_orders.cpp
 	test_hisdatareplayer_l2.cpp
+	test_uftmocker_orders.cpp
 )
 
 ADD_EXECUTABLE(WtBtCoreTests ${WT_BT_CORE_TEST_SRCS})
