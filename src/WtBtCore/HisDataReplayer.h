@@ -171,6 +171,14 @@ private:
 		std::vector<T> _items;
 
 		HftDataList() :_cursor(UINT_MAX), _count(0), _date(0){}
+
+		bool has_next() const noexcept
+		{
+			return _cursor != UINT_MAX
+				&& _cursor > 0
+				&& _cursor <= _count
+				&& _cursor <= _items.size();
+		}
 	};
 
 	typedef wt_hashmap<std::string, HftDataList<WTSTickStruct>>		TickCache;
@@ -570,4 +578,3 @@ private:
 
 	HisDataMgr		_his_dt_mgr;
 };
-

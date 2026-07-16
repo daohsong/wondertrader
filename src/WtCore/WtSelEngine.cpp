@@ -14,20 +14,13 @@
 #include "../Includes/WTSContractInfo.hpp"
 #include "../Share/CodeHelper.hpp"
 #include "../Share/decimal.h"
+#include "../Share/TaskSchedule.hpp"
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 namespace rj = rapidjson;
 
-#include <atomic>
-
 USING_NS_WTP;
-
-inline uint32_t makeTaskId()
-{
-	static std::atomic<uint32_t> _auto_task_id{ 1 };
-	return _auto_task_id.fetch_add(1);
-}
 
 
 WtSelEngine::WtSelEngine()
@@ -245,6 +238,9 @@ void WtSelEngine::on_minute_end(uint32_t curDate, uint32_t curTime)
 		bool bIgnore = true;
 		switch (tInfo->_period)
 		{
+		case TPT_None:
+			bIgnore = !TaskSchedule::isOneShotDue(tInfo->_day, curDate);
+			break;
 		case TPT_Daily:
 			bIgnore = false;
 			break;
@@ -313,7 +309,8 @@ void WtSelEngine::on_minute_end(uint32_t curDate, uint32_t curTime)
 		StdThreadPtr thrd(new StdThread([ctx, curDate, curTime, nextTime](){
 			if (ctx)
 				ctx->on_schedule(curDate, curTime, nextTime);
-		}));	
+		}));
+		thrd->detach();
 
 		tInfo->_last_exe_time = now;
 	}
@@ -390,7 +387,8 @@ void WtSelEngine::addContext(SelContextPtr ctx, uint32_t date, uint32_t time, Ta
 	tInfo->_time = time;
 	tInfo->_period = period;
 	tInfo->_strict_time = bStrict;
-	tInfo->_id = makeTaskId();
+	tInfo->_id = ctx->id();
+	tInfo->_last_exe_time = 0;
 
 	_tasks[ctx->id()] = tInfo;
 

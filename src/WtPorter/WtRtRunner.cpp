@@ -26,6 +26,7 @@
 
 #include "../Share/TimeUtils.hpp"
 #include "../Share/ModuleHelper.hpp"
+#include "../Share/TaskSchedule.hpp"
 
 #include "../Includes/WTSContractInfo.hpp"
 #include "../Includes/WTSVariant.hpp"
@@ -335,19 +336,13 @@ uint32_t WtRtRunner::createHftContext(const char* name, const char* trader, bool
 
 uint32_t WtRtRunner::createSelContext(const char* name, uint32_t date, uint32_t time, const char* period, int32_t slippage, const char* trdtpl /* = "CHINA" */, const char* session/* ="TRADING" */)
 {
-	TaskPeriodType ptype;
-	if (wt_stricmp(period, "d") == 0)
-		ptype = TPT_Daily;
-	else if (wt_stricmp(period, "w") == 0)
-		ptype = TPT_Weekly;
-	else if (wt_stricmp(period, "m") == 0)
-		ptype = TPT_Monthly;
-	else if (wt_stricmp(period, "y") == 0)
-		ptype = TPT_Yearly;
-	else if (wt_stricmp(period, "min") == 0)
-		ptype = TPT_Minute;
-	else
-		ptype = TPT_None;
+	uint32_t periodValue = 0;
+	if (!TaskSchedule::parsePeriod(period, periodValue))
+	{
+		WTSLogger::error("Invalid selection task period: {}", period == nullptr ? "<null>" : period);
+		return 0;
+	}
+	TaskPeriodType ptype = static_cast<TaskPeriodType>(periodValue);
 
 	ExpSelContext* ctx = new ExpSelContext(&_sel_engine, name, slippage);
 
@@ -764,17 +759,13 @@ bool WtRtRunner::initSelStrategies()
 		uint32_t time = cfgItem->getUInt32("time");
 		const char* period = cfgItem->getCString("period");
 
-		TaskPeriodType ptype;
-		if (wt_stricmp(period, "d") == 0)
-			ptype = TPT_Daily;
-		else if (wt_stricmp(period, "w") == 0)
-			ptype = TPT_Weekly;
-		else if (wt_stricmp(period, "m") == 0)
-			ptype = TPT_Monthly;
-		else if (wt_stricmp(period, "y") == 0)
-			ptype = TPT_Yearly;
-		else
-			ptype = TPT_None;
+		uint32_t periodValue = 0;
+		if (!TaskSchedule::parsePeriod(period, periodValue))
+		{
+			WTSLogger::error("Invalid selection task period for strategy {}: {}", id, period == nullptr ? "<null>" : period);
+			continue;
+		}
+		TaskPeriodType ptype = static_cast<TaskPeriodType>(periodValue);
 
 		SelStrategyPtr stra = _sel_mgr.createStrategy(name, id);
 		stra->self()->init(cfgItem->get("params"));

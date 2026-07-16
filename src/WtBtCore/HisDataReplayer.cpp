@@ -23,6 +23,7 @@
 #include "../Share/FilesystemCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/TimeUtils.hpp"
+#include "../Share/TaskSchedule.hpp"
 #include "../Share/Converter.hpp"
 
 #include "../WTSTools/WTSLogger.h"
@@ -404,19 +405,14 @@ bool HisDataReplayer::loadStkAdjFactorsFromFile(const char* adjfile)
 
 void HisDataReplayer::register_task(uint32_t taskid, uint32_t date, uint32_t time, const char* period, const char* trdtpl /* = "CHINA" */, const char* session /* = "TRADING" */)
 {
-	TaskPeriodType ptype;
-	if (wt_stricmp(period, "d") == 0)
-		ptype = TPT_Daily;
-	else if (wt_stricmp(period, "w") == 0)
-		ptype = TPT_Weekly;
-	else if (wt_stricmp(period, "m") == 0)
-		ptype = TPT_Monthly;
-	else if (wt_stricmp(period, "y") == 0)
-		ptype = TPT_Yearly;
-	else if (wt_stricmp(period, "min") == 0)
-		ptype = TPT_Minute;
-	else
-		ptype = TPT_None;
+	uint32_t periodValue = 0;
+	if (!TaskSchedule::parsePeriod(period, periodValue))
+	{
+		WTSLogger::error("Invalid selection task period: {}", period == nullptr ? "<null>" : period);
+		_task.reset();
+		return;
+	}
+	TaskPeriodType ptype = static_cast<TaskPeriodType>(periodValue);
 
 	_task.reset(new TaskInfo);
 	strcpy(_task->_name, "sel");
@@ -427,6 +423,7 @@ void HisDataReplayer::register_task(uint32_t taskid, uint32_t date, uint32_t tim
 	_task->_id = taskid;
 	_task->_period = ptype;
 	_task->_strict_time = true;
+	_task->_last_exe_time = 0;
 
 	WTSLogger::info("Timed task registration succeed, frequency: {}", period);
 }
@@ -975,6 +972,9 @@ void HisDataReplayer::run_by_tasks(bool bNeedDump /* = false */)
 
 					switch (_task->_period)
 					{
+					case TPT_None:
+						fired = TaskSchedule::isOneShotDue(_task->_day, _cur_date);
+						break;
 					case TPT_Daily:
 						fired = true;
 						break;
@@ -1567,13 +1567,9 @@ uint64_t HisDataReplayer::getNextTickTime(uint32_t curTDate, uint64_t stime /* =
 			}
 		}
 
-		if (tickList._cursor >= tickList._count)
+		if (!tickList.has_next())
 			continue;
 
-		uint32_t nextActionTime = tickList._items[tickList._cursor - 1].action_time;
-		//By Wesley @ 2022.03.06
-		//检查一下时间戳，如果不是交易时间的，就不回放了
-		uint32_t nextMinTime = nextActionTime / 100000;
 		/*
 		 *	By Wesley @ 2023.05.05
 		 *	这里做了一个调整，主要是针对小节中间出现的tick数据
@@ -1582,15 +1578,24 @@ uint64_t HisDataReplayer::getNextTickTime(uint32_t curTDate, uint64_t stime /* =
 		 *	然后如果tick数据处于小节之间，但是不在交易时间，则指针一直步进
 		 *	这次修改主要针对Issue#104
 		 */
-		//超过收盘时间就跳过了
-		if(sInfo->offsetTime(nextMinTime, false) > sInfo->getCloseTime(true))
-			continue;
-
-		while (!sInfo->isInTradingTime(nextMinTime) && tickList._cursor>tickList._items.size())
+		while (tickList.has_next())
 		{
+			const uint32_t nextActionTime = tickList._items[tickList._cursor - 1].action_time;
+			const uint32_t nextMinTime = nextActionTime / 100000;
+			if (sInfo->offsetTime(nextMinTime, false) > sInfo->getCloseTime(true))
+			{
+				tickList._cursor = tickList._count + 1;
+				break;
+			}
+
+			if (sInfo->isInTradingTime(nextMinTime))
+				break;
+
 			tickList._cursor++;
-			nextActionTime = tickList._items[tickList._cursor - 1].action_time;
 		}
+
+		if (!tickList.has_next())
+			continue;
 
 		const WTSTickStruct& nextTick = tickList._items[tickList._cursor - 1];
 		uint64_t lastTime = (uint64_t)nextTick.action_date * 1000000000 + nextTick.action_time;
@@ -1637,7 +1642,7 @@ uint64_t HisDataReplayer::getNextTransTime(uint32_t curTDate, uint64_t stime /* 
 			}
 		}
 
-		if (itemList._cursor >= itemList._count)
+		if (!itemList.has_next())
 			continue;
 
 		const auto& nextItem = itemList._items[itemList._cursor - 1];
@@ -1685,7 +1690,7 @@ uint64_t HisDataReplayer::getNextOrdDtlTime(uint32_t curTDate, uint64_t stime /*
 			}
 		}
 
-		if (itemList._cursor >= itemList._count)
+		if (!itemList.has_next())
 			continue;
 
 		const auto& nextItem = itemList._items[itemList._cursor - 1];
@@ -1733,7 +1738,7 @@ uint64_t HisDataReplayer::getNextOrdQueTime(uint32_t curTDate, uint64_t stime /*
 			}
 		}
 
-		if (itemList._cursor >= itemList._count)
+		if (!itemList.has_next())
 			continue;
 
 		const auto& nextItem = itemList._items[itemList._cursor - 1];
@@ -1778,13 +1783,13 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 			//By Wesley @ 2022.03.06 
 			//这里加了一个数据的判断
 			//如果数据为空，则不再进行回放
-			if (itemList._items.empty() || itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				itemList._cursor++;
 
 				WTSOrdDtlData* newData = WTSOrdDtlData::create(nextItem);
@@ -1804,13 +1809,13 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 			//By Wesley @ 2022.03.06 
 			//这里加了一个数据的判断
 			//如果数据为空，则不再进行回放
-			if (itemList._items.empty() || itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				itemList._cursor++;
 
 				WTSTransData* newData = WTSTransData::create(nextItem);
@@ -1831,13 +1836,13 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 			//By Wesley @ 2022.03.06 
 			//这里加了一个数据的判断
 			//如果数据为空，则不再进行回放
-			if(tickList._items.empty() || tickList._cursor > tickList._count)
-				continue;
-
-			WTSTickStruct& nextTick = tickList._items[tickList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextTick.action_date * 1000000000 + nextTick.action_time;
-			if (lastTime <= nextTime)
+			while (tickList.has_next())
 			{
+				WTSTickStruct& nextTick = tickList._items[tickList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextTick.action_date * 1000000000 + nextTick.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				tickList._cursor++;
 
 				update_price(stdCode, nextTick.price);
@@ -1858,13 +1863,13 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 			//By Wesley @ 2022.03.06 
 			//这里加了一个数据的判断
 			//如果数据为空，则不再进行回放
-			if (itemList._items.empty() || itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				itemList._cursor++;
 
 				WTSOrdQueData* newData = WTSOrdQueData::create(nextItem);
@@ -1883,15 +1888,15 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 {	
 	WTSLogger::log_raw(LL_DEBUG, "replaying hft data...");
+	bool replayed = false;
 	for (;;)
 	{
 		uint64_t nextTime = min(UINT64_MAX, getNextTickTime(_cur_tdate, stime));
-		if (nextTime == UINT64_MAX)
-			return false;
-
 		nextTime = min(nextTime, getNextOrdDtlTime(_cur_tdate, stime));
 		nextTime = min(nextTime, getNextOrdQueTime(_cur_tdate, stime));
 		nextTime = min(nextTime, getNextTransTime(_cur_tdate, stime));
+		if (nextTime == UINT64_MAX)
+			break;
 
 		if (nextTime/100000 >= etime)
 			break;
@@ -1905,19 +1910,20 @@ bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 		{
 			const char* stdCode = v.first.c_str();
 			auto& itemList = _orddtl_cache[stdCode];
-			if (itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				WTSOrdDtlData* newData = WTSOrdDtlData::create(nextItem);
 				newData->setCode(stdCode);
 				_listener->handle_order_detail(stdCode, newData);
 				newData->release();
 
 				itemList._cursor++;
+				replayed = true;
 			}
 		}
 
@@ -1926,19 +1932,20 @@ bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 		{
 			const char* stdCode = v.first.c_str();
 			auto& itemList = _trans_cache[stdCode];
-			if (itemList._cursor = itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				WTSTransData* newData = WTSTransData::create(nextItem);
 				newData->setCode(stdCode);
 				_listener->handle_transaction(stdCode, newData);
 				newData->release();
 
 				itemList._cursor++;
+				replayed = true;
 			}
 		}
 
@@ -1947,13 +1954,13 @@ bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 		{
 			const char* stdCode = v.first.c_str();
 			auto& itemList = _ticks_cache[stdCode];
-			if (itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				update_price(stdCode, nextItem.price);
 				WTSTickData* newData = WTSTickData::create(nextItem);
 				newData->setCode(stdCode);
@@ -1961,6 +1968,7 @@ bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 				newData->release();
 
 				itemList._cursor++;
+				replayed = true;
 			}
 		}
 
@@ -1969,24 +1977,25 @@ bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 		{
 			const char* stdCode = v.first.c_str();
 			auto& itemList = _ordque_cache[stdCode];
-			if (itemList._cursor > itemList._count)
-				continue;
-
-			auto& nextItem = itemList._items[itemList._cursor - 1];
-			uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
-			if (lastTime <= nextTime)
+			while (itemList.has_next())
 			{
+				auto& nextItem = itemList._items[itemList._cursor - 1];
+				uint64_t lastTime = (uint64_t)nextItem.action_date * 1000000000 + nextItem.action_time;
+				if (lastTime > nextTime)
+					break;
+
 				WTSOrdQueData* newData = WTSOrdQueData::create(nextItem);
 				newData->setCode(stdCode);
 				_listener->handle_order_queue(stdCode, newData);
 				newData->release();
 
 				itemList._cursor++;
+				replayed = true;
 			}
 		}
 	}
 
-	return true;
+	return replayed;
 }
 
 void HisDataReplayer::onMinuteEnd(uint32_t uDate, uint32_t uTime, uint32_t endTDate /* = 0 */, bool tickSimulated /* = true */)
@@ -2704,7 +2713,7 @@ bool HisDataReplayer::checkOrderDetails(const char* stdCode, uint32_t uDate)
 
 		if (!hasData)
 		{
-			auto& dataList = _trans_cache[stdCode];
+			auto& dataList = _orddtl_cache[stdCode];
 			dataList._items.resize(0);
 			dataList._cursor = UINT_MAX;
 			dataList._code = stdCode;
@@ -2746,7 +2755,7 @@ bool HisDataReplayer::checkOrderQueues(const char* stdCode, uint32_t uDate)
 
 		if (!hasData)
 		{
-			auto& dataList = _trans_cache[stdCode];
+			auto& dataList = _ordque_cache[stdCode];
 			dataList._items.resize(0);
 			dataList._cursor = UINT_MAX;
 			dataList._code = stdCode;

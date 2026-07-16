@@ -43,6 +43,7 @@ SET(SRCS
 	test_object_pool.cpp
 	test_platform_pause.cpp
 	test_session.cpp
+	test_sel_task_schedule.cpp
 	test_shm.cpp
 	test_tradermocker_matching.cpp
 	test_utils.cpp
@@ -72,6 +73,31 @@ TARGET_COMPILE_DEFINITIONS(TestUnits PRIVATE
 )
 ADD_DEPENDENCIES(TestUnits TestDllHelperFixture)
 
+SET(WT_BT_CORE_TEST_SRCS
+	gtest/gtest-death-test.cc
+	gtest/gtest-filepath.cc
+	gtest/gtest-port.cc
+	gtest/gtest-printers.cc
+	gtest/gtest-test-part.cc
+	gtest/gtest-typed-test.cc
+	gtest/gtest.cc
+	main.cpp
+	test_hisdatareplayer_l2.cpp
+)
+
+ADD_EXECUTABLE(WtBtCoreTests ${WT_BT_CORE_TEST_SRCS})
+TARGET_INCLUDE_DIRECTORIES(WtBtCoreTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/gtest")
+TARGET_LINK_LIBRARIES(WtBtCoreTests PRIVATE
+	WtBtCore
+	WTSTools
+	WTSUtils
+	WT::fmt
+	WT::RapidJSON
+	WT::BoostThread
+	WT::Platform
+	${FS_LIB}
+)
+
 ADD_TEST(
 	NAME WonderTrader.TestUnits
 	COMMAND ${CMAKE_COMMAND}
@@ -81,6 +107,18 @@ ADD_TEST(
 )
 SET_TESTS_PROPERTIES(WonderTrader.TestUnits PROPERTIES
 	LABELS unit
+	TIMEOUT 180
+)
+
+ADD_TEST(
+	NAME WonderTrader.WtBtCoreTests
+	COMMAND ${CMAKE_COMMAND}
+		-DWT_TEST_EXECUTABLE=$<TARGET_FILE:WtBtCoreTests>
+		-DWT_TEST_SANDBOX_ROOT=${CMAKE_CURRENT_BINARY_DIR}/sandboxes
+		-P ${CMAKE_CURRENT_LIST_DIR}/RunTestInSandbox.cmake
+)
+SET_TESTS_PROPERTIES(WonderTrader.WtBtCoreTests PROPERTIES
+	LABELS "unit;backtest"
 	TIMEOUT 180
 )
 
