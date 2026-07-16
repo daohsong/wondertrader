@@ -38,6 +38,12 @@ function(WT_CONFIGURE_CXX_TARGET WT_TARGET)
 		target_compile_features("${WT_TARGET}" PUBLIC cxx_std_17)
 	endif()
 
+	if(MSVC)
+		target_compile_options("${WT_TARGET}" PRIVATE
+			"$<$<COMPILE_LANGUAGE:CXX>:/utf-8>"
+		)
+	endif()
+
 	set_target_properties("${WT_TARGET}" PROPERTIES
 		CXX_STANDARD "${WT_CXX_STANDARD}"
 		CXX_STANDARD_REQUIRED ON

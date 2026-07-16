@@ -177,7 +177,7 @@ private:
 	uint64_t _now;
 
 public:
-	inline int round_hands(double hands, double min_hands)
+	inline double round_hands(double hands, double min_hands)
 	{
 		return (int)((hands + min_hands / 2) / min_hands) * min_hands;
 	}

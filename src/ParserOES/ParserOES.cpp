@@ -435,7 +435,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 
 			WTSTransData *trans = WTSTransData::create(code.c_str());
 			WTSTransStruct& ts = trans->getTransStruct();
-			strcpy(ts.exchg, commInfo->getExchg());
+			wt_strcpy(ts.exchg, commInfo->getExchg());
 
 			ts.trading_date = pRspMsg->trade.tradeDate;
 			ts.action_date = pRspMsg->trade.tradeDate;
@@ -484,7 +484,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 
 			WTSOrdDtlData *ordDtl = WTSOrdDtlData::create(code.c_str());
 			WTSOrdDtlStruct& ts = ordDtl->getOrdDtlStruct();
-			strcpy(ts.exchg, commInfo->getExchg());
+			wt_strcpy(ts.exchg, commInfo->getExchg());
 
 			ts.trading_date = pRspMsg->order.tradeDate;
 			ts.action_date = pRspMsg->order.tradeDate;
@@ -533,7 +533,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 			WTSTickData* tick = WTSTickData::create(code.c_str());
 			tick->setContractInfo(ct);
 			WTSTickStruct& quote = tick->getTickStruct();
-			strcpy(quote.exchg, commInfo->getExchg());
+			wt_strcpy(quote.exchg, commInfo->getExchg());
 
 			quote.trading_date = pRspMsg->mktDataSnapshot.head.tradeDate;
 			quote.action_date = pRspMsg->mktDataSnapshot.head.tradeDate;
@@ -600,10 +600,10 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 			sellQue->setContractInfo(ct);
 
 			WTSOrdQueStruct& buyOS = buyQue->getOrdQueStruct();
-			strcpy(buyOS.exchg, commInfo->getExchg());
+			wt_strcpy(buyOS.exchg, commInfo->getExchg());
 
 			WTSOrdQueStruct& sellOS = sellQue->getOrdQueStruct();
-			strcpy(sellOS.exchg, commInfo->getExchg());
+			wt_strcpy(sellOS.exchg, commInfo->getExchg());
 
 			buyOS.trading_date = pRspMsg->mktDataSnapshot.head.tradeDate;
 			buyOS.action_date = pRspMsg->mktDataSnapshot.head.tradeDate;
@@ -678,7 +678,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 			WTSTickData* tick = WTSTickData::create(code.c_str());
 			tick->setContractInfo(ct);
 			WTSTickStruct& quote = tick->getTickStruct();
-			strcpy(quote.exchg, commInfo->getExchg());
+			wt_strcpy(quote.exchg, commInfo->getExchg());
 
 			quote.trading_date = pRspMsg->mktDataSnapshot.head.tradeDate;
 			quote.action_date = pRspMsg->mktDataSnapshot.head.tradeDate;
@@ -741,7 +741,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 			WTSTickData* tick = WTSTickData::create(code.c_str());
 			tick->setContractInfo(ct);
 			WTSTickStruct& quote = tick->getTickStruct();
-			strcpy(quote.exchg, commInfo->getExchg());
+			wt_strcpy(quote.exchg, commInfo->getExchg());
 
 			quote.trading_date = pRspMsg->mktDataSnapshot.head.tradeDate;
 			quote.action_date = pRspMsg->mktDataSnapshot.head.tradeDate;
@@ -803,7 +803,7 @@ void ParserOES::doOnMessage(SMsgHeadT *pMsgHead, void *pMsgItem)
 			WTSTickData* tick = WTSTickData::create(code.c_str());
 			tick->setContractInfo(ct);
 			WTSTickStruct& quote = tick->getTickStruct();
-			strcpy(quote.exchg, commInfo->getExchg());
+			wt_strcpy(quote.exchg, commInfo->getExchg());
 
 			quote.trading_date = pRspMsg->mktDataSnapshot.head.tradeDate;
 			quote.action_date = pRspMsg->mktDataSnapshot.head.tradeDate;

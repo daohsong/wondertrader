@@ -82,7 +82,7 @@ TEST(HisDataReplayerL2, SingleTransactionIsVisibleAndExhaustionIsSafe)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 900;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1000;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{"transaction"}), sink.events);
 	EXPECT_EQ(2U, replayer._trans_cache[kCode]._cursor);
 }
@@ -103,7 +103,7 @@ TEST(HisDataReplayerL2, StartTimeKeepsTheItemAtTheBoundary)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 930;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 931;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{"detail"}), sink.events);
 }
 
@@ -133,7 +133,7 @@ TEST(HisDataReplayerL2, L2OnlyReplayPreservesEventOrder)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 900;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1000;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{
 		"detail", "detail",
 		"transaction", "transaction",
@@ -165,7 +165,7 @@ TEST(HisDataReplayerL2, DailyReplayUsesTheSameStableEventOrder)
 		makeItem<WTSOrdQueStruct>(93000000),
 	});
 
-	EXPECT_EQ(6U, replayer.replayHftDatasByDay(kDate));
+	EXPECT_EQ(6U, HisDataReplayerTestAccess::replayHftDatasByDay(replayer, kDate));
 	EXPECT_EQ((std::vector<std::string>{
 		"detail", "detail",
 		"transaction", "transaction",
@@ -187,7 +187,7 @@ TEST(HisDataReplayerL2, MissingOrderDetailDoesNotDestroyTransactions)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 900;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1000;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{"transaction"}), sink.events);
 }
 
@@ -205,7 +205,7 @@ TEST(HisDataReplayerL2, MissingOrderQueueDoesNotDestroyTransactions)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 900;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1000;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{"transaction"}), sink.events);
 }
 
@@ -225,7 +225,7 @@ TEST(HisDataReplayerL2, TickCursorSkipsSectionBreakWithoutReadingPastTheEnd)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 1200;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1400;
-	EXPECT_TRUE(replayer.replayHftDatas(start, end));
+	EXPECT_TRUE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_EQ((std::vector<std::string>{"tick"}), sink.events);
 	EXPECT_EQ(3U, replayer._ticks_cache[kTickCode]._cursor);
 }
@@ -243,7 +243,7 @@ TEST(HisDataReplayerL2, TickAfterCloseExhaustsTheStreamSafely)
 
 	const uint64_t start = static_cast<uint64_t>(kDate) * 10000ULL + 1500;
 	const uint64_t end = static_cast<uint64_t>(kDate) * 10000ULL + 1700;
-	EXPECT_FALSE(replayer.replayHftDatas(start, end));
+	EXPECT_FALSE(HisDataReplayerTestAccess::replayHftDatas(replayer, start, end));
 	EXPECT_TRUE(sink.events.empty());
 	EXPECT_EQ(2U, replayer._ticks_cache[kTickCode]._cursor);
 }

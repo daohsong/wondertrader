@@ -132,7 +132,7 @@ void WtTWapExeUnit::on_order(uint32_t localid, const char* stdCode, bool isBuy, 
 			
 			//撤单以后重发,一般是加点重发;对最小下单量的校验
 			//fire_at_once(_this_target - realPos);
-			fire_at_once(max(_min_open_lots, _this_target - realPos));
+			fire_at_once((std::max)(_min_open_lots, _this_target - realPos));
 			/***---end---23.5.22---zhaoyk***/
 		}
 	}
@@ -401,7 +401,7 @@ void WtTWapExeUnit::do_calc()
 			return;
 
 		//如果还有多头仓位，则将目标仓位设置为非0，强制触发                      
-		newVol = -min(lPos, _order_lots);
+		newVol = -(std::min)(lPos, _order_lots);
 		_ctx->writeLog(fmtutil::format("Clearing process triggered, target position of {} has been set to {}", _code.c_str(), newVol));
 	}
 
@@ -432,7 +432,7 @@ void WtTWapExeUnit::do_calc()
 	if (leftTimes == 0 && !decimal::eq(diffQty, 0))
 	{
 		bNeedShowHand = true;
-		curQty = max(_min_open_lots, diffQty); 
+		curQty = (std::max)(_min_open_lots, diffQty); 
 	}
 	else {
 		curQty = std::max(_min_open_lots, round(abs(diffQty) / leftTimes)) * abs(diffQty) / diffQty;
@@ -517,4 +517,3 @@ void WtTWapExeUnit::set_position(const char* stdCode, double newVol)
 
 	do_calc();
 }
-

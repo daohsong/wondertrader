@@ -40,9 +40,17 @@ file(WRITE "${WT_VENDOR_ROOT}/include/vendor_trader.h" "#pragma once\n")
 
 if(WT_VENDOR_TEST_MODE STREQUAL "available" OR WT_VENDOR_TEST_MODE STREQUAL "wrong_arch")
 	file(MAKE_DIRECTORY "${WT_HOST_RUNTIME_DIR}")
+	if(WIN32)
+		# The bundled CMake executable may be 32-bit even when it generates x64
+		# projects.  The selected MSVC compiler executable matches the target
+		# architecture exercised by this native fixture.
+		set(WT_VENDOR_FIXTURE_BINARY "${CMAKE_CXX_COMPILER}")
+	else()
+		set(WT_VENDOR_FIXTURE_BINARY "${CMAKE_COMMAND}")
+	endif()
 	foreach(WT_RUNTIME_BASE IN ITEMS vendor_md vendor_trader)
 		configure_file(
-			"${CMAKE_COMMAND}"
+			"${WT_VENDOR_FIXTURE_BINARY}"
 			"${WT_HOST_RUNTIME_DIR}/${WT_HOST_RUNTIME_PREFIX}${WT_RUNTIME_BASE}${WT_HOST_RUNTIME_SUFFIX}"
 			COPYONLY
 		)

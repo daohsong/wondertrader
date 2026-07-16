@@ -1,6 +1,7 @@
 #include "../WtShareHelper/ShareBlocks.h"
 #include "../WtShareHelper/WtShareHelper.h"
 #include "../Share/AtomicCompat.hpp"
+#include "../Includes/WTSMarcos.h"
 
 #include "gtest/gtest/gtest.h"
 
@@ -296,7 +297,7 @@ TEST(test_compile_warnings_shareblocks, single_producer_release_acquire_protocol
 
 	shareblock::CmdInfo& command = block._commands[writable % block._capacity];
 	command._state = 0;
-	std::strcpy(command._command, "reload");
+	wt_strcpy_bounded(command._command, "reload");
 
 	test_store_release(block._readable, writable);
 
@@ -317,7 +318,7 @@ TEST(test_compile_warnings_shareblocks, single_process_thread_protocol_smoke_tes
 
 		shareblock::CmdInfo& command = block._commands[writable % block._capacity];
 		command._state = 0;
-		std::strcpy(command._command, "rebalance");
+		wt_strcpy_bounded(command._command, "rebalance");
 
 		test_store_release(block._readable, writable);
 	});

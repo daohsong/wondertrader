@@ -8,6 +8,8 @@
  * \brief Wt行情数据定义文件,包括tick、bar、orderqueue、orderdetail、transaction等数据
  */
 #pragma once
+#include <algorithm>
+#include <cmath>
 #include <stdlib.h>
 #include <vector>
 #include <deque>
@@ -20,8 +22,6 @@
 #include "WTSMarcos.h"
 #include "WTSStruct.h"
 #include "WTSCollection.hpp"
-
-using namespace std;
 
 #pragma warning(disable:4267)
 
@@ -37,7 +37,7 @@ class WTSContractInfo;
 class WTSValueArray : public WTSObject
 {
 protected:
-	vector<double>	m_vecData;
+	std::vector<double>	m_vecData;
 
 public:
 	/*
@@ -90,8 +90,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		uint32_t begin = min(head, tail);
-		uint32_t end = max(head, tail);
+		uint32_t begin = (std::min)(head, tail);
+		uint32_t end = (std::max)(head, tail);
 
 		if(begin <0 || begin >= m_vecData.size() || end < 0 || end > m_vecData.size())
 			return INVALID_DOUBLE;
@@ -103,9 +103,9 @@ public:
 				continue;
 
 			if(maxValue == INVALID_DOUBLE)
-				maxValue = isAbs?abs(m_vecData[i]):m_vecData[i];
+				maxValue = isAbs?std::abs(m_vecData[i]):m_vecData[i];
 			else
-				maxValue = max(maxValue, isAbs?abs(m_vecData[i]):m_vecData[i]);
+				maxValue = (std::max)(maxValue, isAbs?std::abs(m_vecData[i]):m_vecData[i]);
 		}
 
 		//if (maxValue == INVALID_DOUBLE)
@@ -123,8 +123,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		uint32_t begin = min(head, tail);
-		uint32_t end = max(head, tail);
+		uint32_t begin = (std::min)(head, tail);
+		uint32_t end = (std::max)(head, tail);
 
 		if(begin <0 || begin >= m_vecData.size() || end < 0 || end > m_vecData.size())
 			return INVALID_DOUBLE;
@@ -136,9 +136,9 @@ public:
 				continue;
 
 			if(minValue == INVALID_DOUBLE)
-				minValue = isAbs?abs(m_vecData[i]):m_vecData[i];
+				minValue = isAbs?std::abs(m_vecData[i]):m_vecData[i];
 			else
-				minValue = min(minValue, isAbs?abs(m_vecData[i]):m_vecData[i]);
+				minValue = (std::min)(minValue, isAbs?std::abs(m_vecData[i]):m_vecData[i]);
 		}
 
 		//if (minValue == INVALID_DOUBLE)
@@ -223,7 +223,7 @@ protected:
 		int32_t totalCnt = _count;
 		if (idx < 0)
 		{
-			return max(0, totalCnt + idx);
+			return (std::max)(0, totalCnt + idx);
 		}
 
 		return idx;
@@ -326,13 +326,13 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		int32_t begin = max(0,min(head, tail));
-		int32_t end = min(max(head, tail), size() - 1);
+		int32_t begin = (std::max)(0, (std::min)(head, tail));
+		int32_t end = (std::min)((std::max)(head, tail), size() - 1);
 
 		double maxValue = this->at(begin)->high;
 		for (int32_t i = begin; i <= end; i++)
 		{
-			maxValue = max(maxValue, at(i)->high);
+			maxValue = (std::max)(maxValue, at(i)->high);
 		}
 		return maxValue;
 	}
@@ -348,13 +348,13 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		int32_t begin = max(0, min(head, tail));
-		int32_t end = min(max(head, tail), size() - 1);
+		int32_t begin = (std::max)(0, (std::min)(head, tail));
+		int32_t end = (std::min)((std::max)(head, tail), size() - 1);
 
 		double minValue = at(begin)->low;
 		for (int32_t i = begin; i <= end; i++)
 		{
-			minValue = min(minValue, at(i)->low);
+			minValue = (std::min)(minValue, at(i)->low);
 		}
 
 		return minValue;
@@ -387,8 +387,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		int32_t begin = max(0, min(head, tail));
-		int32_t end = min(max(head, tail), size() - 1);
+		int32_t begin = (std::max)(0, (std::min)(head, tail));
+		int32_t end = (std::min)((std::max)(head, tail), size() - 1);
 
 		WTSValueArray *vArray = NULL;
 
@@ -466,7 +466,7 @@ protected:
 	{
 		if(idx < 0)
 		{
-			return max(0, (int32_t)m_vecBarData.size() + idx);
+			return (std::max)(0, (int32_t)m_vecBarData.size() + idx);
 		}
 
 		return idx;
@@ -514,8 +514,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		uint32_t begin = min(head, tail);
-		uint32_t end = max(head, tail);
+		uint32_t begin = (std::min)(head, tail);
+		uint32_t end = (std::max)(head, tail);
 
 		if(begin >= m_vecBarData.size() || end > m_vecBarData.size())
 			return INVALID_DOUBLE;
@@ -523,7 +523,7 @@ public:
 		double maxValue = m_vecBarData[begin].high;
 		for(uint32_t i = begin; i <= end; i++)
 		{
-			maxValue = max(maxValue, m_vecBarData[i].high);
+			maxValue = (std::max)(maxValue, m_vecBarData[i].high);
 		}
 
 		return maxValue;
@@ -540,8 +540,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		uint32_t begin = min(head, tail);
-		uint32_t end = max(head, tail);
+		uint32_t begin = (std::min)(head, tail);
+		uint32_t end = (std::max)(head, tail);
 
 		if(begin >= m_vecBarData.size() || end > m_vecBarData.size())
 			return INVALID_DOUBLE;
@@ -549,7 +549,7 @@ public:
 		double minValue = m_vecBarData[begin].low;
 		for(uint32_t i = begin; i <= end; i++)
 		{
-			minValue = min(minValue, m_vecBarData[i].low);
+			minValue = (std::min)(minValue, m_vecBarData[i].low);
 		}
 
 		return minValue;
@@ -746,8 +746,8 @@ public:
 		head = translateIdx(head);
 		tail = translateIdx(tail);
 
-		uint32_t begin = min(head, tail);
-		uint32_t end = max(head, tail);
+		uint32_t begin = (std::min)(head, tail);
+		uint32_t end = (std::max)(head, tail);
 
 		if(begin >= m_vecBarData.size() || end >= (int32_t)m_vecBarData.size())
 			return NULL;
@@ -1399,7 +1399,7 @@ protected:
 	{
 		if (idx < 0)
 		{
-			return max(0, (int32_t)_count + idx);
+			return (std::max)(0, (int32_t)_count + idx);
 		}
 
 		return idx;
@@ -1506,7 +1506,7 @@ protected:
 	{
 		if (idx < 0)
 		{
-			return max(0, (int32_t)m_uCount + idx);
+			return (std::max)(0, (int32_t)m_uCount + idx);
 		}
 
 		return idx;
@@ -1558,7 +1558,7 @@ protected:
 	{
 		if (idx < 0)
 		{
-			return max(0, (int32_t)m_uCount + idx);
+			return (std::max)(0, (int32_t)m_uCount + idx);
 		}
 
 		return idx;
@@ -1610,7 +1610,7 @@ protected:
 	{
 		if (idx < 0)
 		{
-			return max(0, (int32_t)m_uCount + idx);
+			return (std::max)(0, (int32_t)m_uCount + idx);
 		}
 
 		return idx;

@@ -8,6 +8,7 @@
  * \brief
  */
 #include "TraderATP.h"
+#include "ATPConversions.hpp"
 
 #include "../Includes/IBaseDataMgr.h"
 #include "../Includes/WTSContractInfo.hpp"
@@ -236,7 +237,7 @@ WTSEntrust* TraderATP::makeEntrust(const ATPRspOrderStatusAckMsg* order_info)
 	WTSEntrust* pRet = WTSEntrust::create(
 		code.c_str(),
 		(uint32_t)order_info->order_qty,
-		order_info->price,
+		wt::atp::priceToDouble(order_info->price),
 		ct->getExchg());
 	pRet->setContractInfo(ct);
 	pRet->setDirection(wrapDirectionType(order_info->side, order_info->position_effect));
@@ -264,7 +265,7 @@ WTSOrderInfo* TraderATP::makeOrderInfo(const APIOrderUnit* order_info)
 
 	WTSOrderInfo* pRet = WTSOrderInfo::create();
 	pRet->setContractInfo(contract);
-	pRet->setPrice(order_info->order_price / 10000);
+	pRet->setPrice(wt::atp::priceToDouble(order_info->order_price));
 	pRet->setVolume((uint32_t)order_info->order_qty / 100);
 	pRet->setDirection(wrapATPSide(order_info->side));
 	pRet->setPriceType(wrapOrdType(order_info->ord_type));
@@ -320,7 +321,7 @@ WTSOrderInfo* TraderATP::makeOrderInfo(const ATPRspOrderStatusAckMsg *order_stat
 
 	WTSOrderInfo* pRet = WTSOrderInfo::create();
 	pRet->setContractInfo(contract);
-	pRet->setPrice(order_status_ack->price);
+	pRet->setPrice(wt::atp::priceToDouble(order_status_ack->price));
 	pRet->setVolume((uint32_t)order_status_ack->order_qty / 100);
 	pRet->setDirection(wrapATPSide(order_status_ack->side));
 	pRet->setPriceType(wrapOrdType(order_status_ack->order_type));
@@ -630,7 +631,7 @@ void TraderATP::OnRspOrderStatusInternalAck(const ATPRspOrderStatusAckMsg& order
 	}
 
 	// 保存回报分区号、序号，用于断线重连时指定已收到最新回报序号
-	report_sync[order_status_ack.partition] = order_status_ack.index;
+	updateReportSync(order_status_ack.partition, order_status_ack.index);
 }
 
 // 订单下达交易所确认
@@ -685,7 +686,7 @@ void TraderATP::OnRspOrderStatusAck(const ATPRspOrderStatusAckMsg& order_status_
 	}
 
 	// 保存回报分区号、序号，用于断线重连时指定已收到最新回报序号
-	report_sync[order_status_ack.partition] = order_status_ack.index;
+	updateReportSync(order_status_ack.partition, order_status_ack.index);
 }
 
 // 成交回报
@@ -707,7 +708,7 @@ void TraderATP::OnRspCashAuctionTradeER(const ATPRspCashAuctionTradeERMsg& cash_
 	}
 
 	// 保存回报分区号、序号，用于断线重连时指定已收到最新回报序号
-	report_sync[cash_auction_trade_er.partition] = cash_auction_trade_er.index;
+	updateReportSync(cash_auction_trade_er.partition, cash_auction_trade_er.index);
 }
 
 // 订单下达内部拒绝
@@ -1076,10 +1077,24 @@ bool TraderATP::isConnected()
 	return (_state == TS_ALLREADY);
 }
 
-void TraderATP::genEntrustID(char* buffer, uint32_t orderRef)
+void TraderATP::genEntrustID(char* buffer, int64_t orderRef)
 {
 	//这里不再使用sessionid，因为每次登陆会不同，如果使用的话，可能会造成不唯一的情况
 	fmtutil::format_to(buffer, "{}#{}#{}", _user, _tradingday, orderRef);
+}
+
+void TraderATP::updateReportSync(ATPPartitionType partition, ATPIndexType index)
+{
+	int32_t compatibleIndex = 0;
+	if (!wt::atp::tryConvertReportIndex(index, compatibleIndex))
+	{
+		write_log(_sink, LL_ERROR,
+			"[TraderATP] report index {} exceeds the 32-bit reconnect protocol for partition {}",
+			index, partition);
+		return;
+	}
+
+	report_sync[static_cast<int32_t>(partition)] = compatibleIndex;
 }
 
 bool TraderATP::extractEntrustID(const char* entrustid, uint32_t &orderRef)
@@ -1321,17 +1336,13 @@ int TraderATP::queryPositions()
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-			if (_return_nums > 100)  // 最大单页容量为100条
+			const int64_t total = _return_nums.load();
+			const int64_t additionalPages = wt::atp::additionalQueryPageCount(total);
+			if (additionalPages > 0)  // 最大单页容量为100条
 			{
-				// 需要多页查询
-				if (_return_nums % 100 > 0)
-					_return_nums += 100;
-
-				int times = _return_nums / 100;
-
-				for (int i = 0; i < times; i++)
+				for (int64_t page = 1; page <= additionalPages; ++page)
 				{
-					p.query_index = (i + 1) * 100;
+					p.query_index = page * wt::atp::query_page_size;
 
 					ec = _api->ReqShareQuery(&p);
 					if (ec != ErrorCode::kSuccess)
@@ -1373,17 +1384,13 @@ int TraderATP::queryOrders()
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 
-			if (_return_nums > 100)
+			const int64_t total = _return_nums.load();
+			const int64_t additionalPages = wt::atp::additionalQueryPageCount(total);
+			if (additionalPages > 0)
 			{
-				// 需要多页查询
-				if (_return_nums % 100 > 0)
-					_return_nums += 100;
-
-				int times = _return_nums / 100;
-
-				for (int i = 0; i < times; i++)
+				for (int64_t page = 1; page <= additionalPages; ++page)
 				{
-					p.query_index = (i + 1) * 100;
+					p.query_index = page * wt::atp::query_page_size;
 
 					ec = _api->ReqOrderQuery(&p);
 					if (ec != ErrorCode::kSuccess)
@@ -1423,17 +1430,13 @@ int TraderATP::queryTrades()
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			write_log(_sink, LL_INFO, "return num: {}", _return_nums.load());
 
-			if (_return_nums > 100)
+			const int64_t total = _return_nums.load();
+			const int64_t additionalPages = wt::atp::additionalQueryPageCount(total);
+			if (additionalPages > 0)
 			{
-				// 需要多页查询
-				if (_return_nums % 100 > 0)
-					_return_nums += 100;
-
-				int times = _return_nums / 100;
-
-				for (int i = 0; i < times; i++)
+				for (int64_t page = 1; page <= additionalPages; ++page)
 				{
-					p.query_index = (i + 1) * 100;
+					p.query_index = page * wt::atp::query_page_size;
 
 					ec = _api->ReqTradeOrderQuery(&p);
 					if (ec != ErrorCode::kSuccess)

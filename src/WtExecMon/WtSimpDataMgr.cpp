@@ -225,7 +225,7 @@ WTSKlineSlice* WtSimpDataMgr::get_kline_slice(const char* stdCode, WTSKlinePerio
 	}
 
 	int32_t sIdx = 0;
-	uint32_t rtCnt = min(kData->size(), count);
+	uint32_t rtCnt = (std::min)(kData->size(), count);
 	sIdx = kData->size() - rtCnt;
 	WTSBarStruct* rtHead = kData->at(sIdx);
 	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, rtCnt);

@@ -269,10 +269,10 @@ void CtaStraBaseCtx::load_userdata()
 	if (root.HasParseError())
 		return;
 
-	for (auto& m : root.GetObject())
+	for (auto m = root.MemberBegin(); m != root.MemberEnd(); ++m)
 	{
-		const char* key = m.name.GetString();
-		const char* val = m.value.GetString();
+		const char* key = m->name.GetString();
+		const char* val = m->value.GetString();
 		_user_datas[key] = val;
 	}
 }
@@ -416,9 +416,9 @@ void CtaStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 		{
 			_last_cond_min = jCond["settime"].GetUint64();
 			const rj::Value& jItems = jCond["items"];
-			for (auto& m : jItems.GetObject())
+			for (auto m = jItems.MemberBegin(); m != jItems.MemberEnd(); ++m)
 			{
-				const char* stdCode = m.name.GetString();
+				const char* stdCode = m->name.GetString();
 				const char* ruleTag = _engine->get_hot_mgr()->getRuleTag(stdCode);
 				if (strlen(ruleTag) == 0 && _engine->get_contract_info(stdCode) == NULL)
 				{
@@ -426,7 +426,7 @@ void CtaStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 					continue;
 				}
 
-				const rj::Value& cListItem = m.value;
+				const rj::Value& cListItem = m->value;
 
 				CondList& condList = _condtions[stdCode];
 
@@ -460,9 +460,9 @@ void CtaStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 		const rj::Value& jSignals = root["signals"];
 		if (!jSignals.IsNull() && jSignals.IsObject())
 		{
-			for (auto& m : jSignals.GetObject())
+			for (auto m = jSignals.MemberBegin(); m != jSignals.MemberEnd(); ++m)
 			{
-				const char* stdCode = m.name.GetString();
+				const char* stdCode = m->name.GetString();
 				const char* ruleTag = _engine->get_hot_mgr()->getRuleTag(stdCode);
 				if (strlen(ruleTag) == 0 && _engine->get_contract_info(stdCode) == NULL)
 				{
@@ -470,7 +470,7 @@ void CtaStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 					continue;
 				}
 
-				const rj::Value& jItem = m.value;
+				const rj::Value& jItem = m->value;
 
 				SigInfo& sInfo = _sig_map[stdCode];
 				sInfo._usertag = jItem["usertag"].GetString();
@@ -882,7 +882,7 @@ void CtaStraBaseCtx::on_tick(const char* stdCode, WTSTickData* newTick, bool bEm
 					double curQty = stra_get_position(stdCode);
 					if (decimal::gt(curQty, 0))
 					{
-						double maxQty = min(curQty, entrust._qty);
+						double maxQty = (std::min)(curQty, entrust._qty);
 						double desQty = curQty - maxQty;
 						append_signal(stdCode, desQty, entrust._usertag, 2);
 					}
@@ -905,7 +905,7 @@ void CtaStraBaseCtx::on_tick(const char* stdCode, WTSTickData* newTick, bool bEm
 					double curQty = stra_get_position(stdCode);
 					if (decimal::lt(curQty, 0))
 					{
-						double maxQty = min(abs(curQty), entrust._qty);
+						double maxQty = (std::min)(std::abs(curQty), entrust._qty);
 						double desQty = curQty + maxQty;
 						append_signal(stdCode, desQty, entrust._usertag, 2);
 					}
@@ -1249,7 +1249,7 @@ void CtaStraBaseCtx::stra_exit_long(const char* stdCode, double qty, const char*
 	
 	if (decimal::eq(limitprice, 0.0) && decimal::eq(stopprice, 0.0))	//如果不是动态下单模式, 则直接触发
 	{
-		double maxQty = min(curQty, qty);
+		double maxQty = (std::min)(curQty, qty);
 		double totalQty = stra_get_position(stdCode, false);
 		append_signal(stdCode, totalQty - maxQty, userTag, _is_in_schedule ? 0 : 1);
 	}
@@ -1302,7 +1302,7 @@ void CtaStraBaseCtx::stra_exit_short(const char* stdCode, double qty, const char
 	
 	if (decimal::eq(limitprice, 0.0) && decimal::eq(stopprice, 0.0))	//如果不是动态下单模式, 则直接触发
 	{
-		double maxQty = min(abs(curQty), qty);
+		double maxQty = (std::min)(std::abs(curQty), qty);
 		append_signal(stdCode, curQty + maxQty, userTag, _is_in_schedule ? 0 : 1);
 	}
 	else
@@ -1490,7 +1490,7 @@ void CtaStraBaseCtx::do_set_position(const char* stdCode, double qty, const char
 				continue;
 			}
 
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 

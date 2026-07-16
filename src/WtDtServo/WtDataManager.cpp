@@ -23,6 +23,8 @@
 #include "../WTSTools/WTSLogger.h"
 #include "../WTSTools/WTSDataFactory.h"
 
+#include <limits>
+
 
 WTSDataFactory g_dataFact;
 
@@ -299,8 +301,11 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_range(const char* stdCode, WTSK
 	sBar.date = lDate;
 	sBar.time = (lDate - 19900000) * 10000 + lTime;
 
-	uint32_t eIdx, sIdx;
 	auto& bars = barCache._bars->getDataRef();
+	if (bars.empty())
+		return NULL;
+
+	std::size_t eIdx, sIdx;
 	auto eit = std::lower_bound(bars.begin(), bars.end(), eBar, [isDay](const WTSBarStruct& a, const WTSBarStruct& b) {
 		if (isDay)
 			return a.date < b.date;
@@ -315,6 +320,8 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_range(const char* stdCode, WTSK
 	{
 		if ((isDay && eit->date > eBar.date) || (!isDay && eit->time > eBar.time))
 		{
+			if (eit == bars.begin())
+				return NULL;
 			eit--;
 		}
 
@@ -328,9 +335,12 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_range(const char* stdCode, WTSK
 			return a.time < b.time;
 	});
 	sIdx = sit - bars.begin();
-	uint32_t rtCnt = eIdx - sIdx + 1;
-	WTSBarStruct* rtHead = barCache._bars->at(sIdx);
-	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, rtCnt);
+	const std::size_t rtCnt = eIdx - sIdx + 1;
+	if (rtCnt > static_cast<std::size_t>((std::numeric_limits<int32_t>::max)()))
+		return NULL;
+
+	WTSBarStruct* rtHead = bars.data() + sIdx;
+	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, static_cast<int32_t>(rtCnt));
 	return slice;
 }
 
@@ -452,8 +462,11 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_count(const char* stdCode, WTSK
 	eBar.date = rDate;
 	eBar.time = (rDate - 19900000) * 10000 + rTime;
 
-	uint32_t eIdx, sIdx;
 	auto& bars = barCache._bars->getDataRef();
+	if (bars.empty())
+		return NULL;
+
+	std::size_t eIdx, sIdx;
 	auto eit = std::lower_bound(bars.begin(), bars.end(), eBar, [isDay](const WTSBarStruct& a, const WTSBarStruct& b) {
 		if (isDay)
 			return a.date < b.date;
@@ -468,6 +481,8 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_count(const char* stdCode, WTSK
 	{
 		if ((isDay && eit->date > eBar.date) || (!isDay && eit->time > eBar.time))
 		{
+			if (eit == bars.begin())
+				return NULL;
 			eit--;
 		}
 
@@ -475,9 +490,12 @@ WTSKlineSlice* WtDataManager::get_kline_slice_by_count(const char* stdCode, WTSK
 	}
 
 	sIdx = (eIdx + 1 >= count) ? (eIdx + 1 - count) : 0;
-	uint32_t rtCnt = eIdx - sIdx + 1;
-	WTSBarStruct* rtHead = barCache._bars->at(sIdx);
-	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, rtCnt);
+	const std::size_t rtCnt = eIdx - sIdx + 1;
+	if (rtCnt > static_cast<std::size_t>((std::numeric_limits<int32_t>::max)()))
+		return NULL;
+
+	WTSBarStruct* rtHead = bars.data() + sIdx;
+	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, static_cast<int32_t>(rtCnt));
 	return slice;
 }
 

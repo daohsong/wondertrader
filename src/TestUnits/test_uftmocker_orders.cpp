@@ -1,7 +1,6 @@
 #include <boost/asio.hpp>
 
 #include <chrono>
-#include <cstring>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -9,6 +8,7 @@
 #include <sstream>
 
 #include "../Includes/FasterDefs.h"
+#include "../Includes/WTSMarcos.h"
 
 #define private public
 #include "../WtBtCore/UftMocker.h"
@@ -28,7 +28,7 @@ void addOrder(UftMocker& mocker, uint32_t localId, bool isLong, uint32_t offset,
 	order->_offset = offset;
 	order->_left = left;
 	order->_total = left;
-	std::strncpy(order->_code, code, sizeof(order->_code) - 1);
+	wt_strcpy_bounded(order->_code, code);
 	mocker._orders[localId] = order;
 }
 }

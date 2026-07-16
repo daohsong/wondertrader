@@ -21,10 +21,10 @@ bool json_to_variant(const rj::Value& root, WTSVariant* params)
 
 	if (root.IsObject())
 	{
-		for (auto& m : root.GetObject())
+		for (auto m = root.MemberBegin(); m != root.MemberEnd(); ++m)
 		{
-			const char* key = m.name.GetString();
-			const rj::Value& item = m.value;
+			const char* key = m->name.GetString();
+			const rj::Value& item = m->value;
 			switch (item.GetType())
 			{
 			case rj::kNullType:

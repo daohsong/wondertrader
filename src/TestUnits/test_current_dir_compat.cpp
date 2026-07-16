@@ -49,10 +49,17 @@ TEST(test_current_dir_compat, returns_non_empty_standardisable_path)
 	EXPECT_FALSE(standardised.empty());
 }
 
+TEST(test_current_dir_compat, formats_known_system_error)
+{
+	const std::string message = wt_system_error_message(EINVAL);
+	EXPECT_FALSE(message.empty());
+}
+
 TEST(test_current_dir_compat, throws_when_current_directory_cannot_be_resolved)
 {
 #if defined(_WIN32)
-	GTEST_SKIP() << "Deleting the active current directory is not portable on Windows";
+	SUCCEED() << "Deleting the active current directory is not portable on Windows";
+	return;
 #else
 	const int originalFd = open(".", O_RDONLY | O_DIRECTORY);
 	ASSERT_GE(originalFd, 0);

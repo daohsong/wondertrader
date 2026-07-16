@@ -199,8 +199,11 @@ struct WTSTickStruct
 
 	WTSTickStruct& operator = (const WTSTickStructOld& tick)
 	{
-		strncpy(exchg, tick.exchg, MAX_EXCHANGE_LENGTH);
-		strncpy(code, tick.code, MAX_INSTRUMENT_LENGTH);
+		static_assert(sizeof(exchg) > sizeof(tick.exchg), "new exchange field must hold the legacy field and a terminator");
+		memset(exchg, 0, sizeof(exchg));
+		memcpy(exchg, tick.exchg, sizeof(tick.exchg));
+		memcpy(code, tick.code, sizeof(code) - 1);
+		code[sizeof(code) - 1] = '\0';
 
 		price = tick.price;
 		open = tick.open;

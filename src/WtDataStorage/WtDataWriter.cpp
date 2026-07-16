@@ -284,7 +284,7 @@ void WtDataWriter::loadCache()
 	_tick_cache_file.reset(new BoostMappingFile);
 	_tick_cache_file->map(filename.c_str());
 	_tick_cache_block = (RTTickCache*)_tick_cache_file->addr();
-	_tick_cache_block->_size = min(_tick_cache_block->_size, _tick_cache_block->_capacity);
+	_tick_cache_block->_size = (std::min)(_tick_cache_block->_size, _tick_cache_block->_capacity);
 
 	if(bNew)
 	{
@@ -1039,7 +1039,7 @@ WtDataWriter::TickBlockPair* WtDataWriter::getTickBlock(WTSContractInfo* ct, uin
 					//文件大小不匹配,一般是因为capacity改了,但是实际没扩容
 					//这是做一次扩容即可
 					pBlock->_block->_capacity = realCap;
-					pBlock->_block->_size = min(realCap,markedCap);
+					pBlock->_block->_size = (std::min)(realCap,markedCap);
 				}
 				
 			} while (false);
@@ -1271,7 +1271,7 @@ void WtDataWriter::pipeToKlines(WTSContractInfo* ct, WTSTickData* curTick)
 					newBar->low = curTick->isNewLow() ? curTick->low() : std::min(curTick->price(), newBar->low);
 
 				newBar->close = curTick->price();
-				newBar->high = curTick->isNewHigh() ? curTick->high() : max(curTick->price(), newBar->high);
+				newBar->high = curTick->isNewHigh() ? curTick->high() : (std::max)(curTick->price(), newBar->high);
 
 				newBar->vol += curTick->volume();
 				newBar->money += curTick->turnover();

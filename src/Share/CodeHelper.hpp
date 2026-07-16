@@ -78,7 +78,7 @@ public:
 		inline const char* stdCommID()
 		{
 			if (strlen(_fullpid) == 0)
-				fmtutil::format_to(_fullpid, "{}.{}", _exchg, _product);
+				fmtutil::format_to_n(_fullpid, "{}.{}", _exchg, _product);
 
 			return _fullpid;
 		}
@@ -552,7 +552,7 @@ public:
 		wt_strcpy(codeInfo._exchg, ay[0].c_str());
 		if(strcmp(codeInfo._exchg, "SHFE") == 0 || strcmp(codeInfo._exchg, "INE") == 0 || strcmp(codeInfo._exchg, "CZCE") == 0)
 		{
-			fmt::format_to(codeInfo._code, "{}{}{}", ay[1], ay[2], ay[3]);
+			fmtutil::format_to_n(codeInfo._code, "{}{}{}", ay[1], ay[2], ay[3]);
 		}
 		// By Wesley @ 2024.04.12
 		// 郑商所代码通过altcode来处理，因子在wt内部和其他交易所一样了
@@ -563,24 +563,24 @@ public:
 		//}
 		else
 		{
-			fmt::format_to(codeInfo._code, "{}-{}-{}", ay[1], ay[2], ay[3]);
+			fmtutil::format_to_n(codeInfo._code, "{}-{}-{}", ay[1], ay[2], ay[3]);
 		}
 
 		int mpos = indexCodeMonth(ay[1].c_str());
+		const std::size_t productLength = mpos < 0 ? ay[1].size() : static_cast<std::size_t>(mpos);
+		const std::string product = ay[1].substr(0, productLength);
 
 		if(strcmp(codeInfo._exchg, "CZCE") == 0)
 		{
-			memcpy(codeInfo._product, ay[1].c_str(), mpos);
-			strcat(codeInfo._product, ay[2].c_str());
+			fmtutil::format_to_n(codeInfo._product, "{}{}", product, ay[2]);
 		}
 		else if (strcmp(codeInfo._exchg, "CFFEX") == 0)
 		{
-			memcpy(codeInfo._product, ay[1].c_str(), mpos);
+			fmtutil::format_to_n(codeInfo._product, "{}", product);
 		}
 		else
 		{
-			memcpy(codeInfo._product, ay[1].c_str(), mpos);
-			strcat(codeInfo._product, "_o");
+			fmtutil::format_to_n(codeInfo._product, "{}_o", product);
 		}
 
 		return codeInfo;
@@ -660,4 +660,3 @@ public:
 		}
 	}
 };
-

@@ -8,6 +8,7 @@
  * \brief
  */
 #include "TraderHuaX.h"
+#include "HuaXConversions.hpp"
 #include "../Share/Converter.hpp"
 
 #include "../Share/FilesystemCompat.hpp"
@@ -920,7 +921,11 @@ int TraderHuaX::orderInsert(WTSEntrust* entrust)
 	}
 
 	field.Direction = wrapDirectionType(entrust->getDirection());
-	field.VolumeTotalOriginal = (int64_t)entrust->getVolume();
+	if (!wt::huax::tryConvertOrderVolume(entrust->getVolume(), field.VolumeTotalOriginal))
+	{
+		write_log(_sink, LL_ERROR, "[TraderHuaX] invalid order volume {}", entrust->getVolume());
+		return -1;
+	}
 	// 上交所支持限价指令和最优五档剩撤、最优五档剩转限两种市价指令，对于科创板额外支持本方最优和对手方最优两种市价指令和盘后固定价格申报指令
 	// 深交所支持限价指令和立即成交剩余撤销、全额成交或撤销、本方最优、对手方最优和最优五档剩撤五种市价指令
 	// 限价指令和上交所科创板盘后固定价格申报指令需填写报单价格，其它市价指令无需填写报单价格

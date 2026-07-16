@@ -144,7 +144,7 @@ void UftStraContext::on_trade(uint32_t localid, const char* stdCode, bool isLong
 		//买入的时候，如果有空头，就先平空
 		if(decimal::lt(pItem._volume, 0))
 		{
-			double thisQty = min(abs(pItem._volume), vol);
+			double thisQty = (std::min)(std::abs(pItem._volume), vol);
 
 			pItem._volume += thisQty;
 			unhandle -= thisQty;
@@ -265,7 +265,7 @@ void UftStraContext::on_trade(uint32_t localid, const char* stdCode, bool isLong
 		//卖出的时候，有多头就先平多
 		if (decimal::gt(pItem._volume, 0))
 		{
-			double thisQty = min(pItem._volume, vol);
+			double thisQty = (std::min)(pItem._volume, vol);
 
 			pItem._volume -= thisQty;
 			unhandle -= thisQty;

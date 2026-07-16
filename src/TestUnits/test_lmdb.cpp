@@ -1,5 +1,6 @@
 ﻿#include "../WTSUtils/WtLMDB.hpp"
 #include "../Share/StrUtil.hpp"
+#include "../WtDataStorageAD/LMDBKeys.h"
 #include "../Share/fmtlib.h"
 #include "gtest/gtest/gtest.h"
 
@@ -66,7 +67,26 @@ TEST(test_lmdb, test_query)
 	}
 }
 
-static uint32_t reverseEndian(uint32_t src)
+TEST(test_lmdb, fixed_keys_preserve_layout_and_bound_text_fields)
+{
+	static_assert(sizeof(LMDBHftKey) == MAX_EXCHANGE_LENGTH + MAX_INSTRUMENT_LENGTH + sizeof(uint32_t) * 2);
+	static_assert(sizeof(LMDBBarKey) == MAX_EXCHANGE_LENGTH + MAX_INSTRUMENT_LENGTH + sizeof(uint32_t));
+
+	const std::string longExchange(MAX_EXCHANGE_LENGTH + 8, 'E');
+	const std::string longCode(MAX_INSTRUMENT_LENGTH + 8, 'C');
+	LMDBHftKey hftKey(longExchange.c_str(), longCode.c_str(), 20260716, 93000000);
+	EXPECT_EQ(std::strlen(hftKey._exchg), MAX_EXCHANGE_LENGTH - 1U);
+	EXPECT_EQ(std::strlen(hftKey._code), MAX_INSTRUMENT_LENGTH - 1U);
+	EXPECT_EQ(hftKey._date, reverseEndian(uint32_t{20260716}));
+	EXPECT_EQ(hftKey._time, reverseEndian(uint32_t{93000000}));
+
+	LMDBBarKey barKey(longExchange.c_str(), longCode.c_str(), 2026071615);
+	EXPECT_EQ(std::strlen(barKey._exchg), MAX_EXCHANGE_LENGTH - 1U);
+	EXPECT_EQ(std::strlen(barKey._code), MAX_INSTRUMENT_LENGTH - 1U);
+	EXPECT_EQ(barKey._bartime, reverseEndian(uint32_t{2026071615}));
+}
+
+static uint32_t testReverseEndian(uint32_t src)
 {
 	uint32_t x = (src & 0x000000FF) << 24;
 	uint32_t y = (src & 0x0000FF00) << 8;
@@ -78,7 +98,7 @@ static uint32_t reverseEndian(uint32_t src)
 std::string makeData(uint32_t v, bool trans)
 {
 	if (trans)
-		v = reverseEndian(v);
+		v = testReverseEndian(v);
 
 	return std::move(std::string((const char*)&v, sizeof(uint32_t)));
 }

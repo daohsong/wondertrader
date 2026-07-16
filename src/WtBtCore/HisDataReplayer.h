@@ -150,8 +150,18 @@ public:
 	virtual bool isAutoTrans() { return true; }
 };
 
+class HisDataReplayer;
+
+class HisDataReplayerTestAccess
+{
+public:
+	static bool replayHftDatas(HisDataReplayer& replayer, uint64_t stime, uint64_t etime);
+	static uint64_t replayHftDatasByDay(HisDataReplayer& replayer, uint32_t curTDate);
+};
+
 class HisDataReplayer
 {
+	friend class HisDataReplayerTestAccess;
 
 private:
 	template <typename T>

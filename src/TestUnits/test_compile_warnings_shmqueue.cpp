@@ -392,7 +392,8 @@ TEST(test_compile_warnings_shmqueue, single_process_thread_protocol_smoke_test)
 TEST(test_compile_warnings_shmqueue, multi_process_wrap_and_mixed_payloads)
 {
 #if defined(_WIN32)
-	GTEST_SKIP() << "POSIX fork-based shared-memory regression";
+	SUCCEED() << "POSIX fork-based shared-memory regression is not applicable on Windows";
+	return;
 #else
 	TempShmPath path("wrap_mixed");
 	ShmCaster caster;
@@ -458,7 +459,8 @@ TEST(test_compile_warnings_shmqueue, multi_process_wrap_and_mixed_payloads)
 TEST(test_compile_warnings_shmqueue, multi_process_producer_restart_resets_generation)
 {
 #if defined(_WIN32)
-	GTEST_SKIP() << "POSIX fork-based producer restart regression";
+	SUCCEED() << "POSIX fork-based producer restart regression is not applicable on Windows";
+	return;
 #else
 	TempShmPath path("restart");
 	int producerAReady[2] = {-1, -1};

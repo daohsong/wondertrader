@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cstring>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -176,9 +177,8 @@ class TempFile
 public:
 	explicit TempFile(const char* stem)
 	{
-		char path[256];
-		std::snprintf(path, sizeof(path), "/tmp/%s_%u_%p.json", stem, ++_counter, static_cast<void*>(this));
-		_path = path;
+		const std::string filename = std::string(stem) + "_" + std::to_string(++_counter) + ".json";
+		_path = (std::filesystem::temp_directory_path() / filename).string();
 		std::remove(_path.c_str());
 	}
 
@@ -216,8 +216,8 @@ void prepareTrader(TraderMocker& trader, IBaseDataMgr* bdMgr, ITraderSpi* spi, c
 WTSTickData* makeTick(const char* exchg, const char* code, double price, double bidPrice, double bidQty, double askPrice, double askQty)
 {
 	WTSTickStruct tick = {};
-	std::strncpy(tick.exchg, exchg, sizeof(tick.exchg) - 1);
-	std::strncpy(tick.code, code, sizeof(tick.code) - 1);
+	wt_strcpy_bounded(tick.exchg, exchg);
+	wt_strcpy_bounded(tick.code, code);
 	tick.price = price;
 	tick.action_date = 20260707;
 	tick.action_time = 93000000;
@@ -267,8 +267,8 @@ WTSOrderInfo* makeOpenLongOrder(WTSContractInfo* contract, const char* orderId, 
 void setLongPosition(TraderMocker& trader, WTSContractInfo* contract, double volume, double frozen)
 {
 	TraderMocker::PosItem& pos = trader._positions[contract->getFullCode()];
-	std::strncpy(pos._exchg, contract->getExchg(), sizeof(pos._exchg) - 1);
-	std::strncpy(pos._code, contract->getCode(), sizeof(pos._code) - 1);
+	wt_strcpy_bounded(pos._exchg, contract->getExchg());
+	wt_strcpy_bounded(pos._code, contract->getCode());
 	pos._long._pre_volume = volume;
 	pos._long._pre_frozen = frozen;
 }
@@ -276,8 +276,8 @@ void setLongPosition(TraderMocker& trader, WTSContractInfo* contract, double vol
 void setLongPositionBuckets(TraderMocker& trader, WTSContractInfo* contract, double preVolume, double preFrozen, double newVolume, double newFrozen)
 {
 	TraderMocker::PosItem& pos = trader._positions[contract->getFullCode()];
-	std::strncpy(pos._exchg, contract->getExchg(), sizeof(pos._exchg) - 1);
-	std::strncpy(pos._code, contract->getCode(), sizeof(pos._code) - 1);
+	wt_strcpy_bounded(pos._exchg, contract->getExchg());
+	wt_strcpy_bounded(pos._code, contract->getCode());
 	pos._long._pre_volume = preVolume;
 	pos._long._pre_frozen = preFrozen;
 	pos._long._new_volume = newVolume;

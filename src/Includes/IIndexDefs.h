@@ -36,7 +36,7 @@ public:
 
 public:
 	/*
-	 *	»ñÈ¡¹¤³§Ãû
+	 *	è·å–å·¥å‚å
 	 */
 	virtual const char* get_fact_name() = 0;
 
@@ -62,7 +62,7 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
-//²ßÂÔ¹¤³§½Ó¿Ú
+//ç­–ç•¥å·¥å‚æ¥å£
 typedef void(*FuncEnumIndexWorkerCallback)(const char* factName, const char* straName, bool isLast);
 
 class IIndexWorkerFact
@@ -73,18 +73,18 @@ public:
 
 public:
 	/*
-	 *	»ñÈ¡¹¤³§Ãû
+	 *	è·å–å·¥å‚å
 	 */
 	virtual const char* get_name() = 0;
 
 	/*
-	 *	¸ù¾İÃû³ÆÖ¸±êÉú³ÉÆ÷
+	 *	æ ¹æ®åç§°æŒ‡æ ‡ç”Ÿæˆå™¨
 	 */
 	virtual IIndexWorker* create_worker(const char* name, const char* id) = 0;
 
 
 	/*
-	 *	É¾³ıÖ¸±êÉú³ÉÆ÷
+	 *	åˆ é™¤æŒ‡æ ‡ç”Ÿæˆå™¨
 	 */
 	virtual bool delete_worker(IIndexWorker* stra) = 0;
 };
@@ -92,7 +92,7 @@ public:
 
 NS_WTP_END
 
-//´´½¨¹¤³§
+//åˆ›å»ºå·¥å‚
 typedef wtp::IIndexWorkerFact* (*FuncCreateIndexFact)();
-//É¾³ı¹¤³§
+//åˆ é™¤å·¥å‚
 typedef void(*FuncDeleteIndexFact)(wtp::IIndexWorkerFact* &fact);

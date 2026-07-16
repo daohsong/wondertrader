@@ -3,8 +3,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.21)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtPlatform.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtCxxStandard.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtDependencies.cmake)
-INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtAtomic.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtFilesystem.cmake)
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtAtomic.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtInstall.cmake)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/cmake/WtWarnings.cmake)
 
@@ -125,6 +125,14 @@ MESSAGE(STATUS "WT platform: system=${WT_SYSTEM} arch=${WT_ARCH} shared_suffix=$
 
 IF(BUILD_TESTING)
 	FIND_PACKAGE(Python3 COMPONENTS Interpreter REQUIRED)
+
+	ADD_TEST(
+		NAME WonderTrader.Utf8Sources
+		COMMAND ${Python3_EXECUTABLE}
+			${CMAKE_CURRENT_LIST_DIR}/../scripts/validate_utf8.py
+			--repo-root ${CMAKE_CURRENT_LIST_DIR}/..
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.Utf8Sources PROPERTIES LABELS cmake)
 
 	IF(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 		ADD_TEST(
@@ -996,6 +1004,8 @@ ADD_SUBDIRECTORY(WtRunner)
 ADD_SUBDIRECTORY(TraderDumper)
 
 ADD_SUBDIRECTORY(WtShareHelper)
+IF (UNIX)
+ENDIF ()
 
 #uft
 ADD_SUBDIRECTORY(WtUftCore)

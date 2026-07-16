@@ -151,7 +151,7 @@ WTSContractInfo* WTSBaseDataMgr::getContract(const char* code, const char* exchg
 		if (ayInst == NULL || ayInst->size() == 0)
 			return NULL;
 
-		for(std::size_t i = 0; i < ayInst->size(); i++)
+		for(uint32_t i = 0; i < ayInst->size(); i++)
 		{
 			WTSContractInfo* cInfo = static_cast<WTSContractInfo*>(ayInst->at(i));
 			/*

@@ -5,7 +5,7 @@
 #include "WtOrdMon.h"
 #include "../Includes/ExecuteDefs.h"
 #include "../Share/StdUtils.hpp"
-#include <fstream>
+#include <vector>
 #include "rapidjson/document.h"
 USING_NS_WTP;
 
@@ -101,7 +101,7 @@ private:
 	//执行参数
 	WtOrdMon		_orders_mon;
 	uint32_t		_cancel_cnt;
-	vector<double>	VwapAim;			//分钟记，目标VWap预测 总报单量
+	std::vector<double>	VwapAim;			//分钟记，目标VWap预测 总报单量
 	//////////////////////////////////////////////////////////////////////////
 	//参数
 	uint32_t		_total_secs;	//执行总时间,单位s

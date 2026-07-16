@@ -13,6 +13,8 @@
 
 #include <boost/bind/bind.hpp>
 
+#include <cstring>
+
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
 template<typename... Args>
@@ -168,43 +170,54 @@ bool ParserUDP::reconnect(uint32_t flag /* = 3 */)
 
 void ParserUDP::subscribe()
 {
-	std::string data;
-	data.resize(sizeof(UDPReqPacket), 0);
-	UDPReqPacket* req = (UDPReqPacket*)data.data();
+	constexpr std::size_t maxPayloadLength = 1000;
+
+	std::string data(sizeof(UDPReqPacket), 0);
+	UDPReqPacket* req = reinterpret_cast<UDPReqPacket*>(data.data());
 	req->_type = UDP_MSG_SUBSCRIBE;
-	uint32_t length = 0;
-	for (auto& code : _set_subs)
+	std::size_t length = 0;
+
+	auto enqueuePacket = [&]()
 	{
-		if (length > 0)
-		{
-			req->_data[length] = ',';
-			length++;
-		}
+		if (length == 0)
+			return;
 
-		std::size_t pos = code.find('.');
-		if (pos != std::string::npos)
-			strcpy(req->_data + length, (char*)code.c_str() + pos + 1);
-		else
-			strcpy(req->_data + length, code.c_str());
-
-		length += code.size();
-
-		if (length > 1000)
 		{
 			StdUniqueLock lock(_mtx_queue);
 			_send_queue.push(data);
-
-			data.resize(sizeof(UDPReqPacket), 0);
-			req = (UDPReqPacket*)data.data();
-			req->_type = UDP_MSG_SUBSCRIBE;
-			length = 0;
 		}
+
+		data.assign(sizeof(UDPReqPacket), 0);
+		req = reinterpret_cast<UDPReqPacket*>(data.data());
+		req->_type = UDP_MSG_SUBSCRIBE;
+		length = 0;
+	};
+
+	for (auto& code : _set_subs)
+	{
+		std::size_t pos = code.find('.');
+		const std::string symbol = pos == std::string::npos ? code : code.substr(pos + 1);
+		if (symbol.empty() || symbol.size() > maxPayloadLength)
+		{
+			write_log(_sink, LL_ERROR,
+				"[ParserUDP] Subscription code is empty or exceeds {} bytes: {}",
+				maxPayloadLength, code);
+			continue;
+		}
+
+		const std::size_t separatorLength = length == 0 ? 0 : 1;
+		if (length + separatorLength + symbol.size() > maxPayloadLength)
+			enqueuePacket();
+
+		if (length > 0)
+			req->_data[length++] = ',';
+
+		std::memcpy(req->_data + length, symbol.data(), symbol.size());
+		length += symbol.size();
+		req->_data[length] = '\0';
 	}
 
-    if (length > 0) {
-        StdUniqueLock lock(_mtx_queue);
-        _send_queue.push(data);
-    }
+	enqueuePacket();
 
 	do_send();
 }

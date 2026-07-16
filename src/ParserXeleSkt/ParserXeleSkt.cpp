@@ -8,6 +8,7 @@
  * \brief 
  */
 #include "ParserXeleSkt.h"
+#include "XeleTime.hpp"
 #include "md_struct.h"
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/WTSDataDef.hpp"
@@ -358,12 +359,6 @@ void ParserXeleSkt::handle_udp_read(const wt_asio::error_code& e, std::size_t by
 			wt_asio::placeholders::bytes_transferred));
 }
 
-#define XELE_MD_EPOCH 1546272000 // unix timestamp of 2019/1/1 0:0:0
-#define FOUR_BIT 4
-#define FIVE_HUNDRED_MS 500
-#define ZERO_MS 0
-#define XELE_MD_MS_MASK 0x000f
-
 void ParserXeleSkt::extract_buffer(uint32_t length)
 {
 	std::size_t len = 0;
@@ -388,13 +383,14 @@ void ParserXeleSkt::extract_buffer(uint32_t length)
 			WTSTickData* tick = (WTSTickData*)_tick_cache->get(p->InstrumentNo);
 			if (tick != NULL)
 			{
-				uint64_t SnapTime = ((p->SnapDateTime) >> FOUR_BIT) + XELE_MD_EPOCH;
-				struct tm *tNow;
-				tNow = localtime((time_t*)&SnapTime);
-				uint32_t SnapMillisec = (p->SnapDateTime & XELE_MD_MS_MASK) ? FIVE_HUNDRED_MS : ZERO_MS;
-				uint32_t actDate = (tNow->tm_year + 1900) * 10000 + (tNow->tm_mon + 1) * 100 + tNow->tm_mday;
-				uint32_t actTime = tNow->tm_hour * 10000 + tNow->tm_min * 100 + tNow->tm_sec;
-				actTime = actTime * 1000 + SnapMillisec;
+				uint32_t actDate = 0;
+				uint32_t actTime = 0;
+				if (!xele::decodeSnapDateTime(p->SnapDateTime, actDate, actTime))
+				{
+					write_log(_sink, LL_ERROR,
+						"[ParserXeleSkt] Invalid market-data timestamp: {}", p->SnapDateTime);
+					continue;
+				}
 
 				double scale = _price_scales[p->InstrumentNo];
 				WTSTickStruct& quote = tick->getTickStruct();
@@ -448,13 +444,14 @@ void ParserXeleSkt::extract_buffer(uint32_t length)
 			WTSTickData* tick = (WTSTickData*)_tick_cache->get(p->InstrumentNo);
 			if (tick != NULL)
 			{
-				uint64_t SnapTime = ((p->SnapDateTime) >> FOUR_BIT) + XELE_MD_EPOCH;
-				struct tm *tNow;
-				tNow = localtime((time_t*)&SnapTime);
-				uint32_t SnapMillisec = (p->SnapDateTime & XELE_MD_MS_MASK) ? FIVE_HUNDRED_MS : ZERO_MS;
-				uint32_t actDate = (tNow->tm_year + 1900) * 10000 + (tNow->tm_mon + 1) * 100 + tNow->tm_mday;
-				uint32_t actTime = tNow->tm_hour * 10000 + tNow->tm_min * 100 + tNow->tm_sec;
-				actTime = actTime * 1000 + SnapMillisec;
+				uint32_t actDate = 0;
+				uint32_t actTime = 0;
+				if (!xele::decodeSnapDateTime(p->SnapDateTime, actDate, actTime))
+				{
+					write_log(_sink, LL_ERROR,
+						"[ParserXeleSkt] Invalid depth-data timestamp: {}", p->SnapDateTime);
+					continue;
+				}
 
 				double scale = _price_scales[p->InstrumentNo];
 				WTSTickStruct& quote = tick->getTickStruct();

@@ -60,6 +60,20 @@ TEST(test_fmt, test_format)
 	fmt::print("wt_strcpy: {} - strcpy: {} - format: {}\n", t1, t2, t3);
 }
 
+TEST(test_fmt, bounded_format_to_always_terminates)
+{
+	char complete[8] = {};
+	auto* completeEnd = fmtutil::format_to_n(complete, "{}{}", "abc", 12);
+	EXPECT_STREQ(complete, "abc12");
+	EXPECT_EQ(completeEnd, complete + 5);
+
+	char truncated[6] = {};
+	auto* truncatedEnd = fmtutil::format_to_n(truncated, "{}", "123456789");
+	EXPECT_STREQ(truncated, "12345");
+	EXPECT_EQ(truncatedEnd, truncated + 5);
+	EXPECT_EQ(truncated[5], '\0');
+}
+
 TEST(test_fmt, test_stoi)
 {
 	int times = 1000000;

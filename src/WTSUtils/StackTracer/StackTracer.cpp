@@ -12,6 +12,9 @@
 #include "StackWalker.h"
 void print_stack_trace(TracerLogCallback cb)
 {
+	if (!cb)
+		return;
+
 	cb("Uncaught exception");
 	StackWalker sw(cb);
 	sw.ShowCallstack();

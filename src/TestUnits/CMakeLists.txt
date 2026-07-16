@@ -16,6 +16,7 @@ SET(SRCS
 	gtest/gtest-typed-test.cc
 	gtest/gtest.cc
 	main.cpp
+	test_atp_conversions.cpp
 	test_asio_compat.cpp
 	test_atomic_compat.cpp
 	test_basedata_defaults.cpp
@@ -52,8 +53,8 @@ SET(SRCS
 	test_utils.cpp
 )
 SET(LIBS
-	WtDtCore
 	WtCore
+	WtDtCore
     WTSTools
 	WTSUtils
     WtShareHelper)
@@ -74,7 +75,19 @@ TARGET_LINK_LIBRARIES(TestUnits PRIVATE ${LIBS})
 TARGET_COMPILE_DEFINITIONS(TestUnits PRIVATE
 	WT_DLLHELPER_FIXTURE_PATH="$<TARGET_FILE:TestDllHelperFixture>"
 )
+IF(WIN32)
+	TARGET_COMPILE_DEFINITIONS(TestUnits PRIVATE NOMINMAX)
+ENDIF()
 ADD_DEPENDENCIES(TestUnits TestDllHelperFixture)
+IF(WIN32)
+	ADD_CUSTOM_COMMAND(TARGET TestUnits POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			$<TARGET_FILE:WtShareHelper>
+			$<TARGET_FILE_DIR:TestUnits>
+		COMMENT "Copy WtShareHelper next to TestUnits"
+		VERBATIM
+	)
+ENDIF()
 
 SET(WT_BT_CORE_TEST_SRCS
 	gtest/gtest-death-test.cc
@@ -97,6 +110,7 @@ SET(WT_BT_CORE_TEST_SRCS
 	test_wtdatawriterad_final.cpp
 	test_wtsvariant_format.cpp
 	test_wtspoolobject.cpp
+	test_wtsstruct_conversion.cpp
 )
 
 ADD_EXECUTABLE(WtBtCoreTests ${WT_BT_CORE_TEST_SRCS})

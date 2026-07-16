@@ -6,6 +6,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 add_library(TraderHuaX SHARED
 	TraderHuaX.cpp
 	TraderHuaX.h
+	HuaXConversions.hpp
 )
 wt_set_target_bin_output_directory(TraderHuaX)
 target_link_libraries(TraderHuaX
@@ -19,4 +20,10 @@ if(NOT MSVC)
 		C_VISIBILITY_PRESET hidden
 		VISIBILITY_INLINES_HIDDEN ON
 	)
+endif()
+
+if(BUILD_TESTING)
+	add_executable(TraderHuaXConversionsTest test_huax_conversions.cpp)
+	add_test(NAME WonderTrader.TraderHuaXConversions COMMAND TraderHuaXConversionsTest)
+	set_tests_properties(WonderTrader.TraderHuaXConversions PROPERTIES LABELS "unit;trader")
 endif()

@@ -1,5 +1,8 @@
 function(WT_CONFIGURE_WTRUNNER_INSTALL)
 	include(GNUInstallDirs)
+	if(POLICY CMP0207)
+		cmake_policy(SET CMP0207 NEW)
+	endif()
 	if(NOT TARGET WtRunner)
 		message(FATAL_ERROR "WT_CONFIGURE_WTRUNNER_INSTALL requires WtRunner")
 	endif()
@@ -165,8 +168,22 @@ function(WT_CONFIGURE_WTRUNNER_INSTALL)
 		LIBRARY DESTINATION "${WT_INSTALL_ROOT}/executer"
 	)
 
+	set(WT_RUNTIME_PRE_EXCLUDES "^$")
 	if(WIN32)
-		set(WT_RUNTIME_POST_EXCLUDES ".*[Ww]indows[/\\\\][Ss]ystem32.*")
+		# API-set DLLs are virtual OS contracts. The MSVC/UCRT DLLs are an
+		# operating-system or Visual C++ Redistributable prerequisite and were
+		# already excluded after resolution through System32; excluding their
+		# names up front also avoids false unresolved-dependency reports.
+		set(WT_RUNTIME_PRE_EXCLUDES
+			"[Aa][Pp][Ii]-[Mm][Ss]-[Ww][Ii][Nn]-.*\\.dll"
+			"[Ee][Xx][Tt]-[Mm][Ss]-[Ww][Ii][Nn]-.*\\.dll"
+			"[Mm][Ss][Vv][Cc][Pp].*\\.dll"
+			"[Uu][Cc][Rr][Tt][Bb][Aa][Ss][Ee]\\.dll"
+			"[Vv][Cc][Rr][Uu][Nn][Tt][Ii][Mm][Ee].*\\.dll"
+		)
+		set(WT_RUNTIME_POST_EXCLUDES
+			".*[Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\][Ss][Yy][Ss][Tt][Ee][Mm]32.*"
+		)
 	elseif(APPLE)
 		set(WT_RUNTIME_POST_EXCLUDES "^/System/Library/.*" "^/usr/lib/.*")
 	else()
@@ -174,6 +191,7 @@ function(WT_CONFIGURE_WTRUNNER_INSTALL)
 	endif()
 	install(RUNTIME_DEPENDENCY_SET WonderTraderRuntimeDependencies
 		DESTINATION "${WT_INSTALL_ROOT}"
+		PRE_EXCLUDE_REGEXES ${WT_RUNTIME_PRE_EXCLUDES}
 		POST_EXCLUDE_REGEXES ${WT_RUNTIME_POST_EXCLUDES}
 		DIRECTORIES ${WT_DEP_LIBRARY_PATHS}
 	)

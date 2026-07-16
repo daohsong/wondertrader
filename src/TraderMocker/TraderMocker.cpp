@@ -331,7 +331,7 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 		bool bPass = false;
 		std::string msg;
 		WTSOrderInfo* ordInfo = NULL;
-		uint32_t code_count = 0;
+		std::size_t code_count = 0;
 		FrozenItem pendingFrozen;
 		bool hasPendingFrozen = false;
 
@@ -707,7 +707,7 @@ int32_t TraderMocker::match_once()
 						uVolume = std::min(uVolume, available);
 					}
 
-					uint32_t maxVolume = (uint32_t)min(uVolume, ordInfo->getVolLeft());
+					uint32_t maxVolume = (uint32_t)(std::min)(uVolume, ordInfo->getVolLeft());
 					uint32_t volumeStep = matchVolumeStep(ordInfo, orderCommInfo);
 					uint32_t minVolume = volumeStep <= 1 ? 1 : volumeStep;
 					maxVolume = alignVolumeDown(maxVolume, volumeStep);
@@ -1655,6 +1655,6 @@ void TraderMocker::extract_buffer(uint32_t length, bool isBroad /* = true */)
 
 		_ticks->add(fullcode, curTick, false);
 
-		_max_tick_time = max(_max_tick_time, (uint64_t)curTick->actiondate() * 1000000000 + curTick->actiontime());
+		_max_tick_time = (std::max)(_max_tick_time, (uint64_t)curTick->actiondate() * 1000000000 + curTick->actiontime());
 	}
 }

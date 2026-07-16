@@ -30,8 +30,8 @@ typedef struct _LMDBHftKey
 	_LMDBHftKey(const char* exchg, const char* code, uint32_t date, uint32_t time)
 	{
 		memset(this, 0, sizeof(_LMDBHftKey));
-		strcpy(_exchg, exchg);
-		strcpy(_code, code);
+		wt_strcpy_bounded(_exchg, exchg);
+		wt_strcpy_bounded(_code, code);
 		_date = reverseEndian(date);
 		_time = reverseEndian(time);
 	}
@@ -47,8 +47,8 @@ public:
 	_LMDBBarKey(const char* exchg, const char* code, uint32_t bartime)
 	{
 		memset(this, 0, sizeof(_LMDBBarKey));
-		strcpy(_exchg, exchg);
-		strcpy(_code, code);
+		wt_strcpy_bounded(_exchg, exchg);
+		wt_strcpy_bounded(_code, code);
 		_bartime = reverseEndian(bartime);
 	}
 } LMDBBarKey;

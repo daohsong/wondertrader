@@ -95,11 +95,11 @@ bool proc_block_data(std::string& content, bool isBar, bool bKeepHead /* = true 
 		if (isBar)
 		{
 			std::string bufV2;
-			uint32_t barcnt = buffer.size() / sizeof(WTSBarStructOld);
+			std::size_t barcnt = buffer.size() / sizeof(WTSBarStructOld);
 			bufV2.resize(barcnt * sizeof(WTSBarStruct));
 			WTSBarStruct* newBar = (WTSBarStruct*)bufV2.data();
 			WTSBarStructOld* oldBar = (WTSBarStructOld*)buffer.data();
-			for (uint32_t idx = 0; idx < barcnt; idx++)
+			for (std::size_t idx = 0; idx < barcnt; idx++)
 			{
 				newBar[idx] = oldBar[idx];
 			}
@@ -107,12 +107,12 @@ bool proc_block_data(std::string& content, bool isBar, bool bKeepHead /* = true 
 		}
 		else
 		{
-			uint32_t tick_cnt = buffer.size() / sizeof(WTSTickStructOld);
+			std::size_t tick_cnt = buffer.size() / sizeof(WTSTickStructOld);
 			std::string bufv2;
 			bufv2.resize(sizeof(WTSTickStruct)*tick_cnt);
 			WTSTickStruct* newTick = (WTSTickStruct*)bufv2.data();
 			WTSTickStructOld* oldTick = (WTSTickStructOld*)buffer.data();
-			for (uint32_t i = 0; i < tick_cnt; i++)
+			for (std::size_t i = 0; i < tick_cnt; i++)
 			{
 				newTick[i] = oldTick[i];
 			}
@@ -375,7 +375,7 @@ WTSTickSlice* WtDataReader::readTickSlice(const char* stdCode, uint32_t count, u
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pTick - tBlock->_ticks;
+		std::size_t eIdx = pTick - tBlock->_ticks;
 
 		//如果光标定位的tick时间比目标时间打, 则全部回退一个
 		if (pTick->action_date > eTick.action_date || pTick->action_time>eTick.action_time)
@@ -384,8 +384,8 @@ WTSTickSlice* WtDataReader::readTickSlice(const char* stdCode, uint32_t count, u
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSTickSlice* slice = WTSTickSlice::create(stdCode, tBlock->_ticks + sIdx, cnt);
 		return slice;
 	}
@@ -430,7 +430,7 @@ WTSTickSlice* WtDataReader::readTickSlice(const char* stdCode, uint32_t count, u
 
 		HisTickBlock* tBlock = tBlkPair._block;
 
-		uint32_t tcnt = (tBlkPair._buffer.size() - sizeof(HisTickBlock)) / sizeof(WTSTickStruct);
+		std::size_t tcnt = (tBlkPair._buffer.size() - sizeof(HisTickBlock)) / sizeof(WTSTickStruct);
 		if (tcnt <= 0)
 			return NULL;
 
@@ -441,15 +441,15 @@ WTSTickSlice* WtDataReader::readTickSlice(const char* stdCode, uint32_t count, u
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pTick - tBlock->_ticks;
+		std::size_t eIdx = pTick - tBlock->_ticks;
 		if (pTick->action_date > eTick.action_date || pTick->action_time >= eTick.action_time)
 		{
 			pTick--;
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSTickSlice* slice = WTSTickSlice::create(stdCode, tBlock->_ticks + sIdx, cnt);
 		return slice;
 	}
@@ -511,7 +511,7 @@ WTSOrdQueSlice* WtDataReader::readOrdQueSlice(const char* stdCode, uint32_t coun
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pItem - rtBlock->_queues;
+		std::size_t eIdx = pItem - rtBlock->_queues;
 
 		//如果光标定位的tick时间比目标时间打, 则全部回退一个
 		if (pItem->action_date > eTick.action_date || pItem->action_time > eTick.action_time)
@@ -520,8 +520,8 @@ WTSOrdQueSlice* WtDataReader::readOrdQueSlice(const char* stdCode, uint32_t coun
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSOrdQueSlice* slice = WTSOrdQueSlice::create(stdCode, rtBlock->_queues + sIdx, cnt);
 		return slice;
 	}
@@ -587,7 +587,7 @@ WTSOrdQueSlice* WtDataReader::readOrdQueSlice(const char* stdCode, uint32_t coun
 
 		HisOrdQueBlock* tBlock = tBlkPair._block;
 
-		uint32_t tcnt = (tBlkPair._buffer.size() - sizeof(HisOrdQueBlock)) / sizeof(WTSOrdQueStruct);
+		std::size_t tcnt = (tBlkPair._buffer.size() - sizeof(HisOrdQueBlock)) / sizeof(WTSOrdQueStruct);
 		if (tcnt <= 0)
 			return NULL;
 
@@ -598,15 +598,15 @@ WTSOrdQueSlice* WtDataReader::readOrdQueSlice(const char* stdCode, uint32_t coun
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pTick - tBlock->_items;
+		std::size_t eIdx = pTick - tBlock->_items;
 		if (pTick->action_date > eTick.action_date || pTick->action_time >= eTick.action_time)
 		{
 			pTick--;
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSOrdQueSlice* slice = WTSOrdQueSlice::create(stdCode, tBlock->_items + sIdx, cnt);
 		return slice;
 	}
@@ -668,7 +668,7 @@ WTSOrdDtlSlice* WtDataReader::readOrdDtlSlice(const char* stdCode, uint32_t coun
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pItem - rtBlock->_details;
+		std::size_t eIdx = pItem - rtBlock->_details;
 
 		//如果光标定位的tick时间比目标时间打, 则全部回退一个
 		if (pItem->action_date > eTick.action_date || pItem->action_time > eTick.action_time)
@@ -677,8 +677,8 @@ WTSOrdDtlSlice* WtDataReader::readOrdDtlSlice(const char* stdCode, uint32_t coun
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSOrdDtlSlice* slice = WTSOrdDtlSlice::create(stdCode, rtBlock->_details + sIdx, cnt);
 		return slice;
 	}
@@ -744,7 +744,7 @@ WTSOrdDtlSlice* WtDataReader::readOrdDtlSlice(const char* stdCode, uint32_t coun
 
 		HisOrdDtlBlock* tBlock = tBlkPair._block;
 
-		uint32_t tcnt = (tBlkPair._buffer.size() - sizeof(HisOrdDtlBlock)) / sizeof(WTSOrdDtlStruct);
+		std::size_t tcnt = (tBlkPair._buffer.size() - sizeof(HisOrdDtlBlock)) / sizeof(WTSOrdDtlStruct);
 		if (tcnt <= 0)
 			return NULL;
 
@@ -755,15 +755,15 @@ WTSOrdDtlSlice* WtDataReader::readOrdDtlSlice(const char* stdCode, uint32_t coun
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pTick - tBlock->_items;
+		std::size_t eIdx = pTick - tBlock->_items;
 		if (pTick->action_date > eTick.action_date || pTick->action_time >= eTick.action_time)
 		{
 			pTick--;
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSOrdDtlSlice* slice = WTSOrdDtlSlice::create(stdCode, tBlock->_items + sIdx, cnt);
 		return slice;
 	}
@@ -825,7 +825,7 @@ WTSTransSlice* WtDataReader::readTransSlice(const char* stdCode, uint32_t count,
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pItem - rtBlock->_trans;
+		std::size_t eIdx = pItem - rtBlock->_trans;
 
 		//如果光标定位的tick时间比目标时间打, 则全部回退一个
 		if (pItem->action_date > eTick.action_date || pItem->action_time > eTick.action_time)
@@ -834,8 +834,8 @@ WTSTransSlice* WtDataReader::readTransSlice(const char* stdCode, uint32_t count,
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSTransSlice* slice = WTSTransSlice::create(stdCode, rtBlock->_trans + sIdx, cnt);
 		return slice;
 	}
@@ -901,7 +901,7 @@ WTSTransSlice* WtDataReader::readTransSlice(const char* stdCode, uint32_t count,
 
 		HisTransBlock* tBlock = tBlkPair._block;
 
-		uint32_t tcnt = (tBlkPair._buffer.size() - sizeof(HisTransBlock)) / sizeof(WTSTransStruct);
+		std::size_t tcnt = (tBlkPair._buffer.size() - sizeof(HisTransBlock)) / sizeof(WTSTransStruct);
 		if (tcnt <= 0)
 			return NULL;
 
@@ -912,15 +912,15 @@ WTSTransSlice* WtDataReader::readTransSlice(const char* stdCode, uint32_t count,
 				return a.action_time < b.action_time;
 		});
 
-		uint32_t eIdx = pTick - tBlock->_items;
+		std::size_t eIdx = pTick - tBlock->_items;
 		if (pTick->action_date > eTick.action_date || pTick->action_time >= eTick.action_time)
 		{
 			pTick--;
 			eIdx--;
 		}
 
-		uint32_t cnt = min(eIdx + 1, count);
-		uint32_t sIdx = eIdx + 1 - cnt;
+		uint32_t cnt = static_cast<uint32_t>((std::min)(eIdx + 1, static_cast<std::size_t>(count)));
+		std::size_t sIdx = eIdx + 1 - cnt;
 		WTSTransSlice* slice = WTSTransSlice::create(stdCode, tBlock->_items + sIdx, cnt);
 		return slice;
 	}
@@ -990,7 +990,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 
 	std::vector<std::vector<WTSBarStruct>*> barsSections;
 
-	uint32_t realCnt = 0;
+	std::size_t realCnt = 0;
 
 	//const char* hot_flag = cInfo->isHot() ? FILE_SUF_HOT : FILE_SUF_2ND;
 	const char* ruleTag = cInfo->_ruletag;
@@ -1043,7 +1043,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 		if (content.empty())
 			break;
 
-		uint32_t barcnt = content.size() / sizeof(WTSBarStruct);
+		std::size_t barcnt = content.size() / sizeof(WTSBarStruct);
 
 		hotAy = new std::vector<WTSBarStruct>();
 		hotAy->resize(barcnt);
@@ -1176,7 +1176,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 		if(buffer.empty())
 			break;
 
-		uint32_t barcnt = buffer.size() / sizeof(WTSBarStruct);
+		std::size_t barcnt = buffer.size() / sizeof(WTSBarStruct);
 
 		WTSBarStruct* firstBar = (WTSBarStruct*)buffer.data();
 
@@ -1191,7 +1191,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 			}
 		});
 
-		uint32_t sIdx = pBar - firstBar;
+		std::size_t sIdx = pBar - firstBar;
 		if ((period == KP_DAY && pBar->date < sBar.date) || (period != KP_DAY && pBar->time < sBar.time))	//早于边界时间
 		{
 			//早于边界时间, 说明没有数据了, 因为lower_bound会返回大于等于目标位置的数据
@@ -1208,7 +1208,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 				return a.time < b.time;
 			}
 		});
-		uint32_t eIdx = pBar - firstBar;
+		std::size_t eIdx = pBar - firstBar;
 		if ((period == KP_DAY && pBar->date > eBar.date) || (period != KP_DAY && pBar->time > eBar.time))
 		{
 			if (eIdx == 0)
@@ -1221,12 +1221,12 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 		if (eIdx < sIdx)
 			continue;
 
-		uint32_t curCnt = eIdx - sIdx + 1;
+		std::size_t curCnt = eIdx - sIdx + 1;
 
 		if(cInfo->isExright())
 		{	
 			double factor = hotSec._factor / baseFactor;
-			for (uint32_t idx = sIdx; idx <= eIdx; idx++)
+			for (std::size_t idx = sIdx; idx <= eIdx; idx++)
 			{
 				firstBar[idx].open *= factor;
 				firstBar[idx].high *= factor;
@@ -1268,7 +1268,7 @@ bool WtDataReader::cacheIntegratedBars(void* codeInfo, const std::string& key, c
 	{
 		barList._bars.resize(realCnt);
 
-		uint32_t curIdx = 0;
+		std::size_t curIdx = 0;
 		for (auto it = barsSections.rbegin(); it != barsSections.rend(); it++)
 		{
 			std::vector<WTSBarStruct>* tempAy = *it;
@@ -1308,7 +1308,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 
 	std::vector<std::vector<WTSBarStruct>*> barsSections;
 
-	uint32_t realCnt = 0;
+	std::size_t realCnt = 0;
 
 	std::vector<WTSBarStruct>* ayAdjusted = NULL;
 	uint64_t lastQTime = 0;
@@ -1351,7 +1351,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 
 		proc_block_data(content, true, false);
 
-		uint32_t barcnt = content.size() / sizeof(WTSBarStruct);
+		std::size_t barcnt = content.size() / sizeof(WTSBarStruct);
 
 		ayAdjusted = new std::vector<WTSBarStruct>();
 		ayAdjusted->resize(barcnt);
@@ -1439,7 +1439,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 		if(buffer.empty())
 			break;
 
-		uint32_t barcnt = buffer.size() / sizeof(WTSBarStruct);
+		std::size_t barcnt = buffer.size() / sizeof(WTSBarStruct);
 
 		WTSBarStruct* firstBar = (WTSBarStruct*)buffer.data();
 
@@ -1456,8 +1456,8 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 
 		if (pBar != NULL)
 		{
-			uint32_t sIdx = pBar - firstBar;
-			uint32_t curCnt = barcnt - sIdx;
+			std::size_t sIdx = pBar - firstBar;
+			std::size_t curCnt = barcnt - sIdx;
 
 			std::vector<WTSBarStruct>* ayRaw = new std::vector<WTSBarStruct>();
 			ayRaw->resize(curCnt);
@@ -1468,7 +1468,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 			if (!ayFactors.empty())
 			{
 				//做复权处理
-				int32_t lastIdx = curCnt;
+				std::size_t lastIdx = curCnt;
 				WTSBarStruct bar;
 				firstBar = ayRaw->data();
 
@@ -1500,7 +1500,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 					WTSBarStruct* endBar = pBar;
 					if (pBar != NULL)
 					{
-						int32_t curIdx = pBar - firstBar;
+						std::size_t curIdx = pBar - firstBar;
 						while (pBar && curIdx < lastIdx)
 						{
 							pBar->open *= factor;
@@ -1545,7 +1545,7 @@ bool WtDataReader::cacheAdjustedStkBars(void* codeInfo, const std::string& key, 
 	{
 		barList._bars.resize(realCnt);
 
-		uint32_t curIdx = 0;
+		std::size_t curIdx = 0;
 		for (auto it = barsSections.rbegin(); it != barsSections.rend(); it++)
 		{
 			std::vector<WTSBarStruct>* tempAy = *it;
@@ -1587,7 +1587,7 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 
 	std::vector<std::vector<WTSBarStruct>*> barsSections;
 
-	uint32_t realCnt = 0;
+	std::size_t realCnt = 0;
 	const char* ruleTag = cInfo->_ruletag;
 	if (strlen(ruleTag) > 0)
 	{
@@ -1680,15 +1680,15 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 	if (buffer.empty())
 		return false;
 
-	uint32_t barcnt = buffer.size() / sizeof(WTSBarStruct);
+	std::size_t barcnt = buffer.size() / sizeof(WTSBarStruct);
 
 	WTSBarStruct* firstBar = (WTSBarStruct*)buffer.data();
 
 	if (barcnt > 0)
 	{
-		uint32_t sIdx = 0;
-		uint32_t idx = barcnt - 1;
-		uint32_t curCnt = (idx - sIdx + 1);
+		std::size_t sIdx = 0;
+		std::size_t idx = barcnt - 1;
+		std::size_t curCnt = (idx - sIdx + 1);
 
 		std::vector<WTSBarStruct>* tempAy = new std::vector<WTSBarStruct>();
 		tempAy->resize(curCnt);
@@ -1702,7 +1702,7 @@ bool WtDataReader::cacheHisBarsFromFile(void* codeInfo, const std::string& key, 
 	{
 		barList._bars.resize(realCnt);
 
-		uint32_t curIdx = 0;
+		std::size_t curIdx = 0;
 		for (auto it = barsSections.rbegin(); it != barsSections.rend(); it++)
 		{
 			std::vector<WTSBarStruct>* tempAy = *it;
@@ -1819,7 +1819,7 @@ WTSKlineSlice* WtDataReader::readKlineSlice(const char* stdCode, WTSKlinePeriod 
 
 			uint32_t idx = 0;
 			if (pBar != NULL)
-				idx = pBar - kPair->_block->_bars;
+				idx = static_cast<uint32_t>(pBar - kPair->_block->_bars);
 			else
 				idx = kPair->_block->_size;
 
@@ -1866,7 +1866,7 @@ WTSKlineSlice* WtDataReader::readKlineSlice(const char* stdCode, WTSKlinePeriod 
 					}
 				}
 				totalCnt = hisCnt + rtCnt;
-				totalCnt = min(totalCnt, (uint32_t)barsList._bars.size());
+				totalCnt = (std::min)(totalCnt, (uint32_t)barsList._bars.size());
 				// 复权后的数据直接从barlist中截取
 				if (totalCnt > 0)
 				{
@@ -1878,7 +1878,7 @@ WTSKlineSlice* WtDataReader::readKlineSlice(const char* stdCode, WTSKlinePeriod 
 			{
 				// 普通数据由历史和rt拼接，其中rt直接引用
 				barsList._rt_cursor = idx;
-				hisCnt = min(hisCnt, (uint32_t)barsList._bars.size());
+				hisCnt = (std::min)(hisCnt, (uint32_t)barsList._bars.size());
 				if (hisCnt > 0)
 				{
 					head = &barsList._bars[barsList._bars.size() - hisCnt];
@@ -1896,7 +1896,7 @@ WTSKlineSlice* WtDataReader::readKlineSlice(const char* stdCode, WTSKlinePeriod 
 		{
 			rtCnt = 0;
 			hisCnt = count;
-			hisCnt = min(hisCnt, (uint32_t)barsList._bars.size());
+			hisCnt = (std::min)(hisCnt, (uint32_t)barsList._bars.size());
 			if(hisCnt != 0)
 			{
 				head = &barsList._bars[barsList._bars.size() - hisCnt];
@@ -1908,7 +1908,7 @@ WTSKlineSlice* WtDataReader::readKlineSlice(const char* stdCode, WTSKlinePeriod 
 	{
 		rtCnt = 0;
 		hisCnt = count;
-		hisCnt = min(hisCnt, (uint32_t)barsList._bars.size());
+		hisCnt = (std::min)(hisCnt, (uint32_t)barsList._bars.size());
 		head = &barsList._bars[barsList._bars.size() - hisCnt];
 		slice->appendBlock(head, hisCnt);
 	}

@@ -423,9 +423,9 @@ void SelMocker::update_dyn_profit(const char* stdCode, double price)
 				DetailInfo& dInfo = *pit;
 				dInfo._profit = dInfo._volume*(price - dInfo._price)*commInfo->getVolScale()*(dInfo._long ? 1 : -1);
 				if (dInfo._profit > 0)
-					dInfo._max_profit = max(dInfo._profit, dInfo._max_profit);
+					dInfo._max_profit = (std::max)(dInfo._profit, dInfo._max_profit);
 				else if (dInfo._profit < 0)
-					dInfo._max_loss = min(dInfo._profit, dInfo._max_loss);
+					dInfo._max_loss = (std::min)(dInfo._profit, dInfo._max_loss);
 
 				dInfo._max_price = std::max(dInfo._max_price, price);
 				dInfo._min_price = std::min(dInfo._min_price, price);
@@ -735,7 +735,7 @@ void SelMocker::do_set_position(const char* stdCode, double qty, double price /*
 		for (auto it = pInfo._details.begin(); it != pInfo._details.end(); it++)
 		{
 			DetailInfo& dInfo = *it;
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 
@@ -813,7 +813,7 @@ void SelMocker::do_set_position(const char* stdCode, double qty, double price /*
 WTSKlineSlice* SelMocker::stra_get_bars(const char* stdCode, const char* period, uint32_t count)
 {
 	thread_local static char key[64] = { 0 };
-	fmtutil::format_to(key, "{}#{}", stdCode, period);
+	fmtutil::format_to_n(key, "{}#{}", stdCode, period);
 
 	thread_local static char basePeriod[2] = { 0 };
 	basePeriod[0] = period[0];
@@ -821,7 +821,7 @@ WTSKlineSlice* SelMocker::stra_get_bars(const char* stdCode, const char* period,
 	if (strlen(period) > 1)
 		times = convert::to_uint32(period + 1);
 	else
-		strcat(key, "1");
+		fmtutil::format_to_n(key, "{}#{}1", stdCode, period);
 
 	WTSKlineSlice* kline = _replayer->get_kline_slice(stdCode, basePeriod, count, times, false);
 

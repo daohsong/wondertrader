@@ -102,3 +102,15 @@ inline size_t wt_strcpy(char* des, const char* src, size_t len = 0) noexcept
 	des[len] = '\0';
 	return len;
 }
+
+template<size_t N>
+inline size_t wt_strcpy_bounded(char (&des)[N], const char* src) noexcept
+{
+	static_assert(N > 0, "destination buffer must not be empty");
+	size_t len = strlen(src);
+	if (len >= N)
+		len = N - 1;
+	memcpy(des, src, len);
+	des[len] = '\0';
+	return len;
+}

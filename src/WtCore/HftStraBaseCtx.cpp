@@ -771,10 +771,10 @@ void HftStraBaseCtx::load_userdata()
 	if (root.HasParseError())
 		return;
 
-	for (auto& m : root.GetObject())
+	for (auto m = root.MemberBegin(); m != root.MemberEnd(); ++m)
 	{
-		const char* key = m.name.GetString();
-		const char* val = m.value.GetString();
+		const char* key = m->name.GetString();
+		const char* val = m->value.GetString();
 		_user_datas[key] = val;
 	}
 }
@@ -838,7 +838,7 @@ void HftStraBaseCtx::do_set_position(const char* stdCode, double qty, double pri
 		for (auto it = pInfo._details.begin(); it != pInfo._details.end(); it++)
 		{
 			DetailInfo& dInfo = *it;
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 

@@ -29,6 +29,15 @@ namespace fmt
 
 namespace fmtutil
 {
+	template<std::size_t N, typename... Args>
+	inline char* format_to_n(char (&buffer)[N], const char* format, const Args& ...args) noexcept
+	{
+		static_assert(N > 0, "format_to_n requires a non-empty buffer");
+		auto result = fmt::format_to_n(buffer, N - 1, fmt::runtime(format), args...);
+		result.out[0] = '\0';
+		return result.out;
+	}
+
 	template<typename... Args>
 	inline char* format_to(char* buffer, const char* format, const Args& ...args) noexcept
 	{

@@ -28,7 +28,7 @@ public:
 
 		return false;
 #else
-		//linuxÏÂÔÚÖ»ĞèÒª¼ì²é/proc/[PID]ÊÇ·ñ´æÔÚ¼´¿É
+		//linuxä¸‹åœ¨åªéœ€è¦æ£€æŸ¥/proc/[PID]æ˜¯å¦å­˜åœ¨å³å¯
 		const char* path = fmtutil::format("/proc/{}", pid);
 		return access(path, 0) == 0;
 #endif

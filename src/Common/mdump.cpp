@@ -21,6 +21,7 @@
 #include "mdump.h"
 #include <dbghelp.h>
 #include <ShellAPI.h>
+#include <strsafe.h>
 #include <tchar.h>
 #include <stdio.h>
 
@@ -39,8 +40,8 @@ TCHAR CMiniDumper::m_szDumpPath[MAX_PATH] = { 0 };
 void CMiniDumper::Enable(LPCTSTR pszAppName, bool bShowErrors, LPCTSTR pszDumpPath/* = ""*/)
 {
 	// if this assert fires then you have two instances of CMiniDumper which is not allowed
-	_tcsncpy(m_szAppName, pszAppName, ARRSIZE(m_szAppName));
-	_tcsncpy(m_szDumpPath, pszDumpPath, ARRSIZE(m_szDumpPath));
+	StringCchCopy(m_szAppName, ARRSIZE(m_szAppName), pszAppName ? pszAppName : _T(""));
+	StringCchCopy(m_szDumpPath, ARRSIZE(m_szDumpPath), pszDumpPath ? pszDumpPath : _T(""));
 
 	MINIDUMPWRITEDUMP pfnMiniDumpWriteDump = NULL;
 	HMODULE hDbgHelpDll = GetDebugHelperDll((FARPROC*)&pfnMiniDumpWriteDump, bShowErrors);
@@ -100,24 +101,28 @@ LONG CMiniDumper::TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 			{
 				// Create full path for DUMP file
 				TCHAR szDumpPath[_MAX_PATH] = { 0 };
+				bool pathValid = true;
 				if(_tcsclen(m_szDumpPath) == 0)
 				{
-					GetModuleFileName(NULL, szDumpPath, ARRSIZE(szDumpPath));
-					LPTSTR pszFileName = _tcsrchr(szDumpPath, _T('\\'));
-					if (pszFileName) {
-						pszFileName++;
-						*pszFileName = _T('\0');
+					DWORD pathLength = GetModuleFileName(NULL, szDumpPath, ARRSIZE(szDumpPath));
+					pathValid = pathLength > 0 && pathLength < ARRSIZE(szDumpPath);
+					if (pathValid)
+					{
+						LPTSTR pszFileName = _tcsrchr(szDumpPath, _T('\\'));
+						if (pszFileName) {
+							pszFileName++;
+							*pszFileName = _T('\0');
+						}
 					}
 				}
 				else
 				{
-					_tcsncpy(szDumpPath, m_szDumpPath, _tcsclen(m_szDumpPath));
-					szDumpPath[_tcsclen(m_szDumpPath)] = _T('\0');
+					pathValid = SUCCEEDED(StringCchCopy(szDumpPath, ARRSIZE(szDumpPath), m_szDumpPath));
 				}
 
 				// Replace spaces and dots in file name.
 				TCHAR szBaseName[_MAX_PATH] = { 0 };
-				_tcsncat(szBaseName, m_szAppName, ARRSIZE(szBaseName) - 1);
+				pathValid = pathValid && SUCCEEDED(StringCchCopy(szBaseName, ARRSIZE(szBaseName), m_szAppName));
 				LPTSTR psz = szBaseName;
 				while (*psz != _T('\0')) {
 					if (*psz == _T('.'))
@@ -126,16 +131,16 @@ LONG CMiniDumper::TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 						*psz = _T('_');
 					psz++;
 				}
-				_tcsncat(szDumpPath, szBaseName, ARRSIZE(szDumpPath) - 1);
+				pathValid = pathValid && SUCCEEDED(StringCchCat(szDumpPath, ARRSIZE(szDumpPath), szBaseName));
 				SYSTEMTIME curTime;
 				GetLocalTime(&curTime);
-				char buf[64];
-				sprintf(buf, "%4.4d%2.2d%2.2d%2.2d%2.2d%2.2d", curTime.wYear, curTime.wMonth, curTime.wDay, curTime.wHour, curTime.wMinute, curTime.wSecond);
-				strcat(szDumpPath, buf);
+				TCHAR buf[64] = { 0 };
+				pathValid = pathValid && SUCCEEDED(StringCchPrintf(buf, ARRSIZE(buf), _T("%04u%02u%02u%02u%02u%02u"), curTime.wYear, curTime.wMonth, curTime.wDay, curTime.wHour, curTime.wMinute, curTime.wSecond));
+				pathValid = pathValid && SUCCEEDED(StringCchCat(szDumpPath, ARRSIZE(szDumpPath), buf));
 
-				_tcsncat(szDumpPath, _T(".dmp"), ARRSIZE(szDumpPath) - 1);
+				pathValid = pathValid && SUCCEEDED(StringCchCat(szDumpPath, ARRSIZE(szDumpPath), _T(".dmp")));
 
-				HANDLE hFile = CreateFile(szDumpPath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+				HANDLE hFile = pathValid ? CreateFile(szDumpPath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL) : INVALID_HANDLE_VALUE;
 				if (hFile != INVALID_HANDLE_VALUE)
 				{
 					_MINIDUMP_EXCEPTION_INFORMATION ExInfo = { 0 };
@@ -147,7 +152,7 @@ LONG CMiniDumper::TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 					if (bOK)
 					{
 						// Do *NOT* localize that string (in fact, do not use MFC to load it)!
-						_sntprintf(szResult, ARRSIZE(szResult), _T("Saved dump file to \"%s\".\r\n\r\nPlease send this file together with a detailed bug report to bastet.wang@gmail.com !\r\n\r\nThank you for helping to improve Tsts."), szDumpPath);
+						StringCchPrintf(szResult, ARRSIZE(szResult), _T("Saved dump file to \"%s\".\r\n\r\nPlease send this file together with a detailed bug report to bastet.wang@gmail.com !\r\n\r\nThank you for helping to improve Tsts."), szDumpPath);
 						lRetValue = EXCEPTION_EXECUTE_HANDLER;
 
 						//ADDED by fengwen on 2006/11/15	<begin> : 使用新的发送错误报告机制。
@@ -159,14 +164,14 @@ LONG CMiniDumper::TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 					else
 					{
 						// Do *NOT* localize that string (in fact, do not use MFC to load it)!
-						_sntprintf(szResult, ARRSIZE(szResult), _T("Failed to save dump file to \"%s\".\r\n\r\nError: %u"), szDumpPath, GetLastError());
+						StringCchPrintf(szResult, ARRSIZE(szResult), _T("Failed to save dump file to \"%s\".\r\n\r\nError: %u"), szDumpPath, GetLastError());
 					}
 					CloseHandle(hFile);
 				}
 				else
 				{
 					// Do *NOT* localize that string (in fact, do not use MFC to load it)!
-					_sntprintf(szResult, ARRSIZE(szResult), _T("Failed to create dump file \"%s\".\r\n\r\nError: %u"), szDumpPath, GetLastError());
+					StringCchPrintf(szResult, ARRSIZE(szResult), _T("Failed to create dump file \"%s\".\r\n\r\nError: %u"), szDumpPath, pathValid ? GetLastError() : ERROR_INSUFFICIENT_BUFFER);
 				}
 			}
 		}

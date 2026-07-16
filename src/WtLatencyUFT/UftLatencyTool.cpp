@@ -22,6 +22,10 @@
 #include "../Share/TimeUtils.hpp"
 #include "../Share/CpuHelper.hpp"
 
+#include <cstdint>
+#include <ctime>
+#include <random>
+
 
 USING_NS_WTP;
 
@@ -40,7 +44,12 @@ namespace uft
 	public:
 		void	run(uint32_t times)
 		{
-			srand(time(NULL));
+			const uint64_t seed = static_cast<uint64_t>(std::time(nullptr));
+			std::seed_seq seedSequence{
+				static_cast<uint32_t>(seed),
+				static_cast<uint32_t>(seed >> 32)
+			};
+			std::mt19937 randomGenerator(seedSequence);
 			TimeUtils::Ticker ticker;
 			for (uint32_t i = 0; i < times; i++)
 			{
@@ -51,7 +60,7 @@ namespace uft
 				if (contract == NULL)
 					return;
 
-				double x = rand();
+				double x = randomGenerator();
 
 				WTSCommodityInfo* pCommInfo = contract->getCommInfo();
 

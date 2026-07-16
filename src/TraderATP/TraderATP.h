@@ -158,7 +158,8 @@ private:
 	inline WTSTradeInfo*	makeTradeRecord(const ATPRspCashAuctionTradeERMsg *cash_auction_trade_er);
 
 	inline bool	extractEntrustID(const char* entrustid, uint32_t &orderRef);
-	inline void	genEntrustID(char* buffer, uint32_t orderRef);
+	inline void	genEntrustID(char* buffer, int64_t orderRef);
+	void		updateReportSync(ATPPartitionType partition, ATPIndexType index);
 
 private:
 	ATPTradeAPI*	_api;

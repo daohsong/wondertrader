@@ -852,9 +852,9 @@ void UftMocker::update_dyn_profit(const char* stdCode, WTSTickData* newTick)
 					DetailInfo& dInfo = *pit;
 					dInfo._profit = dInfo._volume*(price - dInfo._price)*commInfo->getVolScale();
 					if (dInfo._profit > 0)
-						dInfo._max_profit = max(dInfo._profit, dInfo._max_profit);
+						dInfo._max_profit = (std::max)(dInfo._profit, dInfo._max_profit);
 					else if (dInfo._profit < 0)
-						dInfo._max_loss = min(dInfo._profit, dInfo._max_loss);
+						dInfo._max_loss = (std::min)(dInfo._profit, dInfo._max_loss);
 
 					dynprofit += dInfo._profit;
 				}
@@ -878,9 +878,9 @@ void UftMocker::update_dyn_profit(const char* stdCode, WTSTickData* newTick)
 					DetailInfo& dInfo = *pit;
 					dInfo._profit = dInfo._volume*(dInfo._price - price)*commInfo->getVolScale();
 					if (dInfo._profit > 0)
-						dInfo._max_profit = max(dInfo._profit, dInfo._max_profit);
+						dInfo._max_profit = (std::max)(dInfo._profit, dInfo._max_profit);
 					else if (dInfo._profit < 0)
-						dInfo._max_loss = min(dInfo._profit, dInfo._max_loss);
+						dInfo._max_loss = (std::min)(dInfo._profit, dInfo._max_loss);
 
 					dynprofit += dInfo._profit;
 				}
@@ -955,7 +955,7 @@ bool UftMocker::procOrder(uint32_t localid)
 	/*
 	 *	下面就要模拟成交了
 	 */
-	double maxQty = min(orderQty, ordInfo->_left);
+	double maxQty = (std::min)(orderQty, ordInfo->_left);
 	auto vols = splitVolume((uint32_t)maxQty);
 	for(uint32_t curQty : vols)
 	{
@@ -1209,7 +1209,7 @@ void UftMocker::update_position(const char* stdCode, bool isLong, uint32_t offse
 	else if(offset == 1)
 	{
 		//如果是平仓（平昨也是这个），则根据明细的时间先后处理平仓
-		double maxQty = min(pItem._prevol, qty);
+		double maxQty = (std::min)(pItem._prevol, qty);
 		pItem._prevol -= maxQty;
 		pItem._newvol -= qty - maxQty;
 
@@ -1218,7 +1218,7 @@ void UftMocker::update_position(const char* stdCode, bool isLong, uint32_t offse
 		for (auto it = pItem._details.begin(); it != pItem._details.end(); it++)
 		{
 			DetailInfo& dInfo = *it;
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 
@@ -1273,7 +1273,7 @@ void UftMocker::update_position(const char* stdCode, bool isLong, uint32_t offse
 			if(dInfo._opentdate != curTDate)
 				continue;
 
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 

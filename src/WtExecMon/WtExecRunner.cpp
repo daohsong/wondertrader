@@ -19,16 +19,15 @@
 #include "../Share/ModuleNameCompat.hpp"
 const char* getModuleName()
 {
-	static char MODULE_NAME[250] = { 0 };
-	if (strlen(MODULE_NAME) == 0)
-	{
+	static const std::string MODULE_NAME = []() {
+		char modulePath[MAX_PATH] = { 0 };
+		const DWORD pathLength = GetModuleFileNameA(g_dllModule, modulePath, MAX_PATH);
+		if (pathLength == 0 || pathLength >= MAX_PATH)
+			return std::string();
+		return ModuleNameCompat::module_basename(modulePath);
+	}();
 
-		GetModuleFileName(g_dllModule, MODULE_NAME, 250);
-		const std::string basename = ModuleNameCompat::module_basename(MODULE_NAME);
-		strcpy(MODULE_NAME, basename.c_str());
-	}
-
-	return MODULE_NAME;
+	return MODULE_NAME.c_str();
 }
 #endif
 

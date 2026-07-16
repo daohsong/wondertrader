@@ -108,7 +108,7 @@ void MatchEngine::match_orders(WTSTickData* curTick, OrderIDs& to_erase)
 					volume = ordInfo._left;
 				}
 
-				double qty = min(volume, ordInfo._left);
+				double qty = (std::min)(volume, ordInfo._left);
 				if (decimal::eq(qty, 0.0))
 					qty = 1;
 
@@ -166,7 +166,7 @@ void MatchEngine::match_orders(WTSTickData* curTick, OrderIDs& to_erase)
 					volume = ordInfo._left;
 				}
 
-				double qty = min(volume, ordInfo._left);
+				double qty = (std::min)(volume, ordInfo._left);
 				if (decimal::eq(qty, 0.0))
 					qty = 1;
 

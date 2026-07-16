@@ -741,8 +741,8 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 			 * 当条件是小于的时候，我们需要判断左边界，即稍小的值是否满足条件，并取右边界与目标价中稍小的作为当前价
 			 */
 
-			double left_px = min(last_px, cur_px);
-			double right_px = max(last_px, cur_px);
+			double left_px = (std::min)(last_px, cur_px);
+			double right_px = (std::max)(last_px, cur_px);
 
 			bool isMatched = false;
 			if (!_replayer->is_tick_simulated())
@@ -811,9 +811,9 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 					{
 						matchedEntrust = &entrust;
 						if (entrust._alg == WCT_Larger || entrust._alg == WCT_LargerOrEqual)
-							curPrice = max(left_px, entrust._target);
+							curPrice = (std::max)(left_px, entrust._target);
 						else if (entrust._alg == WCT_Smaller || entrust._alg == WCT_SmallerOrEqual)
-							curPrice = min(right_px, entrust._target);
+							curPrice = (std::min)(right_px, entrust._target);
 						else
 							curPrice = entrust._target;
 					}
@@ -824,7 +824,7 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 							if (entrust._target < matchedEntrust->_target)
 							{
 								matchedEntrust = &entrust;
-								curPrice = max(left_px, entrust._target);
+								curPrice = (std::max)(left_px, entrust._target);
 							}
 						}
 						else if (entrust._alg == WCT_Smaller || entrust._alg == WCT_SmallerOrEqual)
@@ -832,7 +832,7 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 							if (entrust._target > matchedEntrust->_target)
 							{
 								matchedEntrust = &entrust;
-								curPrice = min(right_px, entrust._target);
+								curPrice = (std::min)(right_px, entrust._target);
 							}
 						}
 					}
@@ -861,7 +861,7 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 			break;
 			case COND_ACTION_CL:
 			{
-				double maxQty = min(curQty, entrust._qty);
+				double maxQty = (std::min)(curQty, entrust._qty);
 				append_signal(stdCode, curQty - maxQty, entrust._usertag, price, 2);
 			}
 			break;
@@ -875,7 +875,7 @@ void CtaMocker::proc_tick(const char* stdCode, double last_px, double cur_px)
 			break;
 			case COND_ACTION_CS:
 			{
-				double maxQty = min(abs(curQty), entrust._qty);
+				double maxQty = (std::min)(std::abs(curQty), entrust._qty);
 				append_signal(stdCode, curQty + maxQty, entrust._usertag, price, 2);
 			}
 			break;
@@ -988,9 +988,9 @@ void CtaMocker::update_dyn_profit(const char* stdCode, double price)
 				DetailInfo& dInfo = *pit;
 				dInfo._profit = dInfo._volume*(price - dInfo._price)*commInfo->getVolScale()*(dInfo._long ? 1 : -1);
 				if (dInfo._profit > 0)
-					dInfo._max_profit = max(dInfo._profit, dInfo._max_profit);
+					dInfo._max_profit = (std::max)(dInfo._profit, dInfo._max_profit);
 				else if (dInfo._profit < 0)
-					dInfo._max_loss = min(dInfo._profit, dInfo._max_loss);
+					dInfo._max_loss = (std::min)(dInfo._profit, dInfo._max_loss);
 
 				dInfo._max_price = std::max(dInfo._max_price, price);
 				dInfo._min_price = std::min(dInfo._min_price, price);
@@ -1418,7 +1418,7 @@ void CtaMocker::stra_exit_long(const char* stdCode, double qty, const char* user
 
 	if (decimal::eq(limitprice, 0.0) && decimal::eq(stopprice, 0.0))	//如果不是动态下单模式,则直接触发
 	{
-		double maxQty = min(curQty, qty);
+		double maxQty = (std::min)(curQty, qty);
 		double totalQty = stra_get_position(stdCode, false);
 		append_signal(stdCode, totalQty - maxQty, userTag, 0.0, _is_in_schedule ? 0 : 1);
 	}
@@ -1430,7 +1430,7 @@ void CtaMocker::stra_exit_long(const char* stdCode, double qty, const char* user
 		strcpy(entrust._code, stdCode);
 		strcpy(entrust._usertag, userTag);
 
-		entrust._qty = min(curQty, qty);
+		entrust._qty = (std::min)(curQty, qty);
 		entrust._field = WCF_NEWPRICE;
 		if (!decimal::eq(limitprice))
 		{
@@ -1470,7 +1470,7 @@ void CtaMocker::stra_exit_short(const char* stdCode, double qty, const char* use
 
 	if (decimal::eq(limitprice, 0.0) && decimal::eq(stopprice, 0.0))	//如果不是动态下单模式,则直接触发
 	{
-		double maxQty = min(abs(curQty), qty);
+		double maxQty = (std::min)(std::abs(curQty), qty);
 		append_signal(stdCode, curQty + maxQty, userTag, 0.0, _is_in_schedule ? 0 : 1);
 	}
 	else
@@ -1693,7 +1693,7 @@ void CtaMocker::do_set_position(const char* stdCode, double qty, double price /*
 		for (auto it = pInfo._details.begin(); it != pInfo._details.end(); it++)
 		{
 			DetailInfo& dInfo = *it;
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 
@@ -1772,7 +1772,7 @@ void CtaMocker::do_set_position(const char* stdCode, double qty, double price /*
 WTSKlineSlice* CtaMocker::stra_get_bars(const char* stdCode, const char* period, uint32_t count, bool isMain /* = false */)
 {
 	thread_local static char key[64] = { 0 };
-	fmtutil::format_to(key, "{}#{}", stdCode, period);
+	fmtutil::format_to_n(key, "{}#{}", stdCode, period);
 
 	thread_local static char basePeriod[2] = { 0 };
 	basePeriod[0] = period[0];
@@ -1780,7 +1780,7 @@ WTSKlineSlice* CtaMocker::stra_get_bars(const char* stdCode, const char* period,
 	if (strlen(period) > 1)
 		times = convert::to_uint32(period + 1);
 	else
-		strcat(key, "1");
+		fmtutil::format_to_n(key, "{}#{}1", stdCode, period);
 
 	if (isMain)
 	{

@@ -360,7 +360,7 @@ WTSTickSlice* WtDtMgr::get_tick_slice(const char* stdCode, uint32_t count, uint6
 			return a.action_time < b.action_time;
 	});
 
-	uint32_t eIdx = pTick - &ticks.front();
+	std::size_t eIdx = static_cast<std::size_t>(pTick - ticks.data());
 
 	//如果光标定位的tick时间比目标时间打, 则全部回退一个
 	if (pTick->action_date > eTick.action_date || pTick->action_time > eTick.action_time)
@@ -369,9 +369,9 @@ WTSTickSlice* WtDtMgr::get_tick_slice(const char* stdCode, uint32_t count, uint6
 		eIdx--;
 	}
 
-	uint32_t cnt = min(eIdx + 1, count);
-	uint32_t sIdx = eIdx + 1 - cnt;
-	WTSTickSlice* slice = WTSTickSlice::create(stdCode, &ticks.front() + sIdx, cnt);
+	std::size_t cnt = (std::min)(eIdx + 1, static_cast<std::size_t>(count));
+	std::size_t sIdx = eIdx + 1 - cnt;
+	WTSTickSlice* slice = WTSTickSlice::create(stdCode, ticks.data() + sIdx, static_cast<uint32_t>(cnt));
 	return slice;
 }
 
@@ -534,7 +534,7 @@ WTSKlineSlice* WtDtMgr::get_kline_slice(const char* stdCode, WTSKlinePeriod peri
 		closedSz--;
 
 	int32_t sIdx = 0;
-	uint32_t rtCnt = min(closedSz, count);
+	uint32_t rtCnt = (std::min)(closedSz, count);
 	sIdx = closedSz - rtCnt;
 	WTSBarStruct* rtHead = kData->at(sIdx);
 	WTSKlineSlice* slice = WTSKlineSlice::create(stdCode, period, times, rtHead, rtCnt);

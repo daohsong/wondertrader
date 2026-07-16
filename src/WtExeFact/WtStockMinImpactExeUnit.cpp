@@ -93,12 +93,12 @@ void WtStockMinImpactExeUnit::init(ExecuteContext* ctx, const char* stdCode, WTS
 	{
 		if (_is_KC)
 		{
-			_min_order = max(_min_order, _min_hands);
+			_min_order = (std::max)(_min_order, _min_hands);
 		}
 		else
 		{
 			//_min_order = max(_min_order, _min_hands);
-			_min_order = min(_min_order, _min_hands);//2023.6.5-zhaoyk
+			_min_order = (std::min)(_min_order, _min_hands);//2023.6.5-zhaoyk
 		}
 	}
 
@@ -366,7 +366,7 @@ void WtStockMinImpactExeUnit::do_calc()
 	double vailyPos = _ctx->getPosition(stdCode, true);
 	if (_is_t0)
 		vailyPos = curPos;
-	double target_pos = max(curPos - vailyPos, _target_pos);
+	double target_pos = (std::max)(curPos - vailyPos, _target_pos);
 
 	if (!decimal::eq(target_pos, _target_pos))
 	{
@@ -437,11 +437,11 @@ void WtStockMinImpactExeUnit::do_calc()
 		book_qty = book_qty * _qty_rate;
 		//book_qty = round_hands(book_qty, _min_hands); 
 		book_qty = round_hands(book_qty, _min_order);//2023.6.5-zhaoyk
-		book_qty = max(_min_order, book_qty);
+		book_qty = (std::max)(_min_order, book_qty);
 		this_qty = book_qty;
 	}
 	diffPos = abs(diffPos);
-	this_qty = min(this_qty, diffPos);
+	this_qty = (std::min)(this_qty, diffPos);
 	// 买
 	if (isBuy)
 	{
@@ -453,7 +453,7 @@ void WtStockMinImpactExeUnit::do_calc()
 			double max_can_buy = _avaliable / _last_tick->price();
 			//max_can_buy = (int)(max_can_buy / _min_hands) * _min_hands;
 			max_can_buy = (int)(max_can_buy / _min_order) * _min_order;//2023.6.5-zhaoyk
-			this_qty = min(max_can_buy, this_qty);
+			this_qty = (std::min)(max_can_buy, this_qty);
 		}
 	}
 	// 卖要对碎股做检查
@@ -471,7 +471,7 @@ void WtStockMinImpactExeUnit::do_calc()
 			this_qty = round_hands(this_qty, _min_order);//2023.6.5-zhaoyk
 
 		}
-		this_qty = min(vailyPos, this_qty);
+		this_qty = (std::min)(vailyPos, this_qty);
 	}
 
 	if (decimal::eq(this_qty, 0))

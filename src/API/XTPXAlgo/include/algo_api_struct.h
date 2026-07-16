@@ -6,32 +6,32 @@
 
 #pragma pack(8)
 
-///²ßÂÔĞÅÏ¢½á¹¹Ìå
+///ç­–ç•¥ä¿¡æ¯ç»“æ„ä½“
 typedef struct XTPStrategyInfoStruct
 {
-	uint16_t				m_strategy_type;		///< ²ßÂÔÀàĞÍ
-	XTPStrategyStateType	m_strategy_state;		///< ²ßÂÔ×´Ì¬
-	uint64_t				m_client_strategy_id;	///< ¿Í»§²ßÂÔid
-	uint64_t				m_xtp_strategy_id;		///< xtp²ßÂÔid
+	uint16_t				m_strategy_type;		///< ç­–ç•¥ç±»å‹
+	XTPStrategyStateType	m_strategy_state;		///< ç­–ç•¥çŠ¶æ€
+	uint64_t				m_client_strategy_id;	///< å®¢æˆ·ç­–ç•¥id
+	uint64_t				m_xtp_strategy_id;		///< xtpç­–ç•¥id
 } XTPStrategyInfoStruct;
 
-///²ßÂÔ×´Ì¬½á¹¹Ìå
+///ç­–ç•¥çŠ¶æ€ç»“æ„ä½“
 typedef struct XTPStrategyStateReportStruct
 {
-	XTPStrategyInfoStruct		m_strategy_info;			///< ²ßÂÔĞÅÏ¢	
-	int64_t						m_strategy_qty;				///< ²ßÂÔ×ÜÁ¿
-	int64_t						m_strategy_ordered_qty;		///< ²ßÂÔÒÑÎ¯ÍĞÊıÁ¿
-	int64_t						m_strategy_cancelled_qty;	///< ²ßÂÔÒÑ³·µ¥ÊıÁ¿
-	int64_t						m_strategy_execution_qty;	///< ²ßÂÔÒÑ³É½»ÊıÁ¿
-	int64_t						m_strategy_unclosed_qty;	///< ²ßÂÔÎ´Æ½²ÖÊıÁ¿(T0Âô³öÊıÁ¿-ÂòÈëÊıÁ¿)
-	double						m_strategy_asset;			///< ²ßÂÔ×Ü½ğ¶î
-	double						m_strategy_ordered_asset;	///< ²ßÂÔÒÑÎ¯ÍĞ½ğ¶î
-	double						m_strategy_execution_asset;	///< ²ßÂÔÒÑ³É½»½ğ¶î
-	double						m_strategy_execution_price;	///< ²ßÂÔÖ´ĞĞ¼Û¸ñ
-	double						m_strategy_market_price;	///< ²ßÂÔÊĞ³¡¼Û
-	double						m_strategy_price_diff;		///< ²ßÂÔÖ´ĞĞ¼Û²î	
-	double						m_strategy_asset_diff;		///< ²ßÂÔÖ´ĞĞ¼¨Ğ§(T0×Ê½ğÔ¤¾»ÊÕÈë)
-	XTPRI						m_error_info;				///< ´íÎóĞÅÏ¢
+	XTPStrategyInfoStruct		m_strategy_info;			///< ç­–ç•¥ä¿¡æ¯	
+	int64_t						m_strategy_qty;				///< ç­–ç•¥æ€»é‡
+	int64_t						m_strategy_ordered_qty;		///< ç­–ç•¥å·²å§”æ‰˜æ•°é‡
+	int64_t						m_strategy_cancelled_qty;	///< ç­–ç•¥å·²æ’¤å•æ•°é‡
+	int64_t						m_strategy_execution_qty;	///< ç­–ç•¥å·²æˆäº¤æ•°é‡
+	int64_t						m_strategy_unclosed_qty;	///< ç­–ç•¥æœªå¹³ä»“æ•°é‡(T0å–å‡ºæ•°é‡-ä¹°å…¥æ•°é‡)
+	double						m_strategy_asset;			///< ç­–ç•¥æ€»é‡‘é¢
+	double						m_strategy_ordered_asset;	///< ç­–ç•¥å·²å§”æ‰˜é‡‘é¢
+	double						m_strategy_execution_asset;	///< ç­–ç•¥å·²æˆäº¤é‡‘é¢
+	double						m_strategy_execution_price;	///< ç­–ç•¥æ‰§è¡Œä»·æ ¼
+	double						m_strategy_market_price;	///< ç­–ç•¥å¸‚åœºä»·
+	double						m_strategy_price_diff;		///< ç­–ç•¥æ‰§è¡Œä»·å·®	
+	double						m_strategy_asset_diff;		///< ç­–ç•¥æ‰§è¡Œç»©æ•ˆ(T0èµ„é‡‘é¢„å‡€æ”¶å…¥)
+	XTPRI						m_error_info;				///< é”™è¯¯ä¿¡æ¯
 } XTPStrategyStateReport;
 
 #pragma pack()

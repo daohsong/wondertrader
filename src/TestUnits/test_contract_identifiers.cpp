@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -13,10 +14,43 @@ namespace
 {
 std::string writeContractConfig(const char* name, const std::string& content)
 {
-	const std::string path = std::string("/tmp/") + name;
+	const std::string path = (std::filesystem::temp_directory_path() / name).string();
 	std::ofstream output(path, std::ios::binary | std::ios::trunc);
 	output << content;
 	return path;
+}
+
+TEST(ContractIdentifiers, BaseDataLookupSelectsContractByDateAcrossExchanges)
+{
+	const std::string sessions = writeContractConfig("wt_contract_lookup_sessions.json", R"({
+		"TRADING": {"name":"trading", "offset":0, "sections":[{"from":900,"to":1500}]}
+	})");
+	const std::string commodities = writeContractConfig("wt_contract_lookup_commodities.json", R"({
+		"SSE": {"FUT":{"name":"future", "session":"TRADING", "holiday":""}},
+		"SZSE":{"FUT":{"name":"future", "session":"TRADING", "holiday":""}}
+	})");
+	const std::string contracts = writeContractConfig("wt_contract_lookup_contracts.json", R"({
+		"SSE": {"DUP":{"name":"old", "exchg":"SSE", "product":"FUT", "opendate":20240101, "expiredate":20241231}},
+		"SZSE":{"DUP":{"name":"new", "exchg":"SZSE", "product":"FUT", "opendate":20250101, "expiredate":20251231}}
+	})");
+
+	WTSBaseDataMgr manager;
+	ASSERT_TRUE(manager.loadSessions(sessions.c_str()));
+	ASSERT_TRUE(manager.loadCommodities(commodities.c_str()));
+	ASSERT_TRUE(manager.loadContracts(contracts.c_str()));
+
+	WTSContractInfo* oldContract = manager.getContract("DUP", "", 20240601);
+	ASSERT_NE(oldContract, nullptr);
+	EXPECT_STREQ(oldContract->getExchg(), "SSE");
+
+	WTSContractInfo* newContract = manager.getContract("DUP", "", 20250601);
+	ASSERT_NE(newContract, nullptr);
+	EXPECT_STREQ(newContract->getExchg(), "SZSE");
+	EXPECT_EQ(manager.getContract("DUP", "", 20260101), nullptr);
+
+	std::remove(sessions.c_str());
+	std::remove(commodities.c_str());
+	std::remove(contracts.c_str());
 }
 }
 

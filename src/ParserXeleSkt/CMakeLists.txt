@@ -14,6 +14,14 @@ SET(SRC
 ADD_LIBRARY(ParserXeleSkt SHARED ${SRC})
 TARGET_LINK_LIBRARIES(ParserXeleSkt PRIVATE WT::fmt)
 
+IF(BUILD_TESTING)
+	ADD_EXECUTABLE(ParserXeleSktTimeTest test_xele_time.cpp)
+	ADD_TEST(NAME WonderTrader.ParserXeleSktTime COMMAND ParserXeleSktTimeTest)
+	SET_TESTS_PROPERTIES(WonderTrader.ParserXeleSktTime PROPERTIES
+		LABELS unit
+		TIMEOUT 30)
+ENDIF()
+
 IF(MSVC)
 	SET(LIBS
 		ws2_32

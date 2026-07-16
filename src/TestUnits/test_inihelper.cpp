@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdio>
+#include <filesystem>
 #include <string>
 #include <thread>
 #include <vector>
@@ -30,7 +31,8 @@ TEST(IniHelper, LongPathsRemainDistinctAndPersist)
 	const std::string sharedPrefix(80, 'K');
 	const std::string firstKey = sharedPrefix + "-first";
 	const std::string secondKey = sharedPrefix + "-second";
-	const std::string filename = "/tmp/wt_inihelper_long_paths.ini";
+	const std::string filename =
+		(std::filesystem::temp_directory_path() / "wt_inihelper_long_paths.ini").string();
 
 	{
 		IniHelper ini;

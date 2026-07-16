@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -194,6 +195,22 @@ void expect_reopen_child_exit_zero(const char* phase, ReopenChildFunc func, cons
 #endif
 }
 
+TEST(test_kvcache, new_cache_writes_exact_header_flag)
+{
+	ScopedCacheFile file("new_cache_writes_exact_header_flag");
+	{
+		WtKVCache cache;
+		ASSERT_TRUE(cache.init(file.c_str(), 20260706));
+	}
+
+	std::ifstream input(file.c_str(), std::ios::binary);
+	ASSERT_TRUE(input.good());
+	char flag[FLAG_SIZE] = { 0 };
+	input.read(flag, sizeof(flag));
+	ASSERT_EQ(input.gcount(), static_cast<std::streamsize>(sizeof(flag)));
+	EXPECT_EQ(std::memcmp(flag, CACHE_FLAG, FLAG_SIZE), 0);
+}
+
 TEST(test_kvcache, put_get_reopen_after_resize)
 {
 	ScopedCacheFile file("put_get_reopen_after_resize");
@@ -213,7 +230,7 @@ TEST(test_kvcache, put_get_reopen_after_resize)
 		}
 
 		EXPECT_EQ(total, cache.size());
-		EXPECT_GT(cache.capacity(), SIZE_STEP);
+		EXPECT_GT(cache.capacity(), static_cast<uint32_t>(SIZE_STEP));
 		EXPECT_STREQ("val_000", cache.get("key_000"));
 		EXPECT_STREQ("val_224", cache.get("key_224"));
 	}
@@ -221,7 +238,7 @@ TEST(test_kvcache, put_get_reopen_after_resize)
 	WtKVCache reopened;
 	ASSERT_TRUE(reopened.init(file.c_str(), 20260706));
 	EXPECT_EQ(total, reopened.size());
-	EXPECT_GT(reopened.capacity(), SIZE_STEP);
+	EXPECT_GT(reopened.capacity(), static_cast<uint32_t>(SIZE_STEP));
 	EXPECT_STREQ("val_000", reopened.get("key_000"));
 	EXPECT_STREQ("val_224", reopened.get("key_224"));
 }
@@ -441,7 +458,7 @@ TEST(test_kvcache, concurrent_get_put_resize_same_object)
 	EXPECT_FALSE(readerSawBadValue);
 	EXPECT_STREQ("value", cache.get("stable"));
 	EXPECT_EQ(SIZE_STEP * 3 + 1, cache.size());
-	EXPECT_GT(cache.capacity(), SIZE_STEP);
+	EXPECT_GT(cache.capacity(), static_cast<uint32_t>(SIZE_STEP));
 }
 
 TEST(test_kvcache, test_perform)

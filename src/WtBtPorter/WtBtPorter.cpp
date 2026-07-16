@@ -255,7 +255,7 @@ WtUInt32	cta_get_ticks(CtxHandler cHandle, const char* stdCode, WtUInt32 tickCnt
 		WTSTickSlice* tData = ctx->stra_get_ticks(stdCode, tickCnt);
 		if (tData)
 		{
-			uint32_t thisCnt = min(tickCnt, (WtUInt32)tData->size());
+			uint32_t thisCnt = (std::min)(tickCnt, (WtUInt32)tData->size());
 			if (thisCnt != 0)
 				cb(cHandle, stdCode, (WTSTickStruct*)tData->at(0), thisCnt, true);
 			else
@@ -695,7 +695,7 @@ WtUInt32	sel_get_ticks(CtxHandler cHandle, const char* stdCode, WtUInt32 tickCnt
 		WTSTickSlice* tData = ctx->stra_get_ticks(stdCode, tickCnt);
 		if (tData)
 		{
-			uint32_t thisCnt = min(tickCnt, (WtUInt32)tData->size());
+			uint32_t thisCnt = (std::min)(tickCnt, (WtUInt32)tData->size());
 			if (thisCnt != 0)
 				cb(cHandle, stdCode, (WTSTickStruct*)tData->at(0), thisCnt, true);
 			else
@@ -932,7 +932,7 @@ WtUInt32 hft_get_ticks(CtxHandler cHandle, const char* stdCode, WtUInt32 tickCnt
 		WTSTickSlice* tData = mocker->stra_get_ticks(stdCode, tickCnt);
 		if (tData)
 		{
-			uint32_t thisCnt = min(tickCnt, (WtUInt32)tData->size());
+			uint32_t thisCnt = (std::min)(tickCnt, (WtUInt32)tData->size());
 			if(thisCnt != 0)
 				cb(cHandle, stdCode, (WTSTickStruct*)tData->at(0), thisCnt, true);
 			else
@@ -961,7 +961,7 @@ WtUInt32 hft_get_ordque(CtxHandler cHandle, const char* stdCode, WtUInt32 itemCn
 		WTSOrdQueSlice* dataSlice = mocker->stra_get_order_queue(stdCode, itemCnt);
 		if (dataSlice)
 		{
-			uint32_t thisCnt = min(itemCnt, (WtUInt32)dataSlice->size());
+			uint32_t thisCnt = (std::min)(itemCnt, (WtUInt32)dataSlice->size());
 			cb(cHandle, stdCode, (WTSOrdQueStruct*)dataSlice->at(0), thisCnt, true);
 			dataSlice->release();
 			return thisCnt;
@@ -987,7 +987,7 @@ WtUInt32 hft_get_orddtl(CtxHandler cHandle, const char* stdCode, WtUInt32 itemCn
 		WTSOrdDtlSlice* dataSlice = mocker->stra_get_order_detail(stdCode, itemCnt);
 		if (dataSlice)
 		{
-			uint32_t thisCnt = min(itemCnt, (WtUInt32)dataSlice->size());
+			uint32_t thisCnt = (std::min)(itemCnt, (WtUInt32)dataSlice->size());
 			cb(cHandle, stdCode, (WTSOrdDtlStruct*)dataSlice->at(0), thisCnt, true);
 			dataSlice->release();
 			return thisCnt;
@@ -1013,7 +1013,7 @@ WtUInt32 hft_get_trans(CtxHandler cHandle, const char* stdCode, WtUInt32 itemCnt
 		WTSTransSlice* dataSlice = mocker->stra_get_transaction(stdCode, itemCnt);
 		if (dataSlice)
 		{
-			uint32_t thisCnt = min(itemCnt, (WtUInt32)dataSlice->size());
+			uint32_t thisCnt = (std::min)(itemCnt, (WtUInt32)dataSlice->size());
 			cb(cHandle, stdCode, (WTSTransStruct*)dataSlice->at(0), thisCnt, true);
 			dataSlice->release();
 			return thisCnt;

@@ -31,7 +31,7 @@ public:
 	{
 		WTSError* pRet = WTSError::allocate();
 		pRet->m_errCode = ec;
-		strncpy(pRet->m_strMsg, errmsg, 255);
+		wt_strcpy_bounded(pRet->m_strMsg, errmsg);
 
 		return pRet;
 	}
@@ -446,7 +446,7 @@ public:
 	constexpr inline const char*	getOrderID() const  noexcept { return m_strOrderID; }
 	constexpr inline char*			getOrderID()  noexcept { return m_strOrderID; }
 
-	inline void	setStateMsg(const char* msg) noexcept {strncpy(m_strStateMsg, msg, 63);}
+	inline void	setStateMsg(const char* msg) noexcept {wt_strcpy_bounded(m_strStateMsg, msg);}
 	constexpr inline const char*	getStateMsg() const noexcept {return m_strStateMsg;}
 	constexpr inline char*			getStateMsg() noexcept { return m_strStateMsg; }
 
@@ -753,7 +753,7 @@ public:
 public:
 	static inline WTSAccountInfo* create(){return WTSAccountInfo::allocate();}
 
-	inline void	setCurrency(const char* currency) noexcept { strcpy(m_strCurrency, currency); }
+	inline void	setCurrency(const char* currency) noexcept { wt_strcpy_bounded(m_strCurrency, currency); }
 
 	constexpr inline void	setBalance(double balance) noexcept {m_dBalance = balance;}
 	constexpr inline void	setPreBalance(double prebalance) noexcept {m_dPreBalance = prebalance;}

@@ -38,6 +38,8 @@
 #include <rapidjson/prettywriter.h>
 
 namespace rj = rapidjson;
+using std::max;
+using std::min;
 
 uint32_t makeLocalOrderID()
 {
@@ -565,14 +567,14 @@ bool TraderAdapter::checkCancelLimits(const char* stdCode)
 	if (it != _cancel_time_cache.end())
 	{
 		TimeCacheList& cache = (TimeCacheList&)it->second;
-		uint32_t cnt = cache.size();
+		const TimeCacheList::size_type cnt = cache.size();
 		if (cnt >= riskPara->_cancel_times_boundary)
 		{
 			uint64_t eTime = cache[cnt - 1];
 			uint64_t sTime = eTime - riskPara->_cancel_stat_timespan * 1000;
 			auto tit = std::lower_bound(cache.begin(), cache.end(), sTime);
-			auto sIdx = tit - cache.begin();
-			auto times = cnt - sIdx - 1;
+			const TimeCacheList::size_type sIdx = static_cast<TimeCacheList::size_type>(tit - cache.begin());
+			const TimeCacheList::size_type times = cnt - sIdx - 1;
 			if (times > riskPara->_cancel_times_boundary)
 			{
 				WTSLogger::log_dyn("trader", _id.c_str(), LL_ERROR, "[{}] {} cancel {} times within {} seconds, beyond boundary {} times, adding to excluding list",
@@ -630,14 +632,14 @@ bool TraderAdapter::checkOrderLimits(const char* stdCode)
 	if (it != _order_time_cache.end())
 	{
 		TimeCacheList& cache = (TimeCacheList&)it->second;
-		uint32_t cnt = cache.size();
+		const TimeCacheList::size_type cnt = cache.size();
 		if (cnt >= riskPara->_order_times_boundary)
 		{
 			uint64_t eTime = cache[cnt - 1];
 			uint64_t sTime = eTime - riskPara->_order_stat_timespan * 1000;
 			auto tit = std::lower_bound(cache.begin(), cache.end(), sTime);
-			auto sIdx = tit - cache.begin();
-			auto times = cnt - sIdx - 1;
+			const TimeCacheList::size_type sIdx = static_cast<TimeCacheList::size_type>(tit - cache.begin());
+			const TimeCacheList::size_type times = cnt - sIdx - 1;
 			if (times > riskPara->_order_times_boundary)
 			{
 				WTSLogger::log_dyn("trader", _id.c_str(), LL_ERROR, "[{}] {} entrust {} times within {} seconds, beyond boundary {} times, adding to excluding list",

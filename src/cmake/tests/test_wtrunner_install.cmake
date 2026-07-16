@@ -46,21 +46,22 @@ foreach(WT_SMOKE_PLUGIN IN LISTS WT_SMOKE_PLUGINS)
 	endif()
 endforeach()
 
-set(WT_SMOKE_COMMAND "${CMAKE_COMMAND}" -E env)
 if(WIN32)
 	# The installed executable normally supplies this search directory. The
 	# standalone smoke loader needs the equivalent explicit DLL search path.
-	list(APPEND WT_SMOKE_COMMAND "PATH=${WT_INSTALL_ROOT}\;$ENV{PATH}")
+	set(WT_ORIGINAL_PATH "$ENV{PATH}")
+	set(ENV{PATH} "${WT_INSTALL_ROOT};$ENV{PATH}")
+	set(WT_SMOKE_COMMAND "${WT_PLUGIN_SMOKE}")
 else()
 	# Prove that the installed RPATH is sufficient without development-shell
 	# library path overrides masking missing runtime dependencies.
-	list(APPEND WT_SMOKE_COMMAND
+	set(WT_SMOKE_COMMAND "${CMAKE_COMMAND}" -E env
 		--unset=LD_LIBRARY_PATH
 		--unset=DYLD_LIBRARY_PATH
 		--unset=DYLD_FALLBACK_LIBRARY_PATH
+		"${WT_PLUGIN_SMOKE}"
 	)
 endif()
-list(APPEND WT_SMOKE_COMMAND "${WT_PLUGIN_SMOKE}")
 execute_process(
 	COMMAND ${WT_SMOKE_COMMAND} ${WT_SMOKE_PLUGINS}
 	WORKING_DIRECTORY "${WT_INSTALL_ROOT}"
@@ -68,6 +69,9 @@ execute_process(
 	OUTPUT_VARIABLE WT_SMOKE_OUTPUT
 	ERROR_VARIABLE WT_SMOKE_ERROR
 )
+if(WIN32)
+	set(ENV{PATH} "${WT_ORIGINAL_PATH}")
+endif()
 if(NOT WT_SMOKE_RESULT EQUAL 0)
 	message(FATAL_ERROR "Installed plugin smoke failed:\n${WT_SMOKE_OUTPUT}\n${WT_SMOKE_ERROR}")
 endif()

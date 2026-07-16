@@ -3,9 +3,10 @@
 */
 #include "WtStockVWapExeUnit.h"
 
-
-
-
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 extern const char* FACT_NAME;
 
@@ -54,12 +55,12 @@ inline uint32_t calTmSecs(uint32_t begintime, uint32_t endtime) //计算执行�
 	return   ((endtime / 100) * 3600 + (endtime % 100) * 60) - ((begintime / 100) * 3600 + (begintime % 100) * 60);
 
 }
-inline double calTmStamp(uint32_t actiontime) //计算tick时间属于哪个时间单元
+inline std::size_t calTmStamp(uint32_t actiontime) //计算tick时间属于哪个时间单元
 {
-	string timestamp = to_string(actiontime);
-	int hour = stoi(timestamp.substr(0, 2));
-	int minute = stoi(timestamp.substr(2, 2));
-	double total_minute = 0;
+	std::string timestamp = std::to_string(actiontime);
+	int hour = std::stoi(timestamp.substr(0, 2));
+	int minute = std::stoi(timestamp.substr(2, 2));
+	std::size_t total_minute = 0;
 	if (hour < 9 || (hour == 9 && minute < 30)) {
 		total_minute = 0;
 	}
@@ -78,8 +79,8 @@ inline double calTmStamp(uint32_t actiontime) //计算tick时间属于哪个时�
 	if (timestamp >= "113000000" && timestamp < "130000000") {
 		total_minute = 120;
 	}
-	total_minute += stoi(timestamp.substr(4, 2)) / 60;
-	total_minute += stoi(timestamp.substr(6, 3)) / 60000;
+	total_minute += std::stoi(timestamp.substr(4, 2)) / 60;
+	total_minute += std::stoi(timestamp.substr(6, 3)) / 60000;
 	return total_minute;//这里应该+1，对应vector 所以再-1
 }
 const char * WtStockVWapExeUnit::getFactName()
@@ -126,10 +127,10 @@ void WtStockVWapExeUnit::init(ExecuteContext * ctx, const char * stdCode, WTSVar
 	_min_hands = get_minOrderQty(stdCode);
 	if (_min_open_lots != 0) { 
 		if (_is_KC) {
-			_min_open_lots = max(_min_open_lots, _min_hands);
+			_min_open_lots = (std::max)(_min_open_lots, _min_hands);
 		}
 		else {
-			_min_open_lots = min(_min_open_lots, _min_hands);
+			_min_open_lots = (std::min)(_min_open_lots, _min_hands);
 		}
 	}
 	// 确定T0交易模式
@@ -144,14 +145,14 @@ void WtStockVWapExeUnit::init(ExecuteContext * ctx, const char * stdCode, WTSVar
 		return;
 	}
 
-	ifstream file(filename.c_str());
+	std::ifstream file(filename.c_str());
 	if (file.is_open()) {
-		string line;
-		while (getline(file, line)) {
-			stringstream s(line);
-			string prz;
-			while (getline(s, prz, ',')) {
-				VwapAim.push_back(stod(prz));
+		std::string line;
+		while (std::getline(file, line)) {
+			std::stringstream s(line);
+			std::string prz;
+			while (std::getline(s, prz, ',')) {
+				VwapAim.push_back(std::stod(prz));
 			}
 		}
 		file.close();
@@ -185,7 +186,7 @@ void WtStockVWapExeUnit::on_order(uint32_t localid, const char * stdCode, bool i
 			_ctx->writeLog(fmtutil::format("Order {} of {} canceled, re_fire will be done", localid, stdCode));
 			_cancel_times++;
 			//撤单以后重发,一般是加点重发;对最小下单量的校验
-			fire_at_once(max(_min_open_lots, _this_target - realPos));
+			fire_at_once((std::max)(_min_open_lots, _this_target - realPos));
 		}
 	}
 
@@ -328,7 +329,7 @@ void WtStockVWapExeUnit::do_calc()
 		return;
 	if (_is_t0)
 		vailyPos = realPos;
-	double target_pos = max(realPos - vailyPos, _target_pos);
+	double target_pos = (std::max)(realPos - vailyPos, _target_pos);
 	if (!decimal::eq(target_pos, _target_pos))
 	{
 		_ctx->writeLog(fmtutil::format("{} can sell hold pos not enough, target adjust {}->{}", code, _target_pos, target_pos));
@@ -391,7 +392,7 @@ void WtStockVWapExeUnit::do_calc()
 		if (decimal::eq(lPos, 0))
 			return;
 		//如果还有多头仓位，则将目标仓位设置为非0，强制触发    
-		newVol = -min(lPos, _order_lots);
+		newVol = -(std::min)(lPos, _order_lots);
 		_ctx->writeLog(fmtutil::format("Clearing process triggered, target position of {} has been set to {}", _code.c_str(), newVol));
 	}
 	//如果相比上次没有更新的tick进来，则先不下单，防止开盘前集中下单导致通道被封
@@ -402,7 +403,7 @@ void WtStockVWapExeUnit::do_calc()
 		return;
 	}
 	_last_tick_time = curTickTime;
-	double InminsTm = calTmStamp(_last_tick->actiontime());//当前tick属于vwap240分钟内的第几(-1)分钟
+	std::size_t InminsTm = calTmStamp(_last_tick->actiontime());//当前tick属于vwap240分钟内的第几(-1)分钟
 	double aimQty = VwapAim[InminsTm];//取到对应时刻的目标vwapaim （递增）
 
 	uint32_t leftTimes = _total_times - _fired_times;
@@ -413,10 +414,10 @@ void WtStockVWapExeUnit::do_calc()
 	if (leftTimes == 0 && !decimal::eq(diffQty, 0))
 	{
 		bNeedShowHand = true;
-		curQty = max(diffQty, _min_open_lots);
+		curQty = (std::max)(diffQty, _min_open_lots);
 	}
 	else {
-		curQty = max(_Vwap_vol, _min_open_lots)* abs(diffQty) / diffQty;//curqty=单位预测量sum
+		curQty = (std::max)(_Vwap_vol, _min_open_lots)* std::abs(diffQty) / diffQty;//curqty=单位预测量sum
 	}
 
 	//买
@@ -434,7 +435,7 @@ void WtStockVWapExeUnit::do_calc()
 		{
 			curQty = round_hands(curQty, _min_open_lots);
 		}
-		curQty = min(vailyPos, _min_open_lots);
+		curQty = (std::min)(vailyPos, _min_open_lots);
 	}
 
 	//设定本轮目标仓位

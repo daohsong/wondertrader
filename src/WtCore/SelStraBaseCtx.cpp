@@ -221,10 +221,10 @@ void SelStraBaseCtx::load_userdata()
 	if (root.HasParseError())
 		return;
 
-	for (auto& m : root.GetObject())
+	for (auto m = root.MemberBegin(); m != root.MemberEnd(); ++m)
 	{
-		const char* key = m.name.GetString();
-		const char* val = m.value.GetString();
+		const char* key = m->name.GetString();
+		const char* val = m->value.GetString();
 		_user_datas[key] = val;
 	}
 }
@@ -354,9 +354,9 @@ void SelStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 		const rj::Value& jSignals = root["signals"];
 		if (!jSignals.IsNull() && jSignals.IsObject())
 		{
-			for (auto& m : jSignals.GetObject())
+			for (auto m = jSignals.MemberBegin(); m != jSignals.MemberEnd(); ++m)
 			{
-				const char* stdCode = m.name.GetString();
+				const char* stdCode = m->name.GetString();
 				const char* ruleTag = _engine->get_hot_mgr()->getRuleTag(stdCode);
 				if (strlen(ruleTag) == 0 && _engine->get_contract_info(stdCode) == NULL)
 				{
@@ -364,7 +364,7 @@ void SelStraBaseCtx::load_data(uint32_t flag /* = 0xFFFFFFFF */)
 					continue;
 				}
 
-				const rj::Value& jItem = m.value;
+				const rj::Value& jItem = m->value;
 
 				SigInfo& sInfo = _sig_map[stdCode];
 				sInfo._usertag = jItem["usertag"].GetString();
@@ -854,7 +854,7 @@ void SelStraBaseCtx::do_set_position(const char* stdCode, double qty, const char
 		for (auto it = pInfo._details.begin(); it != pInfo._details.end(); it++)
 		{
 			DetailInfo& dInfo = *it;
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			//if (maxQty == 0)
 			if (decimal::eq(maxQty, 0))
 				continue;

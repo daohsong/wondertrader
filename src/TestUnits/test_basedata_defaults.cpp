@@ -3,6 +3,7 @@
 #include "gtest/gtest/gtest.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -12,7 +13,7 @@ namespace
 {
 std::string write_temp_file(const char* name, const char* content)
 {
-	std::string path = std::string("/tmp/") + name;
+	std::string path = (std::filesystem::temp_directory_path() / name).string();
 	std::ofstream out(path, std::ios::binary | std::ios::trunc);
 	out << content;
 	out.close();

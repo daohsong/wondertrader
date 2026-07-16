@@ -3,6 +3,8 @@
 #include "gtest/gtest/gtest.h"
 #include "../Includes/WTSMarcos.h"
 
+#include <cstring>
+
 namespace
 {
 std::string makePaddedIntegerFormat(uint32_t length)
@@ -18,16 +20,17 @@ void run_test(uint32_t times, uint32_t len)
 	const std::string format = makePaddedIntegerFormat(len);
 
 	TimeUtils::Ticker ticker;
-	for (int i = 0; i < times; i++)
+	for (uint32_t i = 0; i < times; i++)
 	{
 		wt_strcpy(buffer, fmtutil::format(format.c_str(), i));
 	}
 	uint64_t t1 = ticker.nano_seconds();
 
 	ticker.reset();
-	for (int i = 0; i < times; i++)
+	for (uint32_t i = 0; i < times; i++)
 	{
-		strcpy(buffer, fmtutil::format(format.c_str(), i));
+		const char* value = fmtutil::format(format.c_str(), i);
+		std::memcpy(buffer, value, std::strlen(value) + 1);
 	}
 	uint64_t t2 = ticker.nano_seconds();
 	fmt::print("{}-bytes string compare, wt_strcpy: {} - strcpy: {}\n", len, t1, t2);

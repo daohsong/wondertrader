@@ -5,7 +5,7 @@
 #include "WtOrdMon.h"
 #include "../Includes/ExecuteDefs.h"
 #include "../Share/StrUtil.hpp"
-#include <fstream>
+#include <vector>
 #include "../Share/TimeUtils.hpp"
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/WTSContractInfo.hpp"
@@ -124,7 +124,7 @@ private:
 	//执行参数
 	WtOrdMon		_orders_mon;
 	uint32_t		_cancel_cnt;
-	vector<double>	VwapAim;			//分钟记，目标VWap预测 总报单量
+	std::vector<double>	VwapAim;			//分钟记，目标VWap预测 总报单量
 	//////////////////////////////////////////////////////////////////////////
 	//参数
 	uint32_t		_total_secs;	//执行总时间,单位s
@@ -173,7 +173,7 @@ private:
 		}
 		operator bool() const { return _result; }
 	}CalcFlag;
-	inline int round_hands(double hands, double min_hands)
+	inline double round_hands(double hands, double min_hands)
 	{
 		return (int)((hands + min_hands / 2) / min_hands) * min_hands;
 	}

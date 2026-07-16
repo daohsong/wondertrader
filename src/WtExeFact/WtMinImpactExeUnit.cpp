@@ -334,7 +334,7 @@ void WtMinImpactExeUnit::do_calc()
 			return;
 
 		//如果还有多头仓位，则将目标仓位设置为非0，强制触发                      
-		newVol = -min(lPos, _order_lots);//  -min(获取（多头）持仓     单次发单手数) 
+		newVol = -(std::min)(lPos, _order_lots);//  -min(获取（多头）持仓     单次发单手数) 
 		_ctx->writeLog(fmtutil::format("Clearing process triggered, target position of {} has been set to {}", _code.c_str(), newVol));
 	}
 
@@ -363,7 +363,7 @@ void WtMinImpactExeUnit::do_calc()
 
 	//By Wesley @ 2022.09.13
 	//这里要对下单数量做一个修正
-	this_qty = min(this_qty, abs(newVol - curPos));//真实-获取仓位			
+	this_qty = (std::min)(this_qty, std::abs(newVol - curPos));//真实-获取仓位			
 
 	//是否开仓，如果持仓大于等于0且买入，或者持仓小于等于0且卖出，就是开仓
 	bool isOpen = (isBuy && decimal::ge(curPos, 0)) || (!isBuy && decimal::le(curPos, 0));
@@ -372,7 +372,7 @@ void WtMinImpactExeUnit::do_calc()
 	//对单次下单做一个修正，保证平仓和开仓不会同时下单
 	if (!isOpen)
 	{
-		this_qty = min(this_qty, abs(curPos)); //curPos 现在的仓位
+		this_qty = (std::min)(this_qty, std::abs(curPos)); //curPos 现在的仓位
 	}									
 
 	/*

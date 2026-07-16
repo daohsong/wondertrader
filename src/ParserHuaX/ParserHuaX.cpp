@@ -391,7 +391,7 @@ void ParserHuaX::OnRtnMarketData(CTORATstpMarketDataField* market_data)
 		return;
 	}
 
-	uint32_t actDate = (uint32_t)stoi(market_data->TradingDay);
+	uint32_t actDate = (uint32_t)std::stoi(market_data->TradingDay);
 	auto time_vector = StrUtil::split(market_data->UpdateTime, ":");
 	uint32_t actTime{ 0 };
 	for (std::string time_str : time_vector)
@@ -435,7 +435,7 @@ void ParserHuaX::OnRtnMarketData(CTORATstpMarketDataField* market_data)
 	quote.open = checkValid(market_data->OpenPrice);
 	quote.high = checkValid(market_data->HighestPrice);
 	quote.low = checkValid(market_data->LowestPrice);
-	quote.total_volume = (uint32_t)market_data->Volume;
+	quote.total_volume = static_cast<double>(market_data->Volume);
 	quote.trading_date = actDate;
 	quote.total_turnover = market_data->Turnover;
 
@@ -452,11 +452,11 @@ void ParserHuaX::OnRtnMarketData(CTORATstpMarketDataField* market_data)
 	quote.ask_prices[4] = checkValid(market_data->AskPrice5);
 
 	//委卖量
-	quote.ask_qty[0] = checkValid(market_data->AskVolume1);
-	quote.ask_qty[1] = checkValid(market_data->AskVolume2);
-	quote.ask_qty[2] = checkValid(market_data->AskVolume3);
-	quote.ask_qty[3] = checkValid(market_data->AskVolume4);
-	quote.ask_qty[4] = checkValid(market_data->AskVolume5);
+	quote.ask_qty[0] = static_cast<double>(market_data->AskVolume1);
+	quote.ask_qty[1] = static_cast<double>(market_data->AskVolume2);
+	quote.ask_qty[2] = static_cast<double>(market_data->AskVolume3);
+	quote.ask_qty[3] = static_cast<double>(market_data->AskVolume4);
+	quote.ask_qty[4] = static_cast<double>(market_data->AskVolume5);
 
 	//委买价格
 	quote.bid_prices[0] = checkValid(market_data->BidPrice1);
@@ -466,11 +466,11 @@ void ParserHuaX::OnRtnMarketData(CTORATstpMarketDataField* market_data)
 	quote.bid_prices[4] = checkValid(market_data->BidPrice5);
 
 	//委买量
-	quote.bid_qty[0] = checkValid(market_data->BidVolume1);
-	quote.bid_qty[1] = checkValid(market_data->BidVolume2);
-	quote.bid_qty[2] = checkValid(market_data->BidVolume3);
-	quote.bid_qty[3] = checkValid(market_data->BidVolume4);
-	quote.bid_qty[4] = checkValid(market_data->BidVolume5);
+	quote.bid_qty[0] = static_cast<double>(market_data->BidVolume1);
+	quote.bid_qty[1] = static_cast<double>(market_data->BidVolume2);
+	quote.bid_qty[2] = static_cast<double>(market_data->BidVolume3);
+	quote.bid_qty[3] = static_cast<double>(market_data->BidVolume4);
+	quote.bid_qty[4] = static_cast<double>(market_data->BidVolume5);
 
 	if (_sink)
 		_sink->handleQuote(tick, 1);

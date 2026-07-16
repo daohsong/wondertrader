@@ -12,6 +12,8 @@
 #define CACHE_FLAG "&^%$#@!\0"
 #define FLAG_SIZE 8
 
+static_assert(sizeof(CACHE_FLAG) - 1 == FLAG_SIZE, "cache flag must fill the shared-memory header");
+
 typedef std::shared_ptr<BoostMappingFile> BoostMFPtr;
 
 #pragma warning(disable:4200)
@@ -154,7 +156,7 @@ public:
 			 _cache._block->_capacity = SIZE_STEP;
 			 _cache._block->_size = 0;
 			 _cache._block->_date = uDate;
-			strcpy( _cache._block->_blk_flag, CACHE_FLAG);
+			memcpy(_cache._block->_blk_flag, CACHE_FLAG, FLAG_SIZE);
 		}
 		else
 		{

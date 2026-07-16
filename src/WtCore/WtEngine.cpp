@@ -1019,7 +1019,7 @@ void WtEngine::do_set_position(const char* stdCode, double qty, double curPx /* 
 				continue;
 			}
 
-			double maxQty = min(dInfo._volume, left);
+			double maxQty = (std::min)(dInfo._volume, left);
 			if (decimal::eq(maxQty, 0))
 				continue;
 

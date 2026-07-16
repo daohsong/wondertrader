@@ -2,26 +2,26 @@
 #ifndef _XTP_ALGO_DATA_TYPE_H_
 #define _XTP_ALGO_DATA_TYPE_H_
 
-///@brief XTPStrategyStateType²ßÂÔ×´Ì¬ÀàÐÍ
+///@brief XTPStrategyStateTypeç­–ç•¥çŠ¶æ€ç±»åž‹
 typedef uint8_t XTPStrategyStateType;
 
-///´´½¨ÖÐ
+///åˆ›å»ºä¸­
 #define XTP_STRATEGY_STATE_CREATING		0
-///ÒÑ´´½¨
+///å·²åˆ›å»º
 #define XTP_STRATEGY_STATE_CREATED		1
-///¿ªÊ¼Ö´ÐÐÖÐ
+///å¼€å§‹æ‰§è¡Œä¸­
 #define XTP_STRATEGY_STATE_STARTING		2
-///ÒÑÖ´ÐÐ
+///å·²æ‰§è¡Œ
 #define XTP_STRATEGY_STATE_STARTED		3
-///Í£Ö¹ÖÐ
+///åœæ­¢ä¸­
 #define XTP_STRATEGY_STATE_STOPPING		4
-///ÒÑÍ£Ö¹
+///å·²åœæ­¢
 #define XTP_STRATEGY_STATE_STOPPED		5
-///Ïú»ÙÖÐ
+///é”€æ¯ä¸­
 #define XTP_STRATEGY_STATE_DESTROYING	6
-///ÒÑÏú»Ù
+///å·²é”€æ¯
 #define XTP_STRATEGY_STATE_DESTROYED	7
-///·¢Éú´íÎó
+///å‘ç”Ÿé”™è¯¯
 #define XTP_STRATEGY_STATE_ERROR		8
 
 #endif //_XTP_ALGO_DATA_TYPE_H_

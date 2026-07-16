@@ -12,6 +12,20 @@
 #include <unistd.h>
 #endif
 
+inline std::string wt_system_error_message(int errorCode)
+{
+#if defined(_MSC_VER)
+	char buffer[256] = {};
+	if (::strerror_s(buffer, sizeof(buffer), errorCode) == 0)
+		return std::string(buffer);
+#else
+	const char* errorMessage = std::strerror(errorCode);
+	if (errorMessage != nullptr)
+		return std::string(errorMessage);
+#endif
+	return "error code " + std::to_string(errorCode);
+}
+
 inline std::string wt_current_working_directory()
 {
 	std::size_t bufferSize = 4096;
@@ -40,7 +54,7 @@ inline std::string wt_current_working_directory()
 	if (errorCode != 0)
 	{
 		message += ": ";
-		message += std::strerror(errorCode);
+		message += wt_system_error_message(errorCode);
 	}
 	throw std::runtime_error(message);
 }

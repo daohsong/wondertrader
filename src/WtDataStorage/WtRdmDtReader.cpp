@@ -1720,7 +1720,7 @@ WTSBarStruct* WtRdmDtReader::indexBarFromCacheByCount(const std::string& key, ui
 		eIdx = eit - barsList._bars.begin();
 	}
 
-	uint32_t curCnt = min((uint32_t)eIdx + 1, count);
+	uint32_t curCnt = (std::min)((uint32_t)eIdx + 1, count);
 	sIdx = eIdx + 1 - curCnt;
 	count = curCnt;
 	return &barsList._bars[sIdx];
@@ -2307,7 +2307,7 @@ WTSKlineSlice* WtRdmDtReader::readKlineSliceByCount(const char* stdCode, WTSKlin
 				}
 
 				//如果第一条实时K线的时间大于开始日期，则实时K线要全部包含进去
-				rtCnt = min((uint32_t)idx + 1, count);
+				rtCnt = (std::min)((uint32_t)idx + 1, count);
 				std::size_t sIdx = idx + 1 - rtCnt;
 				rtHead = kPair->_block->_bars + sIdx;
 				bNeedHisData = (rtCnt < count);
@@ -2364,7 +2364,7 @@ WTSKlineSlice* WtRdmDtReader::readKlineSliceByCount(const char* stdCode, WTSKlin
 				}
 
 				//如果第一条实时K线的时间大于开始日期，则实时K线要全部包含进去
-				rtCnt = min((uint32_t)idx + 1, count);
+				rtCnt = (std::min)((uint32_t)idx + 1, count);
 				std::size_t sIdx = idx + 1 - rtCnt;
 				rtHead = &barsList._rt_bars[sIdx];
 				bNeedHisData = (rtCnt < count);
@@ -2465,14 +2465,14 @@ WTSTickSlice* WtRdmDtReader::readTickSliceByCount(const char* stdCode, uint32_t 
 			eIdx--;
 		}
 
-		uint32_t thisCnt = min((uint32_t)eIdx + 1, left);
+		uint32_t thisCnt = (std::min)((uint32_t)eIdx + 1, left);
 		uint32_t sIdx = eIdx + 1 - thisCnt;
 		slice->insertBlock(0, tBlock->_ticks + sIdx, thisCnt);
 		left -= thisCnt;
 		break;
 	}
 
-	uint32_t nowTDate = min(endTDate, curTDate);
+	uint32_t nowTDate = (std::min)(endTDate, curTDate);
 	if (nowTDate == curTDate)
 		nowTDate = TimeUtils::getNextDate(nowTDate, -1);
 	uint32_t missingCnt = 0;
@@ -2591,7 +2591,7 @@ WTSTickSlice* WtRdmDtReader::readTickSliceByCount(const char* stdCode, uint32_t 
 				eIdx--;
 			}
 
-			uint32_t thisCnt = min((uint32_t)eIdx + 1, left);
+			uint32_t thisCnt = (std::min)((uint32_t)eIdx + 1, left);
 			uint32_t sIdx = eIdx + 1 - thisCnt;
 			slice->insertBlock(0, tBlock->_ticks + sIdx, thisCnt);
 			left -= thisCnt;

@@ -1885,6 +1885,16 @@ uint64_t HisDataReplayer::replayHftDatasByDay(uint32_t curTDate)
 	return total_ticks;
 }
 
+bool HisDataReplayerTestAccess::replayHftDatas(HisDataReplayer& replayer, uint64_t stime, uint64_t etime)
+{
+	return replayer.replayHftDatas(stime, etime);
+}
+
+uint64_t HisDataReplayerTestAccess::replayHftDatasByDay(HisDataReplayer& replayer, uint32_t curTDate)
+{
+	return replayer.replayHftDatasByDay(curTDate);
+}
+
 bool HisDataReplayer::replayHftDatas(uint64_t stime, uint64_t etime)
 {	
 	WTSLogger::log_raw(LL_DEBUG, "replaying hft data...");

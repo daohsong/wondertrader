@@ -183,7 +183,7 @@ WTSTickSlice* WtDataReaderAD::readTickSlice(const char* stdCode, uint32_t count,
 
 	//全部读取完成以后，再生成切片
 	//这里要注意一下，因为读取tick是顺序的，但是返回是需要从后往前取指定条数的，所以应该先读取array_two
-	count = min((uint32_t)tickList._ticks.size(), count);	//先对count做一个修正
+	count = (std::min)((uint32_t)tickList._ticks.size(), count);	//先对count做一个修正
 	auto ayTwo = tickList._ticks.array_two();
 	auto cnt_2 = ayTwo.second;
 	if(cnt_2 >= count)
@@ -329,7 +329,7 @@ WTSBarStruct* WtDataReaderAD::get_rt_cache_bar(const char* exchg, const char* co
 				wrapper->_file_ptr->map(filename.c_str());
 				wrapper->_cache_block = (RTBarCache*)wrapper->_file_ptr->addr();
 
-				wrapper->_cache_block->_size = min(wrapper->_cache_block->_size, wrapper->_cache_block->_capacity);
+				wrapper->_cache_block->_size = (std::min)(wrapper->_cache_block->_size, wrapper->_cache_block->_capacity);
 				wrapper->_last_size = wrapper->_cache_block->_size;
 
 				for (uint32_t i = 0; i < wrapper->_cache_block->_size; i++)
@@ -418,7 +418,7 @@ WTSKlineSlice* WtDataReaderAD::readKlineSlice(const char* stdCode, WTSKlinePerio
 		return NULL;
 
 	//数据条数做一个修正
-	count = min((uint32_t)barsList._bars.size(), count);
+	count = (std::min)((uint32_t)barsList._bars.size(), count);
 
 	bool isDay = (period == KP_DAY);
 	etime = isDay ? curDate : ((curDate - 19900000)*10000 + curTime);
@@ -468,7 +468,7 @@ WTSKlineSlice* WtDataReaderAD::readKlineSlice(const char* stdCode, WTSKlinePerio
 	barsList._last_req_time = etime;
 
 	//这里要注意一下，因为读取数据是顺序的，但是返回是需要从后往前取指定条数的，所以应该先读取array_two
-	count = min((uint32_t)barsList._bars.size(), count);	//先对count做一个修正
+	count = (std::min)((uint32_t)barsList._bars.size(), count);	//先对count做一个修正
 	auto ayTwo = barsList._bars.array_two();
 	auto cnt_2 = ayTwo.second;
 	if (cnt_2 >= count)
