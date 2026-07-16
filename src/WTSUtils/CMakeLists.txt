@@ -69,6 +69,7 @@ SET(SRCS
 	zstdlib/zstd_ldm.c
 	zstdlib/zstd_opt.c
 	zstdlib/zstdmt_compress.c
+	SignalHook.cpp
 	WTSCfgLoader.cpp
 )
 SET(HDRS
@@ -104,6 +105,8 @@ SET(HDRS
 	zstdlib/zstd_ldm.h
 	zstdlib/zstd_opt.h
 	zstdlib/zstdmt_compress.h
+	SignalHook.hpp
+	SignalHookInternal.hpp
 	WTSCfgLoader.h
 )
 
@@ -118,7 +121,7 @@ add_library(WTSUtils STATIC ${SRCS} ${HDRS})
 set_target_properties(WTSUtils PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(WTSUtils PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/yamlcpp")
 TARGET_LINK_LIBRARIES(WTSUtils PRIVATE WT::RapidJSON)
-target_link_libraries(WTSUtils PUBLIC ${WT_ICONV_LIB})
+target_link_libraries(WTSUtils PUBLIC WT::Platform ${WT_ICONV_LIB})
 if(WIN32)
 	target_link_libraries(WTSUtils PRIVATE psapi dbghelp version)
 endif()

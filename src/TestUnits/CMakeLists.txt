@@ -87,6 +87,8 @@ SET(WT_BT_CORE_TEST_SRCS
 	test_hftmocker_orders.cpp
 	test_hisdatareplayer_l2.cpp
 	test_idatawriter_lifecycle.cpp
+	test_signalhook.cpp
+	test_stacktracer.cpp
 	test_uftmocker_orders.cpp
 	test_wtdatawriter_final.cpp
 	test_wtdatawriterad_final.cpp
