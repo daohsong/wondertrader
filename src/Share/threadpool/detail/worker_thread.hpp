@@ -91,6 +91,7 @@ namespace boost { namespace threadpool { namespace detail
 	  void join()
 	  {
 		  m_thread->join();
+		  m_pool.reset();
 	  }
 
 

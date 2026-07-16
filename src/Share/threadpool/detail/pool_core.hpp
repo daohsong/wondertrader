@@ -113,10 +113,12 @@ namespace boost { namespace threadpool { namespace detail
    friend class ShutdownPolicy<pool_type>;
 #endif
 
-  private: // The following members may be accessed by _multiple_ threads at the same time:
-    volatile size_t m_worker_count;	
-    volatile size_t m_target_worker_count;	
-    volatile size_t m_active_worker_count;
+  private: // The following members are protected by m_monitor:
+    size_t m_worker_count;
+    size_t m_target_worker_count;
+    size_t m_active_worker_count;
+    // Workers which have already claimed one of the requested termination slots.
+    size_t m_workers_pending_termination;
       
 
 
@@ -125,6 +127,7 @@ namespace boost { namespace threadpool { namespace detail
     scoped_ptr<size_policy_type> m_size_policy; // is never null
     
     bool  m_terminate_all_workers;								// Indicates if termination of all workers was triggered.
+    bool  m_join_terminated_workers;                         // Keeps terminated workers only when shutdown will join them.
     std::vector<shared_ptr<worker_type> > m_terminated_workers; // List of workers which are terminated but not fully destructed.
     
   private: // The following members are implemented thread-safe:
@@ -138,7 +141,9 @@ namespace boost { namespace threadpool { namespace detail
       : m_worker_count(0) 
       , m_target_worker_count(0)
       , m_active_worker_count(0)
+      , m_workers_pending_termination(0)
       , m_terminate_all_workers(false)
+      , m_join_terminated_workers(false)
     {
       pool_type volatile & self_ref = *this;
       m_size_policy.reset(new size_policy_type(self_ref));
@@ -166,7 +171,8 @@ namespace boost { namespace threadpool { namespace detail
     */
     size_t size()	const volatile
     {
-      return m_worker_count;
+      locking_ptr<const pool_type, recursive_mutex> lockedThis(*this, m_monitor);
+      return lockedThis->m_worker_count;
     }
 
 // TODO is only called once
@@ -200,7 +206,8 @@ namespace boost { namespace threadpool { namespace detail
     */  
     size_t active() const volatile
     {
-      return m_active_worker_count;
+      locking_ptr<const pool_type, recursive_mutex> lockedThis(*this, m_monitor);
+      return lockedThis->m_active_worker_count;
     }
 
 
@@ -299,13 +306,14 @@ namespace boost { namespace threadpool { namespace detail
       recursive_mutex::scoped_lock lock(self->m_monitor);
 
       self->m_terminate_all_workers = true;
+      self->m_join_terminated_workers = wait;
 
-      m_target_worker_count = 0;
+      self->m_target_worker_count = 0;
       self->m_task_or_terminate_workers_event.notify_all();
 
       if(wait)
       {
-        while(m_active_worker_count > 0)
+        while(self->m_worker_count > 0)
         {
           self->m_worker_idle_or_terminated_event.wait(lock);
         }
@@ -330,9 +338,9 @@ namespace boost { namespace threadpool { namespace detail
     {
       locking_ptr<pool_type, recursive_mutex> lockedThis(*this, m_monitor); 
 
-      if(!m_terminate_all_workers)
+      if(!lockedThis->m_terminate_all_workers)
       {
-        m_target_worker_count = worker_count;
+        lockedThis->m_target_worker_count = worker_count;
       }
       else
       { 
@@ -340,17 +348,17 @@ namespace boost { namespace threadpool { namespace detail
       }
 
 
-      if(m_worker_count <= m_target_worker_count)
+      if(lockedThis->m_worker_count - lockedThis->m_workers_pending_termination <= lockedThis->m_target_worker_count)
       { // increase worker count
-        while(m_worker_count < m_target_worker_count)
+        while(lockedThis->m_worker_count - lockedThis->m_workers_pending_termination < lockedThis->m_target_worker_count)
         {
           try
           {
             worker_thread<pool_type>::create_and_attach(lockedThis->shared_from_this());
-            m_worker_count++;
-            m_active_worker_count++;	
+            lockedThis->m_worker_count += 1;
+            lockedThis->m_active_worker_count += 1;
           }
-          catch(thread_resource_error)
+          catch(const thread_resource_error&)
           {
             return false;
           }
@@ -370,28 +378,35 @@ namespace boost { namespace threadpool { namespace detail
     {
       locking_ptr<pool_type, recursive_mutex> lockedThis(*this, m_monitor);
 
-      m_worker_count--;
-      m_active_worker_count--;
+      lockedThis->m_worker_count -= 1;
+      lockedThis->m_active_worker_count -= 1;
       lockedThis->m_worker_idle_or_terminated_event.notify_all();	
 
-      if(m_terminate_all_workers)
+      if(lockedThis->m_terminate_all_workers)
       {
-        lockedThis->m_terminated_workers.push_back(worker);
+        if(lockedThis->m_join_terminated_workers)
+        {
+          lockedThis->m_terminated_workers.push_back(worker);
+        }
       }
       else
       {
-        lockedThis->m_size_policy->worker_died_unexpectedly(m_worker_count);
+        lockedThis->m_size_policy->worker_died_unexpectedly(lockedThis->m_worker_count);
       }
     }
 
     void worker_destructed(shared_ptr<worker_type> worker) volatile
     {
       locking_ptr<pool_type, recursive_mutex> lockedThis(*this, m_monitor);
-      m_worker_count--;
-      m_active_worker_count--;
+      if(lockedThis->m_workers_pending_termination > 0)
+      {
+        lockedThis->m_workers_pending_termination -= 1;
+      }
+      lockedThis->m_worker_count -= 1;
+      lockedThis->m_active_worker_count -= 1;
       lockedThis->m_worker_idle_or_terminated_event.notify_all();	
 
-      if(m_terminate_all_workers)
+      if(lockedThis->m_terminate_all_workers && lockedThis->m_join_terminated_workers)
       {
         lockedThis->m_terminated_workers.push_back(worker);
       }
@@ -403,35 +418,38 @@ namespace boost { namespace threadpool { namespace detail
       function0<void> task;
 
       { // fetch task
-        pool_type* lockedThis = const_cast<pool_type*>(this);
-        recursive_mutex::scoped_lock lock(lockedThis->m_monitor);
+        pool_type* self = const_cast<pool_type*>(this);
+        recursive_mutex::scoped_lock lock(self->m_monitor);
 
-        // decrease number of threads if necessary
-        if(m_worker_count > m_target_worker_count)
-        {	
+        // Decrease the number of threads if necessary. Reserve a termination
+        // slot while holding the monitor so other workers cannot over-shrink.
+        if(self->m_worker_count - self->m_workers_pending_termination > self->m_target_worker_count)
+        {
+          self->m_workers_pending_termination += 1;
           return false;	// terminate worker
         }
 
 
         // wait for tasks
-        while(lockedThis->m_scheduler.empty())
+        while(self->m_scheduler.empty())
         {	
           // decrease number of workers if necessary
-          if(m_worker_count > m_target_worker_count)
-          {	
+          if(self->m_worker_count - self->m_workers_pending_termination > self->m_target_worker_count)
+          {
+            self->m_workers_pending_termination += 1;
             return false;	// terminate worker
           }
           else
           {
-            m_active_worker_count--;
-            lockedThis->m_worker_idle_or_terminated_event.notify_all();	
-            lockedThis->m_task_or_terminate_workers_event.wait(lock);
-            m_active_worker_count++;
+            self->m_active_worker_count -= 1;
+            self->m_worker_idle_or_terminated_event.notify_all();
+            self->m_task_or_terminate_workers_event.wait(lock);
+            self->m_active_worker_count += 1;
           }
         }
 
-        task = lockedThis->m_scheduler.top();
-        lockedThis->m_scheduler.pop();
+        task = self->m_scheduler.top();
+        self->m_scheduler.pop();
       }
 
       // call task function
