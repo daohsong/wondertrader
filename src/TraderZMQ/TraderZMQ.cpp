@@ -61,7 +61,7 @@ namespace
 	{
 		try
 		{
-			const std::string msg = fmt::format(fmtstr, args...);
+			const std::string msg = fmt::format(fmt::runtime(fmtstr), args...);
 			std::fprintf(stderr, "[TraderZMQ][%s] %s\n", level_name(ll), msg.c_str());
 		}
 		catch (...)
@@ -77,7 +77,7 @@ namespace
 		{
 			try
 			{
-				std::string msg = fmt::format(fmtstr, args...);
+				std::string msg = fmt::format(fmt::runtime(fmtstr), args...);
 				std::fprintf(stderr, "[TraderZMQ][%s] %s\n", level_name(ll), msg.c_str());
 			}
 			catch (...)
@@ -92,7 +92,7 @@ namespace
 
 		try
 		{
-			std::string msg = fmt::format(fmtstr, args...);
+			std::string msg = fmt::format(fmt::runtime(fmtstr), args...);
 			sink->handleTraderLog(ll, msg.c_str());
 		}
 		catch (...)

@@ -102,7 +102,7 @@ namespace
 			return;
 		try
 		{
-			auto msg = fmt::format(format, args...);
+			auto msg = fmt::format(fmt::runtime(format), args...);
 			sink->handleParserLog(ll, msg.c_str());
 		}
 		catch (...)

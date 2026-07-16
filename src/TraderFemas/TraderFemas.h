@@ -32,7 +32,7 @@
 #include "../Includes/WTSVariant.hpp"
 
 //Femas v3.02
-#include "../API/Femas3.02/USTPFtdcTraderApi.h"
+#include <USTPFtdcTraderApi.h>
 
 #include "../Share/DLLHelper.hpp"
 
@@ -245,4 +245,3 @@ protected:
 	typedef CUstpFtdcTraderApi* (*APICreator)(const char *);
 	APICreator		m_funcCreator;
 };
-

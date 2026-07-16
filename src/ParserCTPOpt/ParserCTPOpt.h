@@ -10,7 +10,7 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#include "../API/CTPOpt3.5.8/ThostFtdcMdApi.h"
+#include <ThostFtdcMdApi.h>
 #include <map>
 
 NS_WTP_BEGIN
@@ -112,4 +112,3 @@ private:
 	uint32_t		m_uLatestTime = 0;
 	int64_t			m_iLastTimestamp = 0;
 };
-

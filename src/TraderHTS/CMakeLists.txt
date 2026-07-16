@@ -1,44 +1,22 @@
+cmake_minimum_required(VERSION 3.21)
+project(TraderHTS LANGUAGES CXX)
 
-#1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
-#2. 确定工程名
-PROJECT(TraderDD LANGUAGES CXX)
-
-
-IF (WIN32)
-	IF("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-		SET(INCS $ENV{MyX64Deps12}/include)
-		SET(LNKS $ENV{MyX64Deps12}/lib)
-	ELSE()
-		SET(INCS $ENV{MyDepends12}/include)
-		SET(LNKS $ENV{MyDepends12}/lib)
-	ENDIF()
-ELSE (UNIX)
-	SET (MyDeps "/home/mydeps")
-	SET(INCS ${MyDeps}/include)
-	SET(LNKS ${MyDeps}/lib)
-ENDIF ()
-
-SET(SRC  
-	${PROJECT_SOURCE_DIR}/TraderDD.cpp
-	${PROJECT_SOURCE_DIR}/TraderDD.h
+add_library(TraderHTS SHARED
+	TraderHTS.cpp
+	TraderHTS.h
+)
+wt_set_target_bin_output_directory(TraderHTS)
+target_link_libraries(TraderHTS
+	PRIVATE WT::fmt WT::RapidJSON
+	PUBLIC WT::Vendor::HTS WT::BoostThread WT::Platform ${FS_LIB}
 )
 
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/../build/bin)
-
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
-SET(CMAKE_INSTALL_RPATH "\${ORIGIN}")
-
-INCLUDE_DIRECTORIES(${INCS})
-ADD_LIBRARY(TraderDD SHARED ${SRC})
-TARGET_LINK_LIBRARIES(TraderDD PRIVATE WT::fmt WT::RapidJSON PUBLIC WT::BoostFilesystem)
-
-IF (WIN32)
-ELSE (UNIX)
-	TARGET_LINK_LIBRARIES(TraderDD PUBLIC ${PROJECT_SOURCE_DIR}/FixApi/libfixapi.so )
-	SET_TARGET_PROPERTIES(TraderDD PROPERTIES
+if(NOT MSVC)
+	set_target_properties(TraderHTS PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
-		VISIBILITY_INLINES_HIDDEN 1)
-ENDIF ()
+		VISIBILITY_INLINES_HIDDEN ON
+	)
+endif()

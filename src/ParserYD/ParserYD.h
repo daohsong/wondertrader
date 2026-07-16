@@ -10,7 +10,7 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#include "../API/yd1.108.360/ydApi.h"
+#include <ydApi.h>
 #include <map>
 
 NS_WTP_BEGIN
@@ -84,4 +84,3 @@ private:
 	typedef YDApi* (*YDCreator)(const char *);
 	YDCreator			m_funcCreator;
 };
-

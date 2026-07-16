@@ -21,14 +21,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#ifdef _WIN32
-#ifdef _WIN64
-#pragma comment(lib, "../API/oesApi0.17.5.8/x64/oes_api.lib")
-#else
-#pragma comment(lib, "../API/oesApi0.17.5.8/x86/oes_api.lib")
-#endif
-#endif
-
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
 template<typename... Args>
@@ -398,7 +390,8 @@ bool TraderOES::makeEntrustID(char* buffer, int length)
 
 	try
 	{
-		uint32_t orderref = (uint32_t)++_channel->lastOutMsgSeq;
+		uint32_t orderref = static_cast<uint32_t>(_channel->lastOutMsgSeq + 1);
+		_channel->lastOutMsgSeq = orderref;
 		fmtutil::format_to(buffer, "{}#{}#{}", _user, _tradingday, orderref);
 		return true;
 	}
@@ -476,7 +469,8 @@ int TraderOES::orderAction(WTSEntrustAction* action)
 
 
 	OesOrdCancelReqT    cancelReq = { NULLOBJ_OES_ORD_CANCEL_REQ };
-	cancelReq.clSeqNo = (int32) ++_channel->lastOutMsgSeq;
+	cancelReq.clSeqNo = static_cast<int32>(_channel->lastOutMsgSeq + 1);
+	_channel->lastOutMsgSeq = cancelReq.clSeqNo;
 	cancelReq.mktId = wt_stricmp(action->getExchg(), "SSE") == 0 ? OES_MKT_SH_ASHARE : OES_MKT_SZ_ASHARE;
 	uint32_t ordref;
 	extractEntrustID(action->getEntrustID(), ordref);

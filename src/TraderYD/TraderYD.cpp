@@ -8,7 +8,7 @@
  * \brief 
  */
 #include "TraderYD.h"
-#include "../API/yd1.108.360/ydError.h"
+#include <ydError.h>
 
 #include "../Includes/WTSContractInfo.hpp"
 #include "../Includes/WTSSessionInfo.hpp"

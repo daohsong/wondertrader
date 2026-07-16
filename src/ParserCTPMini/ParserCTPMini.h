@@ -10,7 +10,7 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#include "../API/CTPMini1.5.8/ThostFtdcMdApi.h"
+#include <ThostFtdcMdApi.h>
 #include <map>
 
 NS_WTP_BEGIN
@@ -109,4 +109,3 @@ private:
 	typedef CThostFtdcMdApi* (*CTPCreator)(const char *, const bool, const bool);
 	CTPCreator		m_funcCreator;
 };
-

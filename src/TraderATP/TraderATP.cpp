@@ -22,14 +22,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#ifdef _WIN32
-#ifdef _WIN64
-#pragma comment(lib, "../API/AtpTradeApi/x64/atptradeapi.lib")
-#else
-#pragma comment(lib, "../API/AtpTradeApi/x86/atptradeapi.lib")
-#endif
-#endif
-
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
 template<typename... Args>

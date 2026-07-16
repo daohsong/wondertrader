@@ -1,44 +1,22 @@
+cmake_minimum_required(VERSION 3.21)
+project(ParserOES LANGUAGES CXX)
 
-#1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
-#2. 确定工程名
-PROJECT(ParserOES LANGUAGES CXX)
-
-SET(SRC  
-	${PROJECT_SOURCE_DIR}/ParserOES.cpp
-	${PROJECT_SOURCE_DIR}/ParserOES.h
+add_library(ParserOES SHARED
+	ParserOES.cpp
+	ParserOES.h
+)
+wt_set_target_bin_output_directory(ParserOES)
+target_link_libraries(ParserOES
+	PRIVATE WT::fmt
+	PUBLIC WT::Vendor::OES WT::BoostThread WT::Platform ${FS_LIB}
 )
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
-
-ADD_LIBRARY(ParserOES SHARED ${SRC})
-TARGET_LINK_LIBRARIES(ParserOES PRIVATE WT::fmt)
-
-IF(MSVC)
-	SET(LIBS
-		ws2_32
-	)
-ELSE(GNUCC)
-	IF (WIN32)
-		SET(LIBS
-			WT::BoostThread
-			ws2_32
-		)
-	ELSE(UNIX)
-		SET(LIBS
-			WT::BoostThread
-		)
-	ENDIF()
-ENDIF()
-TARGET_LINK_LIBRARIES(ParserOES PUBLIC ${LIBS})
-
-IF (MSVC)
-ELSE (GNUCC)
-	SET_TARGET_PROPERTIES(ParserOES PROPERTIES
+if(NOT MSVC)
+	set_target_properties(ParserOES PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
-		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
-ENDIF ()
-
+		VISIBILITY_INLINES_HIDDEN ON
+	)
+endif()

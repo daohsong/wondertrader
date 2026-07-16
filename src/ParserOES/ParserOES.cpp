@@ -16,14 +16,6 @@
 #include "../Includes/IBaseDataMgr.h"
 #include "../Includes/WTSContractInfo.hpp"
 
-#ifdef _WIN32
-#ifdef _WIN64
-#pragma comment(lib, "../API/oesApi0.17.5.8/x64/oes_api.lib")
-#else
-#pragma comment(lib, "../API/oesApi0.17.5.8/x86/oes_api.lib")
-#endif
-#endif
-
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
 template<typename... Args>

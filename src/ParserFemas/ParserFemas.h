@@ -10,7 +10,7 @@
 #pragma once
 #include "../Includes/IParserApi.h"
 #include "../Share/DLLHelper.hpp"
-#include "../API/Femas3.02/USTPFtdcMduserApi.h"
+#include <USTPFtdcMduserApi.h>
 #include <map>
 
 NS_WTP_BEGIN
@@ -109,4 +109,3 @@ private:
 	typedef CUstpFtdcMduserApi* (*FemasCreator)(const char *);
 	FemasCreator		m_funcCreator;
 };
-

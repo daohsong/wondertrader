@@ -13,6 +13,22 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+template<size_t N>
+inline void copy_api_field(char (&destination)[N], const char* source) noexcept
+{
+	if (source == NULL)
+	{
+		destination[0] = '\0';
+		return;
+	}
+
+	size_t length = strlen(source);
+	if (length >= N)
+		length = N - 1;
+	memcpy(destination, source, length);
+	destination[length] = '\0';
+}
+
 template<typename... Args>
 inline void write_log(ITraderSpi* sink, WTSLogLevel ll, const char* format, const Args&... args) noexcept
 {
@@ -831,14 +847,14 @@ void TraderHuaX::doLogin()
 	CTORATstpReqUserLoginField field;
 	memset(&field, 0, sizeof(CTORATstpReqUserLoginField));
 	//以用户代码方式登录
-	strcpy_s(field.LogInAccount, _user.c_str());
+	copy_api_field(field.LogInAccount, _user.c_str());
 	field.LogInAccountType = TORA_TSTP_LACT_UserID;
-	strcpy_s(field.Password, _pass.c_str());
+	copy_api_field(field.Password, _pass.c_str());
 	// 终端采集  信息
-	strcpy_s(field.UserProductInfo, _productInfo.c_str());
+	copy_api_field(field.UserProductInfo, _productInfo.c_str());
 	// 按照监管要求填写终端信息
 	const char* terminalInfo = fmtutil::format("{};IIP={};IPORT={};LIP={};MAC={};HD={}", _terminal, _pub_ip, _pub_port, _trade_ip, _mac, _hard_disk);
-	strcpy_s(field.TerminalInfo, terminalInfo);
+	copy_api_field(field.TerminalInfo, terminalInfo);
 
 	int ret = _api->ReqUserLogin(&field, genRequestID());
 	if (ret != 0)
@@ -873,9 +889,10 @@ int TraderHuaX::logout()
 	if (_api == NULL)
 		return -1;
 	CTORATstpUserLogoutField field;
-	strcpy_s(field.UserID, _user.c_str());
+	memset(&field, 0, sizeof(field));
+	copy_api_field(field.UserID, _user.c_str());
 	int ret = _api->ReqUserLogout(&field, genRequestID());
-	return 0;
+	return ret;
 }
 
 int TraderHuaX::orderInsert(WTSEntrust* entrust)
@@ -1091,6 +1108,7 @@ inline WTSPriceType TraderHuaX::wrapPriceType(TTORATstpDirectionType priceType)
 		return WPT_BESTPRICE;
 	else
 		write_log(_sink, LL_WARN, "[TraderHuaX] unsupport priceType {}", priceType);
+	return WPT_LIMITPRICE;
 }
 
 inline WTSOrderState TraderHuaX::wrapOrderState(TTORATstpOrderStatusType orderState)

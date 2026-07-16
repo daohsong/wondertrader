@@ -17,7 +17,7 @@
 #include "../Includes/ITraderApi.h"
 #include "../Includes/WTSCollection.hpp"
 
-#include "../API/CTPOpt3.5.8/ThostFtdcTraderApi.h"
+#include <ThostFtdcTraderApi.h>
 
 #include "../Share/IniHelper.hpp"
 #include "../Share/StdUtils.hpp"
@@ -242,4 +242,3 @@ protected:
 
 	IniHelper		m_iniHelper;
 };
-

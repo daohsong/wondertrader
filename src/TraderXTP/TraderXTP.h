@@ -16,7 +16,7 @@
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#include "../API/XTP2.2.32.2/xtp_trader_api.h"
+#include <xtp_trader_api.h>
 
 #include "../Includes/ITraderApi.h"
 #include "../Includes/WTSCollection.hpp"
@@ -155,4 +155,3 @@ private:
 	//订单标记缓存器
 	WtKVCache		m_oidCache;
 };
-

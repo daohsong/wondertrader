@@ -1,48 +1,22 @@
+cmake_minimum_required(VERSION 3.21)
+project(TraderOES LANGUAGES CXX)
 
-#1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
-#2. 确定工程名
-PROJECT(TraderOES LANGUAGES CXX)
-
-SET(SRC  
-	${PROJECT_SOURCE_DIR}/TraderOES.cpp
-	${PROJECT_SOURCE_DIR}/TraderOES.h	
+add_library(TraderOES SHARED
+	TraderOES.cpp
+	TraderOES.h
+)
+wt_set_target_bin_output_directory(TraderOES)
+target_link_libraries(TraderOES
+	PRIVATE WT::fmt
+	PUBLIC WT::Vendor::OES WT::BoostThread WT::Platform ${FS_LIB}
 )
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
-
-ADD_LIBRARY(TraderOES SHARED ${SRC})
-TARGET_LINK_LIBRARIES(TraderOES PRIVATE WT::fmt)
-
-IF(MSVC)
-	SET(LIBS
-		ws2_32
-		)
-ELSE(GNUCC)
-	IF(WIN32)
-		SET(LIBS
-			WT::Platform
-			WT::BoostThread
-			${FS_LIB}
-			ws2_32
-			)
-	ELSE(UNIX)
-		SET(LIBS
-			WT::Platform
-			WT::BoostThread
-			${FS_LIB}
-			)
-	ENDIF()
-ENDIF()
-TARGET_LINK_LIBRARIES(TraderOES PUBLIC ${LIBS})
-
-IF (MSVC)
-ELSE (GNUCC)
-	SET_TARGET_PROPERTIES(TraderOES PROPERTIES
+if(NOT MSVC)
+	set_target_properties(TraderOES PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
-		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
-ENDIF ()
-
+		VISIBILITY_INLINES_HIDDEN ON
+	)
+endif()

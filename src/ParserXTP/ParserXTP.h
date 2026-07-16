@@ -15,7 +15,7 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "../Includes/IParserApi.h"
-#include "../API/XTP2.2.32.2/xtp_quote_api.h"
+#include <xtp_quote_api.h>
 
 #include "../Share/DLLHelper.hpp"
 #include "../Share/StdUtils.hpp"
@@ -131,4 +131,3 @@ private:
 	typedef std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> BoostWorkerPtr;
 	BoostWorkerPtr				_worker;
 };
-

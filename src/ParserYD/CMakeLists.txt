@@ -1,35 +1,22 @@
-#1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
+project(ParserYD LANGUAGES CXX)
 
-#2. 确定工程名
-PROJECT(ParserYD LANGUAGES CXX)
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
-SET(SRC  
-	${PROJECT_SOURCE_DIR}/ParserYD.cpp
-	${PROJECT_SOURCE_DIR}/ParserYD.h
+add_library(ParserYD SHARED
+	ParserYD.cpp
+	ParserYD.h
+)
+wt_set_target_bin_output_directory(ParserYD)
+target_link_libraries(ParserYD
+	PRIVATE WT::fmt
+	PUBLIC WT::Vendor::YD WT::BoostThread WT::Platform ${FS_LIB}
 )
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
-
-ADD_LIBRARY(ParserYD SHARED ${SRC})
-TARGET_LINK_LIBRARIES(ParserYD PRIVATE WT::fmt)
-
-IF (MSVC)
-ELSE (GNUCC)
-	SET(LIBS
-		WT::BoostThread
-		${FS_LIB}
-		WT::Platform
-	)
-	TARGET_LINK_LIBRARIES(ParserYD PUBLIC ${LIBS})
-ENDIF()
-
-IF (MSVC)
-ELSE (GNUCC)
-	SET_TARGET_PROPERTIES(ParserYD PROPERTIES
+if(NOT MSVC)
+	set_target_properties(ParserYD PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
-		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
-ENDIF ()
-
+		VISIBILITY_INLINES_HIDDEN ON
+	)
+endif()

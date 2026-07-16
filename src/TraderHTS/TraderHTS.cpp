@@ -9,7 +9,7 @@
  */
 
 #include "TraderHTS.h"
-#include "../API/HTS5.2.43.0/include/scopeguard.hpp"
+#include <scopeguard.hpp>
 
 #include "../Includes/WTSError.hpp"
 #include "../Includes/WTSContractInfo.hpp"
@@ -55,11 +55,6 @@ inline void write_log(ITraderSpi* sink, WTSLogLevel ll, const char* format, cons
 void inst_hlp() {}
 
 #ifdef _WIN32
-#ifdef _WIN64
-#pragma comment(lib, "../API/HTS5.2.43.0/x64/secitpdk.lib")
-#else
-#pragma comment(lib, "../API/HTS5.2.43.0/x86/secitpdk_x86.lib")
-#endif
 #include <wtypes.h>
 HMODULE	g_dllModule = NULL;
 

@@ -23,7 +23,6 @@ namespace fs = std::filesystem;
 
 #include <iostream>
 
-//#pragma comment(lib, "../API/XTPXAlgo/x64/xtptraderapi_xalgo.lib")
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"

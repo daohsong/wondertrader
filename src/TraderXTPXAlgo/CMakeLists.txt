@@ -1,48 +1,22 @@
+cmake_minimum_required(VERSION 3.21)
+project(TraderXTPXAlgo LANGUAGES CXX)
 
-#1. 确定CMake的最低版本需求
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/WtCopyTarget.cmake)
 
-#2. 确定工程名
-PROJECT(TraderXTP LANGUAGES CXX)
-
-SET(SRC  
-	${PROJECT_SOURCE_DIR}/TraderXTP.cpp
-	${PROJECT_SOURCE_DIR}/TraderXTP.h	
+add_library(TraderXTPXAlgo SHARED
+	TraderXTPXAlgo.cpp
+	TraderXTPXAlgo.h
+)
+wt_set_target_bin_output_directory(TraderXTPXAlgo)
+target_link_libraries(TraderXTPXAlgo
+	PRIVATE WT::fmt
+	PUBLIC WT::Vendor::XTPXAlgo WT::BoostThread WT::Platform ${FS_LIB}
 )
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/build_${PLATFORM}/${CMAKE_BUILD_TYPE}/bin)
-
-ADD_LIBRARY(TraderXTP SHARED ${SRC})
-TARGET_LINK_LIBRARIES(TraderXTP PRIVATE WT::fmt)
-
-IF(MSVC)
-	SET(LIBS
-		ws2_32
-		)
-ELSE(GNUCC)
-	IF(WIN32)
-		SET(LIBS
-			WT::Platform
-			WT::BoostThread
-			${FS_LIB}
-			ws2_32
-			)
-	ELSE(UNIX)
-		SET(LIBS
-			WT::Platform
-			WT::BoostThread
-			${FS_LIB}
-			)
-	ENDIF()
-ENDIF()
-TARGET_LINK_LIBRARIES(TraderXTP PUBLIC ${LIBS})
-
-IF (MSVC)
-ELSE (GNUCC)
-	SET_TARGET_PROPERTIES(TraderXTP PROPERTIES
+if(NOT MSVC)
+	set_target_properties(TraderXTPXAlgo PROPERTIES
 		CXX_VISIBILITY_PRESET hidden
 		C_VISIBILITY_PRESET hidden
-		VISIBILITY_INLINES_HIDDEN 1
-        LINK_FLAGS_RELEASE -s)
-ENDIF ()
-
+		VISIBILITY_INLINES_HIDDEN ON
+	)
+endif()
