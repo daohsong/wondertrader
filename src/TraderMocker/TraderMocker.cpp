@@ -9,10 +9,9 @@
 #include "../Share/TimeUtils.hpp"
 #include "../Share/decimal.h"
 #include "../Share/StrUtil.hpp"
+#include "../Share/FilesystemCompat.hpp"
 
 #include <boost/bind/bind.hpp>
-#include <filesystem>
-namespace fs = std::filesystem;
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
@@ -99,6 +98,18 @@ uint32_t alignVolumeUp(uint32_t volume, uint32_t step) noexcept
 		return alignVolumeDown(std::numeric_limits<uint32_t>::max(), step);
 
 	return volume + delta;
+}
+
+uint32_t volumeToUIntFloor(double volume) noexcept
+{
+	if (!decimal::gt(volume))
+		return 0;
+
+	const double maxVolume = static_cast<double>(std::numeric_limits<uint32_t>::max());
+	if (decimal::gt(volume, maxVolume))
+		return std::numeric_limits<uint32_t>::max();
+
+	return static_cast<uint32_t>(volume);
 }
 
 bool isValidCloseVolumeLot(WTSCommodityInfo* commInfo, double validQty, double volume) noexcept
@@ -261,6 +272,42 @@ bool TraderMocker::makeEntrustID(char* buffer, int length)
 	return false;
 }
 
+bool TraderMocker::has_await_order(const char* fullcode) const
+{
+	if (fullcode == NULL || _awaits == NULL)
+		return false;
+
+	for (auto it = _awaits->begin(); it != _awaits->end(); it++)
+	{
+		WTSOrderInfo* ordInfo = (WTSOrderInfo*)it->second;
+		if (ordInfo == NULL || decimal::le(ordInfo->getVolLeft(), 0))
+			continue;
+
+		WTSContractInfo* ct = ordInfo->getContractInfo();
+		if (ct != NULL && strcmp(ct->getFullCode(), fullcode) == 0)
+			return true;
+
+		if (ct == NULL && strlen(ordInfo->getExchg()) > 0 && strlen(ordInfo->getCode()) > 0)
+		{
+			thread_local static char orderFullCode[64] = { 0 };
+			fmtutil::format_to(orderFullCode, "{}.{}", ordInfo->getExchg(), ordInfo->getCode());
+			if (strcmp(orderFullCode, fullcode) == 0)
+				return true;
+		}
+	}
+
+	return false;
+}
+
+void TraderMocker::refresh_await_code(const char* fullcode)
+{
+	if (fullcode == NULL || strlen(fullcode) == 0)
+		return;
+
+	if (!has_await_order(fullcode))
+		_codes.erase(fullcode);
+}
+
 int TraderMocker::orderInsert(WTSEntrust* entrust)
 {
 	if (entrust == NULL)
@@ -285,6 +332,8 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 		std::string msg;
 		WTSOrderInfo* ordInfo = NULL;
 		uint32_t code_count = 0;
+		FrozenItem pendingFrozen;
+		bool hasPendingFrozen = false;
 
 		{
 			StdUniqueLock awaits_lock(_mtx_awaits);
@@ -355,13 +404,13 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 				auto logCloseReject = [&](const char* reason, const PosItem* pItem, bool positionChecked) {
 					if(pItem != NULL)
 					{
-						const double longValidQty = pItem->_long._volume - pItem->_long._frozen;
-						const double shortValidQty = pItem->_short._volume - pItem->_short._frozen;
+						const double longValidQty = pItem->_long.pre_avail() + (commInfo->isT1() ? 0 : pItem->_long.new_avail());
+						const double shortValidQty = pItem->_short.pre_avail() + (commInfo->isT1() ? 0 : pItem->_short.new_avail());
 						write_log(_listener, LL_ERROR,
 							"[TraderMocker]close position rejected: reason={}, fullCode={}, raw_code={}, raw_exchg={}, covermode={}, offset_type={}, direction={}, entrust_volume={}, long_volume={}, long_frozen={}, long_validQty={}, short_volume={}, short_frozen={}, short_validQty={}",
 							reason, ct->getFullCode(), entrust->getCode(), entrust->getExchg(), static_cast<int>(commInfo->getCoverMode()), static_cast<int>(entrust->getOffsetType()),
-							static_cast<int>(entrust->getDirection()), entrust->getVolume(), pItem->_long._volume, pItem->_long._frozen, longValidQty, pItem->_short._volume,
-							pItem->_short._frozen, shortValidQty);
+							static_cast<int>(entrust->getDirection()), entrust->getVolume(), pItem->_long.total_volume(), pItem->_long.total_frozen(), longValidQty, pItem->_short.total_volume(),
+							pItem->_short.total_frozen(), shortValidQty);
 					}
 					else if(positionChecked)
 					{
@@ -379,15 +428,6 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 					}
 				};
 
-				//如果区分平昨平今,而委托的是平昨,则直接拒绝,因为mocker为了简化处理,不考虑昨仓
-				if (commInfo->getCoverMode() == CM_CoverToday && (entrust->getOffsetType() == WOT_CLOSE || entrust->getOffsetType() == WOT_CLOSEYESTERDAY))
-				{
-					logCloseReject("covermode_offset", NULL, false);
-					bPass = false;
-					msg = "没有足够的可平仓位";
-					break;
-				}
-
 				//如果没有持仓或者持仓不够,也要
 				auto it = _positions.find(ct->getFullCode());
 				if(it == _positions.end())
@@ -400,8 +440,21 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 
 				PosItem& pItem = (PosItem&)it->second;
 				bool isLong = entrust->getDirection() == WDT_LONG;
+				PosUnit& pUnit = isLong ? pItem._long : pItem._short;
 
-				double validQty = isLong ? (pItem._long._volume - pItem._long._frozen) : (pItem._short._volume - pItem._short._frozen);
+				auto calcValidQty = [&]() {
+					if (commInfo->getCoverMode() == CM_CoverToday)
+					{
+						return entrust->getOffsetType() == WOT_CLOSETODAY ? pUnit.new_avail() : pUnit.pre_avail();
+					}
+
+					if (commInfo->isT1())
+						return pUnit.pre_avail();
+
+					return pUnit.pre_avail() + pUnit.new_avail();
+				};
+
+				double validQty = calcValidQty();
 				if(decimal::lt(validQty, entrust->getVolume()))
 				{
 					logCloseReject("volume_frozen_insufficient", &pItem, true);
@@ -419,14 +472,44 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 				}
 
 				//冻结持仓
-				if(isLong)
+				pendingFrozen = FrozenItem();
+				strcpy(pendingFrozen._fullcode, ct->getFullCode());
+				pendingFrozen._direction = entrust->getDirection();
+				double left = entrust->getVolume();
+				auto freezePre = [&]() {
+					const double cur = std::min(left, pUnit.pre_avail());
+					if (decimal::gt(cur, 0))
+					{
+						pUnit._pre_frozen += cur;
+						pendingFrozen._pre += cur;
+						left -= cur;
+					}
+				};
+				auto freezeNew = [&]() {
+					const double cur = std::min(left, pUnit.new_avail());
+					if (decimal::gt(cur, 0))
+					{
+						pUnit._new_frozen += cur;
+						pendingFrozen._new += cur;
+						left -= cur;
+					}
+				};
+
+				if (commInfo->getCoverMode() == CM_CoverToday)
 				{
-					pItem._long._frozen += entrust->getVolume();
+					if (entrust->getOffsetType() == WOT_CLOSETODAY)
+						freezeNew();
+					else
+						freezePre();
 				}
+				else if (commInfo->isT1())
+					freezePre();
 				else
 				{
-					pItem._short._frozen += entrust->getVolume();
+					freezePre();
+					freezeNew();
 				}
+				hasPendingFrozen = decimal::gt(pendingFrozen.total(), 0);
 
 				bPass = true;
 				msg = "下单成功";
@@ -465,6 +548,8 @@ int TraderMocker::orderInsert(WTSEntrust* entrust)
 					_awaits = OrderCache::create();
 
 				_awaits->add(ordInfo->getOrderID(), ordInfo, true);
+				if (hasPendingFrozen)
+					_frozen_orders[ordInfo->getOrderID()] = pendingFrozen;
 
 				save_positions();
 			}
@@ -501,8 +586,9 @@ int32_t TraderMocker::match_once()
 	StdUniqueLock state_lock(_mtx_awaits);
 	if (_terminated || _orders == NULL || _orders->size() == 0 || _ticks == NULL || _awaits == NULL)
 		return 0;
-	
+
 	int32_t count = 0;
+	std::vector<std::string> codes_to_refresh;
 	for (const std::string& fullcode : _codes)
 	{
 		if (_terminated)
@@ -517,10 +603,8 @@ int32_t TraderMocker::match_once()
 		if (ct == NULL)
 			continue;
 
-		WTSCommodityInfo* commInfo = ct->getCommInfo();
-
 		WTSTickData* curTick = (WTSTickData*)_ticks->grab(fullcode);
-		if (curTick && strcmp(curTick->code(), ct->getCode())==0)
+		if (curTick && strcmp(curTick->code(), ct->getCode()) == 0 && strcmp(curTick->exchg(), ct->getExchg()) == 0)
 		{
 			uint64_t tickTime = (uint64_t)curTick->actiondate() * 1000000000 + curTick->actiontime();
 			if (decimal::gt(curTick->price(), 0) /*&& tickTime >= _last_match_time*/)
@@ -532,8 +616,44 @@ int32_t TraderMocker::match_once()
 				for (auto it = _awaits->begin(); it != _awaits->end(); it++)
 				{
 					WTSOrderInfo* ordInfo = (WTSOrderInfo*)it->second;
-					if (ordInfo->getVolLeft() == 0 || strcmp(ct->getCode(), curTick->code()) != 0)
+					WTSContractInfo* orderCt = ordInfo->getContractInfo();
+					if (orderCt == NULL)
+					{
+						orderCt = _bd_mgr->getContract(ordInfo->getCode(), ordInfo->getExchg());
+						if (orderCt != NULL)
+							ordInfo->setContractInfo(orderCt);
+					}
+					if (orderCt == NULL)
+					{
+						write_log(_listener, LL_ERROR, "[TraderMocker]order contract missing: orderid={}", ordInfo->getOrderID());
 						continue;
+					}
+
+					if (strcmp(orderCt->getFullCode(), fullcode.c_str()) != 0)
+						continue;
+
+					if (decimal::le(ordInfo->getVolLeft(), 0))
+					{
+						if (decimal::lt(ordInfo->getVolLeft(), 0))
+						{
+							write_log(_listener, LL_WARN,
+								"[TraderMocker]order left volume corrected before match: orderid={}, fullcode={}, left={}",
+								ordInfo->getOrderID(), orderCt->getFullCode(), ordInfo->getVolLeft());
+						}
+						ordInfo->setVolLeft(0);
+						ordInfo->setVolTraded(ordInfo->getVolume());
+						ordInfo->setOrderState(WOS_AllTraded);
+						ordInfo->setStateMsg("AllTrd");
+						to_erase.emplace_back(ordInfo->getOrderID());
+						continue;
+					}
+
+					WTSCommodityInfo* orderCommInfo = orderCt->getCommInfo();
+					if (orderCommInfo == NULL)
+					{
+						write_log(_listener, LL_ERROR, "[TraderMocker]order commodity missing: orderid={}, fullcode={}", ordInfo->getOrderID(), orderCt->getFullCode());
+						continue;
+					}
 
 					bool isBuy = (ordInfo->getDirection() == WDT_LONG && ordInfo->getOffsetType() == WOT_OPEN) || (ordInfo->getDirection() != WDT_LONG && ordInfo->getOffsetType() != WOT_OPEN);
 
@@ -550,12 +670,10 @@ int32_t TraderMocker::match_once()
 					}
 
 					if (decimal::eq(uVolume, 0))
-						continue;					
+						continue;
 
 					if (_use_newpx)
-					{
 						uPrice = curTick->price();
-					}
 
 					if (decimal::eq(uPrice, 0))
 						continue;
@@ -565,8 +683,32 @@ int32_t TraderMocker::match_once()
 					if (ordInfo->getPriceType() == WPT_LIMITPRICE && ((isBuy && decimal::lt(target, uPrice)) || (!isBuy && decimal::gt(target, uPrice))))
 						continue;
 
+					PosItem& pItem = _positions[orderCt->getFullCode()];
+					//第一次的话要给代码和交易所赋值
+					if(strlen(pItem._code) == 0)
+					{
+						strcpy(pItem._code, orderCt->getCode());
+						strcpy(pItem._exchg, orderCt->getExchg());
+					}
+
+					if (orderCommInfo->getCoverMode() != CM_None && ordInfo->getOffsetType() != WOT_OPEN)
+					{
+						const PosUnit& pUnit = ordInfo->getDirection() == WDT_LONG ? pItem._long : pItem._short;
+						auto frozenIt = _frozen_orders.find(ordInfo->getOrderID());
+						const double frozenAvailable = frozenIt == _frozen_orders.end() ? pUnit.total_frozen() : frozenIt->second.total();
+						const double available = std::min(pUnit.total_volume(), frozenAvailable);
+						if (decimal::le(available, 0))
+						{
+							write_log(_listener, LL_ERROR,
+								"[TraderMocker]close match skipped: position not available, orderid={}, fullcode={}, volume={}, frozen={}",
+								ordInfo->getOrderID(), orderCt->getFullCode(), pUnit.total_volume(), pUnit.total_frozen());
+							continue;
+						}
+						uVolume = std::min(uVolume, available);
+					}
+
 					uint32_t maxVolume = (uint32_t)min(uVolume, ordInfo->getVolLeft());
-					uint32_t volumeStep = matchVolumeStep(ordInfo, commInfo);
+					uint32_t volumeStep = matchVolumeStep(ordInfo, orderCommInfo);
 					uint32_t minVolume = volumeStep <= 1 ? 1 : volumeStep;
 					maxVolume = alignVolumeDown(maxVolume, volumeStep);
 					if (maxVolume == 0 || maxVolume < minVolume)
@@ -579,11 +721,26 @@ int32_t TraderMocker::match_once()
 					count++;
 					for (uint32_t curVol : ayVol)
 					{
+						const double volLeftBefore = ordInfo->getVolLeft();
+						uint32_t maxCurVol = volumeToUIntFloor(volLeftBefore);
+						if (volumeStep > 1)
+							maxCurVol = alignVolumeDown(maxCurVol, volumeStep);
 
-						WTSTradeInfo* trade = WTSTradeInfo::create(curTick->code(), curTick->exchg());
+						if (maxCurVol == 0)
+							break;
+
+						if (curVol > maxCurVol)
+						{
+							write_log(_listener, LL_WARN,
+								"[TraderMocker]match volume clipped: orderid={}, fullcode={}, expect={}, left={}",
+								ordInfo->getOrderID(), orderCt->getFullCode(), curVol, volLeftBefore);
+							curVol = maxCurVol;
+						}
+
+						WTSTradeInfo* trade = WTSTradeInfo::create(orderCt->getCode(), orderCt->getExchg());
 						trade->setDirection(ordInfo->getDirection());
 						trade->setOffsetType(ordInfo->getOffsetType());
-						trade->setContractInfo(ct);
+						trade->setContractInfo(orderCt);
 
 						trade->setPrice(uPrice);
 						trade->setVolume(curVol);
@@ -598,10 +755,13 @@ int32_t TraderMocker::match_once()
 						trade->setUserTag(ordInfo->getUserTag());
 
 						//更新订单数据
-						ordInfo->setVolLeft(ordInfo->getVolLeft() - curVol);
-						ordInfo->setVolTraded(ordInfo->getVolTraded() - curVol);
-						if (decimal::eq(ordInfo->getVolLeft(), 0))
+						const double volLeftAfter = std::max(0.0, volLeftBefore - curVol);
+						ordInfo->setVolLeft(volLeftAfter);
+						ordInfo->setVolTraded(std::max(0.0, ordInfo->getVolume() - volLeftAfter));
+						const bool allTraded = decimal::le(ordInfo->getVolLeft(), 0);
+						if (allTraded)
 						{
+							ordInfo->setVolLeft(0);
 							ordInfo->setOrderState(WOS_AllTraded);
 							ordInfo->setStateMsg("AllTrd");
 							to_erase.emplace_back(ordInfo->getOrderID());
@@ -612,15 +772,7 @@ int32_t TraderMocker::match_once()
 							ordInfo->setStateMsg("PartTrd");
 						}
 
-						PosItem& pItem = _positions[ct->getFullCode()];
-						//第一次的话要给代码和交易所赋值
-						if(strlen(pItem._code) == 0)
-						{
-							strcpy(pItem._code, ct->getCode());
-							strcpy(pItem._exchg, ct->getExchg());
-						}
-
-						if(commInfo->getCoverMode() == CM_None)
+						if(orderCommInfo->getCoverMode() == CM_None)
 						{
 
 						}
@@ -630,28 +782,133 @@ int32_t TraderMocker::match_once()
 							{
 								if (ordInfo->getOffsetType() == WOT_OPEN)
 								{
-									pItem._long._volume += curVol;
+									pItem._long._new_volume += curVol;
 								}
 								else
 								{
-									pItem._long._volume -= curVol;
-									pItem._long._frozen -= curVol;
+									double left = curVol;
+									auto consumePre = [&]() {
+										const double cur = std::min(left, pItem._long._pre_frozen);
+										if (decimal::gt(cur, 0))
+										{
+											pItem._long._pre_volume -= cur;
+											pItem._long._pre_frozen -= cur;
+											left -= cur;
+										}
+										return cur;
+									};
+									auto consumeNew = [&]() {
+										const double cur = std::min(left, pItem._long._new_frozen);
+										if (decimal::gt(cur, 0))
+										{
+											pItem._long._new_volume -= cur;
+											pItem._long._new_frozen -= cur;
+											left -= cur;
+										}
+										return cur;
+									};
+
+									auto frozenIt = _frozen_orders.find(ordInfo->getOrderID());
+									if (frozenIt != _frozen_orders.end())
+									{
+										const double preBefore = pItem._long._pre_frozen;
+										const double preTake = std::min(left, frozenIt->second._pre);
+										const double preCur = std::min(preTake, preBefore);
+										if (decimal::gt(preCur, 0))
+										{
+											pItem._long._pre_volume -= preCur;
+											pItem._long._pre_frozen -= preCur;
+											frozenIt->second._pre -= preCur;
+											left -= preCur;
+										}
+										const double newBefore = pItem._long._new_frozen;
+										const double newTake = std::min(left, frozenIt->second._new);
+										const double newCur = std::min(newTake, newBefore);
+										if (decimal::gt(newCur, 0))
+										{
+											pItem._long._new_volume -= newCur;
+											pItem._long._new_frozen -= newCur;
+											frozenIt->second._new -= newCur;
+											left -= newCur;
+										}
+									}
+									else if (ordInfo->getOffsetType() == WOT_CLOSETODAY)
+									{
+										consumeNew();
+									}
+									else
+									{
+										consumePre();
+										consumeNew();
+									}
 								}
 							}
 							else
 							{
 								if (ordInfo->getOffsetType() == WOT_OPEN)
 								{
-									pItem._short._volume += curVol;
+									pItem._short._new_volume += curVol;
 								}
 								else
 								{
-									pItem._short._volume -= curVol;
-									pItem._short._frozen -= curVol;
+									double left = curVol;
+									auto consumePre = [&]() {
+										const double cur = std::min(left, pItem._short._pre_frozen);
+										if (decimal::gt(cur, 0))
+										{
+											pItem._short._pre_volume -= cur;
+											pItem._short._pre_frozen -= cur;
+											left -= cur;
+										}
+										return cur;
+									};
+									auto consumeNew = [&]() {
+										const double cur = std::min(left, pItem._short._new_frozen);
+										if (decimal::gt(cur, 0))
+										{
+											pItem._short._new_volume -= cur;
+											pItem._short._new_frozen -= cur;
+											left -= cur;
+										}
+										return cur;
+									};
+
+									auto frozenIt = _frozen_orders.find(ordInfo->getOrderID());
+									if (frozenIt != _frozen_orders.end())
+									{
+										const double preBefore = pItem._short._pre_frozen;
+										const double preTake = std::min(left, frozenIt->second._pre);
+										const double preCur = std::min(preTake, preBefore);
+										if (decimal::gt(preCur, 0))
+										{
+											pItem._short._pre_volume -= preCur;
+											pItem._short._pre_frozen -= preCur;
+											frozenIt->second._pre -= preCur;
+											left -= preCur;
+										}
+										const double newBefore = pItem._short._new_frozen;
+										const double newTake = std::min(left, frozenIt->second._new);
+										const double newCur = std::min(newTake, newBefore);
+										if (decimal::gt(newCur, 0))
+										{
+											pItem._short._new_volume -= newCur;
+											pItem._short._new_frozen -= newCur;
+											frozenIt->second._new -= newCur;
+											left -= newCur;
+										}
+									}
+									else if (ordInfo->getOffsetType() == WOT_CLOSETODAY)
+									{
+										consumeNew();
+									}
+									else
+									{
+										consumePre();
+										consumeNew();
+									}
 								}
 							}
 						}
-						
 
 						if (_listener)
 						{
@@ -664,16 +921,21 @@ int32_t TraderMocker::match_once()
 							_trades = WTSArray::create();
 
 						_trades->append(trade, false);
+
+						if (allTraded)
+							break;
 					}
 				}
 
-				if (count > 0)
+				if (!to_erase.empty())
 				{
 					//write_log(_listener,LL_INFO, "[TraderMocker]触发 %s.%s 开多 %u 条,价格:%u", tick->exchg(), tick->code(), iCount, uPrice);
 					for (const std::string& oid : to_erase)
 					{
 						_awaits->remove(oid);
+						_frozen_orders.erase(oid);
 					}
+					codes_to_refresh.emplace_back(fullcode);
 				}
 			}
 		}
@@ -683,6 +945,9 @@ int32_t TraderMocker::match_once()
 	}
 
 	_last_match_time = _max_tick_time;
+
+	for (const std::string& fullcode : codes_to_refresh)
+		refresh_await_code(fullcode.c_str());
 
 	_ticks->clear();
 
@@ -721,7 +986,7 @@ bool TraderMocker::init(WTSVariant *params)
 	std::stringstream ss;
 	ss << "./mocker_" << _mocker_id << "/";
 	std::string path = ss.str();
-	fs::create_directories(path.c_str());
+	wt::fs::create_directories(path.c_str());
 
 	_pos_file = path;
 	_pos_file += "positions.json";
@@ -731,7 +996,10 @@ bool TraderMocker::init(WTSVariant *params)
 
 void TraderMocker::load_positions()
 {
-	if (!fs::exists(_pos_file.c_str()))
+	_positions.clear();
+	_frozen_orders.clear();
+
+	if (!wt::fs::exists(_pos_file.c_str()))
 		return;
 
 	std::string json;
@@ -742,28 +1010,102 @@ void TraderMocker::load_positions()
 	if (root.HasParseError())
 		return;
 
+	uint32_t savedDate = 0;
+	if (root.HasMember("trading_date") && root["trading_date"].IsUint())
+		savedDate = root["trading_date"].GetUint();
+	const uint32_t curDate = TimeUtils::getCurDate();
+	const bool rollNewToPre = savedDate != 0 && savedDate < curDate;
+
 	if(root.HasMember("positions"))
 	{//读取仓位
-		double total_profit = 0;
-		double total_dynprofit = 0;
 		const rj::Value& jPos = root["positions"];
 		if (!jPos.IsNull() && jPos.IsArray())
 		{
 			for (const rj::Value& pItem : jPos.GetArray())
 			{
+				if (!pItem.IsObject() || !pItem.HasMember("exchg") || !pItem["exchg"].IsString() || !pItem.HasMember("code") || !pItem["code"].IsString()
+					|| !pItem.HasMember("long") || !pItem["long"].IsObject()
+					|| !pItem.HasMember("short") || !pItem["short"].IsObject())
+				{
+					write_log(_listener, LL_ERROR, "[TraderMocker]invalid position item found while loading {}", _pos_file.c_str());
+					continue;
+				}
+
 				const char* exchg = pItem["exchg"].GetString();
 				const char* code = pItem["code"].GetString();
 				WTSContractInfo* ct = _bd_mgr->getContract(code, exchg);
 				if (ct == NULL)
 					continue;
 
-				PosItem& pInfo = _positions[ct->getFullCode()];
+				auto parseBucket = [&](const rj::Value& side, const char* name, PosUnit& unit) {
+					auto parsePart = [&](const rj::Value& parent, const char* part, double& volume, double& frozen) {
+						if (!parent.HasMember(part))
+							return true;
+						const rj::Value& item = parent[part];
+						if (!item.IsObject() || !item.HasMember("volume") || !item["volume"].IsNumber())
+							return false;
+						volume = item["volume"].GetDouble();
+						frozen = (item.HasMember("frozen") && item["frozen"].IsNumber()) ? item["frozen"].GetDouble() : 0;
+						return true;
+					};
+
+					if (side.HasMember("pre") || side.HasMember("new"))
+					{
+						if (!parsePart(side, "pre", unit._pre_volume, unit._pre_frozen) || !parsePart(side, "new", unit._new_volume, unit._new_frozen))
+						{
+							write_log(_listener, LL_ERROR, "[TraderMocker]invalid {} position bucket ignored while loading: fullcode={}", name, ct->getFullCode());
+							return false;
+						}
+					}
+					else
+					{
+						if (!side.HasMember("volume") || !side["volume"].IsNumber())
+						{
+							write_log(_listener, LL_ERROR, "[TraderMocker]invalid legacy {} position ignored while loading: fullcode={}", name, ct->getFullCode());
+							return false;
+						}
+						unit._pre_volume = side["volume"].GetDouble();
+					}
+
+					if (decimal::lt(unit._pre_volume, 0) || decimal::lt(unit._new_volume, 0) || decimal::lt(unit._pre_frozen, 0) || decimal::lt(unit._new_frozen, 0)
+						|| decimal::gt(unit._pre_frozen, unit._pre_volume) || decimal::gt(unit._new_frozen, unit._new_volume))
+					{
+						write_log(_listener, LL_ERROR,
+							"[TraderMocker]invalid {} position ignored while loading: fullcode={}, pre_volume={}, pre_frozen={}, new_volume={}, new_frozen={}",
+							name, ct->getFullCode(), unit._pre_volume, unit._pre_frozen, unit._new_volume, unit._new_frozen);
+						return false;
+					}
+
+					// 冻结量只由当前进程内的未完成订单维护；订单不持久化，重启加载时必须释放。
+					unit._pre_frozen = 0;
+					unit._new_frozen = 0;
+
+					return true;
+				};
+
+				auto rollUnit = [](PosUnit& unit) {
+					unit._pre_volume += unit._new_volume;
+					unit._new_volume = 0;
+					unit._pre_frozen = 0;
+					unit._new_frozen = 0;
+				};
+
+				PosItem pInfo;
 				strcpy(pInfo._code, ct->getCode());
 				strcpy(pInfo._exchg, ct->getExchg());
-				
-				pInfo._long._volume = pItem["long"]["volume"].GetDouble();
+				if (!parseBucket(pItem["long"], "long", pInfo._long) || !parseBucket(pItem["short"], "short", pInfo._short))
+					continue;
 
-				pInfo._short._volume = pItem["short"]["volume"].GetDouble();
+				if (rollNewToPre)
+				{
+					rollUnit(pInfo._long);
+					rollUnit(pInfo._short);
+				}
+
+				if (decimal::eq(pInfo._long.total_volume(), 0) && decimal::eq(pInfo._short.total_volume(), 0))
+					continue;
+
+				_positions[ct->getFullCode()] = pInfo;
 			}
 		}
 	}
@@ -775,33 +1117,66 @@ void TraderMocker::load_positions()
 void TraderMocker::save_positions()
 {
 	rj::Document root(rj::kObjectType);
+	rj::Document::AllocatorType &allocator = root.GetAllocator();
+	root.AddMember("trading_date", TimeUtils::getCurDate(), allocator);
 
 	{//持仓数据保存
 		rj::Value jPos(rj::kArrayType);
-
-		rj::Document::AllocatorType &allocator = root.GetAllocator();
 
 		for (auto& v : _positions)
 		{
 			const char* fullcode = v.first.c_str();
 			const PosItem& pInfo = v.second;
+			if (strlen(pInfo._exchg) == 0 || strlen(pInfo._code) == 0)
+			{
+				write_log(_listener, LL_ERROR, "[TraderMocker]position with empty code ignored while saving: key={}", fullcode);
+				continue;
+			}
+
+			auto validUnit = [](const PosUnit& unit) {
+				return !decimal::lt(unit._pre_volume, 0) && !decimal::lt(unit._new_volume, 0) && !decimal::lt(unit._pre_frozen, 0) && !decimal::lt(unit._new_frozen, 0)
+					&& !decimal::gt(unit._pre_frozen, unit._pre_volume) && !decimal::gt(unit._new_frozen, unit._new_volume);
+			};
+
+			if (!validUnit(pInfo._long) || !validUnit(pInfo._short))
+			{
+				write_log(_listener, LL_ERROR,
+					"[TraderMocker]invalid position ignored while saving: key={}, long_volume={}, long_frozen={}, short_volume={}, short_frozen={}",
+					fullcode, pInfo._long.total_volume(), pInfo._long.total_frozen(), pInfo._short.total_volume(), pInfo._short.total_frozen());
+				continue;
+			}
+
+			if (decimal::eq(pInfo._long.total_volume(), 0) && decimal::eq(pInfo._short.total_volume(), 0))
+				continue;
 
 			rj::Value pItem(rj::kObjectType);
 			pItem.AddMember("exchg", rj::Value(pInfo._exchg, allocator), allocator);
 			pItem.AddMember("code", rj::Value(pInfo._code, allocator), allocator);
 
-			{
+			auto addUnit = [&](rj::Value& parent, const char* name, const PosUnit& unit) {
 				rj::Value dItem(rj::kObjectType);
-				dItem.AddMember("volume", pInfo._long._volume, allocator);
+				dItem.AddMember("volume", unit.total_volume(), allocator);
+				dItem.AddMember("frozen", 0, allocator);
 
-				pItem.AddMember("long", dItem, allocator);
+				rj::Value preItem(rj::kObjectType);
+				preItem.AddMember("volume", unit._pre_volume, allocator);
+				preItem.AddMember("frozen", 0, allocator);
+				dItem.AddMember("pre", preItem, allocator);
+
+				rj::Value newItem(rj::kObjectType);
+				newItem.AddMember("volume", unit._new_volume, allocator);
+				newItem.AddMember("frozen", 0, allocator);
+				dItem.AddMember("new", newItem, allocator);
+
+				parent.AddMember(rj::Value(name, allocator), dItem, allocator);
+			};
+
+			{
+				addUnit(pItem, "long", pInfo._long);
 			}
 
 			{
-				rj::Value dItem(rj::kObjectType);
-				dItem.AddMember("volume", pInfo._short._volume, allocator);
-
-				pItem.AddMember("short", dItem, allocator);
+				addUnit(pItem, "short", pInfo._short);
 			}
 
 
@@ -812,10 +1187,10 @@ void TraderMocker::save_positions()
 	}
 
 	{
-        rj::StringBuffer sb;
-        rj::PrettyWriter<rj::StringBuffer> writer(sb);
-        root.Accept(writer);
-        StdFile::write_file_content(_pos_file.c_str(), sb.GetString());
+		rj::StringBuffer sb;
+		rj::PrettyWriter<rj::StringBuffer> writer(sb);
+		root.Accept(writer);
+		StdFile::write_file_content(_pos_file.c_str(), sb.GetString());
 
 	}
 }
@@ -876,6 +1251,10 @@ void TraderMocker::connect()
 	_thrd_worker.reset(new StdThread(boost::bind(&boost::asio::io_context::run, &_io_service)));
 
 	boost::asio::post(_io_service, [this](){
+		//_positions/_frozen_orders 由 _mtx_awaits 保护(与 match_once/orderInsert 一致)。
+		//load_positions 会 clear+重建哈希表(rehash),必须持有 _mtx_awaits,
+		//否则与撮合线程 match_once 并发改写同一张哈希表,导致桶数组重分配时越界崩溃。
+		StdUniqueLock state_lock(_mtx_awaits);
 		StdUniqueLock lock(_mutex_api);
 
 		load_positions();
@@ -963,7 +1342,42 @@ int TraderMocker::orderAction(WTSEntrustAction* action)
 		}
 
 		WTSContractInfo* ct = ordInfo->getContractInfo();
+		if (ct == NULL)
+		{
+			ct = _bd_mgr->getContract(ordInfo->getCode(), ordInfo->getExchg());
+			if (ct != NULL)
+				ordInfo->setContractInfo(ct);
+		}
+		if (ct == NULL)
+		{
+			WTSError* err = WTSError::create(WEC_ORDERCANCEL, "订单合约不存在");
+			if (_listener)
+			{
+				StdUniqueLock lock(_mutex_api);
+				write_log(_listener, LL_ERROR, "订单{}合约不存在,撤单失败", orderID.c_str());
+				_listener->onTraderError(err);
+			}
+			err->release();
+			ordInfo->release();
+			action->release();
+			return;
+		}
+		std::string fullcode = ct->getFullCode();
 		WTSCommodityInfo* commInfo = ct->getCommInfo();
+		if (commInfo == NULL)
+		{
+			WTSError* err = WTSError::create(WEC_ORDERCANCEL, "订单品种不存在");
+			if (_listener)
+			{
+				StdUniqueLock lock(_mutex_api);
+				write_log(_listener, LL_ERROR, "订单{}品种不存在,撤单失败", orderID.c_str());
+				_listener->onTraderError(err);
+			}
+			err->release();
+			ordInfo->release();
+			action->release();
+			return;
+		}
 
 		bool bPass = false;
 		do 
@@ -985,13 +1399,49 @@ int TraderMocker::orderAction(WTSEntrustAction* action)
 			//释放冻结持仓
 			PosItem& pItem = _positions[ct->getFullCode()];
 			bool isLong = ordInfo->getDirection() == WDT_LONG;
-			if(isLong)
+			PosUnit& pUnit = isLong ? pItem._long : pItem._short;
+			auto frozenIt = _frozen_orders.find(orderID);
+			if (frozenIt != _frozen_orders.end())
 			{
-				pItem._long._frozen -= ordInfo->getVolLeft();
+				const double preRelease = std::min(pUnit._pre_frozen, frozenIt->second._pre);
+				const double newRelease = std::min(pUnit._new_frozen, frozenIt->second._new);
+				pUnit._pre_frozen -= preRelease;
+				pUnit._new_frozen -= newRelease;
+				_frozen_orders.erase(frozenIt);
 			}
 			else
 			{
-				pItem._short._frozen -= ordInfo->getVolLeft();
+				double left = ordInfo->getVolLeft();
+				auto releasePre = [&]() {
+					const double cur = std::min(left, pUnit._pre_frozen);
+					if (decimal::gt(cur, 0))
+					{
+						pUnit._pre_frozen -= cur;
+						left -= cur;
+					}
+				};
+				auto releaseNew = [&]() {
+					const double cur = std::min(left, pUnit._new_frozen);
+					if (decimal::gt(cur, 0))
+					{
+						pUnit._new_frozen -= cur;
+						left -= cur;
+					}
+				};
+
+				if (ordInfo->getOffsetType() == WOT_CLOSETODAY)
+					releaseNew();
+				else
+				{
+					releasePre();
+					releaseNew();
+				}
+
+				if (decimal::gt(left, 0))
+				{
+					write_log(_listener, LL_ERROR, "[TraderMocker]cancel releases more than frozen: orderid={}, fullcode={}, frozen={}, vol_left={}",
+						orderID.c_str(), ct->getFullCode(), pUnit.total_frozen(), ordInfo->getVolLeft());
+				}
 			}
 			bPass = true;
 
@@ -1009,6 +1459,10 @@ int TraderMocker::orderAction(WTSEntrustAction* action)
 
 		if (_awaits)
 			_awaits->remove(orderID);
+		_frozen_orders.erase(orderID);
+
+		if (!fullcode.empty())
+			refresh_await_code(fullcode.c_str());
 
 		ordInfo->release();
 		action->release();
@@ -1066,24 +1520,28 @@ int TraderMocker::queryPositions()
 
 			WTSCommodityInfo* commInfo = ct->getCommInfo();
 
-			if(pItem._long._volume > 0)
+			if(pItem._long.total_volume() > 0)
 			{
 				WTSPositionItem* pInfo = WTSPositionItem::create(pItem._code, commInfo->getCurrency(), pItem._exchg);
 				pInfo->setContractInfo(ct);
 				pInfo->setDirection(WDT_LONG);
-				pInfo->setNewPosition(pItem._long._volume);
-				pInfo->setAvailNewPos(pItem._long._volume - pItem._long._frozen);
+				pInfo->setPrePosition(pItem._long._pre_volume);
+				pInfo->setAvailPrePos(pItem._long.pre_avail());
+				pInfo->setNewPosition(pItem._long._new_volume);
+				pInfo->setAvailNewPos(commInfo->isT1() ? 0 : pItem._long.new_avail());
 
 				ayPos->append(pInfo, false);
 			}
 
-			if (pItem._short._volume > 0)
+			if (pItem._short.total_volume() > 0)
 			{
 				WTSPositionItem* pInfo = WTSPositionItem::create(pItem._code, commInfo->getCurrency(), pItem._exchg);
 				pInfo->setContractInfo(ct);
 				pInfo->setDirection(WDT_SHORT);
-				pInfo->setNewPosition(pItem._short._volume);
-				pInfo->setAvailNewPos(pItem._short._volume - pItem._short._frozen);
+				pInfo->setPrePosition(pItem._short._pre_volume);
+				pInfo->setAvailPrePos(pItem._short.pre_avail());
+				pInfo->setNewPosition(pItem._short._new_volume);
+				pInfo->setAvailNewPos(commInfo->isT1() ? 0 : pItem._short.new_avail());
 
 				ayPos->append(pInfo, false);
 			}

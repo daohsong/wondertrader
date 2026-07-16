@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <atomic>
+#include <unordered_map>
 
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
@@ -41,6 +42,8 @@ private:
 
 	void		load_positions();
 	void		save_positions();
+	bool		has_await_order(const char* fullcode) const;
+	void		refresh_await_code(const char* fullcode);
 
 
 private:
@@ -81,8 +84,15 @@ private:
 
 	typedef struct _PosUnit
 	{
-		double	_volume;
-		double	_frozen;
+		double	_pre_volume;
+		double	_pre_frozen;
+		double	_new_volume;
+		double	_new_frozen;
+
+		double total_volume() const { return _pre_volume + _new_volume; }
+		double total_frozen() const { return _pre_frozen + _new_frozen; }
+		double pre_avail() const { return _pre_volume > _pre_frozen ? _pre_volume - _pre_frozen : 0; }
+		double new_avail() const { return _new_volume > _new_frozen ? _new_volume - _new_frozen : 0; }
 	} PosUnit;
 
 	typedef struct _PosItem
@@ -101,6 +111,25 @@ private:
 
 	wt_hashmap<std::string, PosItem> _positions;
 	std::string		_pos_file;
+
+	typedef struct _FrozenItem
+	{
+		char	_fullcode[64];
+		WTSDirectionType	_direction;
+		double	_pre;
+		double	_new;
+
+		_FrozenItem()
+			: _direction(WDT_LONG)
+			, _pre(0)
+			, _new(0)
+		{
+			memset(_fullcode, 0, sizeof(_fullcode));
+		}
+
+		double total() const { return _pre + _new; }
+	} FrozenItem;
+	std::unordered_map<std::string, FrozenItem> _frozen_orders;
 
 private:
 	int			_udp_port;
