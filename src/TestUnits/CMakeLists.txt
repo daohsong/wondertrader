@@ -49,6 +49,7 @@ SET(SRCS
 )
 SET(LIBS
 	WtDtCore
+	WtCore
     WTSTools
 	WTSUtils
     WtShareHelper)

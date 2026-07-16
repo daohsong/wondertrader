@@ -16,12 +16,10 @@
 #include "../Includes/IBaseDataMgr.h"
 
 #include "../Share/ModuleHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/TimeUtils.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Share/Converter.hpp"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
@@ -119,7 +117,7 @@ bool ParserCTP::init(WTSVariant* config)
 	std::string path = fmtutil::format("{}{}/{}/", m_strFlowDir, m_strBroker, m_strUserID);
 	if (!StdFile::exists(path.c_str()))
 	{
-		fs::create_directories(fs::path(path));
+		wt::fs::create_directories(wt::fs::path(path));
 	}	
 #ifdef WT_CTP_STATIC
 	m_pUserAPI = CThostFtdcMdApi::CreateFtdcMdApi(path.c_str(), false, false);

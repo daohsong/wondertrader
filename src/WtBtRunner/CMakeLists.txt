@@ -17,7 +17,8 @@ IF(MSVC)
 ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
-		${FS_LIB})
+		${FS_LIB}
+		)
 	if(WIN32)
 		LIST(APPEND LIBS iconv)
 	ENDIF()

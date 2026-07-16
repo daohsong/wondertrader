@@ -31,8 +31,7 @@ ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
 		WT::BoostThread
-		WT::BoostFilesystem
-        ${FS_LIB})
+		${FS_LIB})
 	IF(WIN32)
 		LIST(APPEND LIBS
 			ws2_32 iconv)

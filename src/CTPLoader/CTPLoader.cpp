@@ -7,6 +7,7 @@
 #include "../Share/IniHelper.hpp"
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/DLLHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StdUtils.hpp"
 
 #include "../Share/charconv.hpp"
@@ -15,8 +16,6 @@
 #include "../WTSUtils/WTSCfgLoader.h"
 #include "../Includes/WTSVariant.hpp"
 USING_NS_WTP;
-
-#include <boost/filesystem.hpp>
 
 // UserApi对象
 CThostFtdcTraderApi* pUserApi;
@@ -255,7 +254,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 #endif
 
 	std::string flowPath = fmtutil::format("./CTPFlow/{}/{}/", BROKER_ID, INVESTOR_ID);
-	boost::filesystem::create_directories(flowPath.c_str());
+	wt::fs::create_directories(flowPath.c_str());
 #ifdef WT_CTP_STATIC
 	pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi(flowPath.c_str());
 #else

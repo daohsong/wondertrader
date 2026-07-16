@@ -25,8 +25,7 @@ ELSE()
 	ELSE(UNIX)
 		SET(LIBS
 			WT::BoostThread
-			WT::BoostFilesystem
-            ${FS_LIB}
+			${FS_LIB}
 		)
 	ENDIF()
 ENDIF()

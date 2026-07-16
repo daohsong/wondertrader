@@ -22,11 +22,9 @@
 #include "../Share/decimal.h"
 #include "../Share/CodeHelper.hpp"
 #include "../Share/Converter.hpp"
+#include "../Share/FilesystemCompat.hpp"
 
 #include "../WTSTools/WTSLogger.h"
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 namespace rj = rapidjson;
 
@@ -61,7 +59,7 @@ void SelStraBaseCtx::init_outputs()
 	std::string folder = WtHelper::getOutputDir();
 	folder += _name;
 	folder += "//";
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::string filename = folder + "trades.csv";
 	_trade_logs.reset(new BoostFile());

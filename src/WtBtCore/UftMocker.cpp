@@ -12,11 +12,9 @@
 
 #include <stdarg.h>
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/WTSContractInfo.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/decimal.h"
 #include "../Share/TimeUtils.hpp"
 #include "../Share/StrUtil.hpp"
@@ -1114,7 +1112,7 @@ void UftMocker::dump_outputs()
 	std::string folder = WtHelper::getOutputDir();
 	folder += _name;
 	folder += "/";
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::string filename = folder + "trades.csv";
 	std::string content = "code,time,direct,action,price,qty,fee,usertag\n";

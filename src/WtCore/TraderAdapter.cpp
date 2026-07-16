@@ -31,13 +31,11 @@
 #include "../Share/TimeUtils.hpp"
 #include "../Share/CodeHelper.hpp"
 #include "../Share/Converter.hpp"
+#include "../Share/FilesystemCompat.hpp"
 
 #include <exception>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 namespace rj = rapidjson;
 
@@ -242,7 +240,7 @@ void TraderAdapter::initSaveData()
 	std::stringstream ss;
 	ss << WtHelper::getBaseDir() << "traders/" << _id << "//";
 	std::string folder = ss.str();
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::string filename = folder + "trades.csv";
 	_trades_log.reset(new BoostFile());

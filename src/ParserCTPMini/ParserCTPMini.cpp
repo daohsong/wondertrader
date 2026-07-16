@@ -8,6 +8,7 @@
  * \brief 
  */
 #include "ParserCTPMini.h"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Share/TimeUtils.hpp"
@@ -19,9 +20,6 @@
 #include "../Includes/WTSVariant.hpp"
 #include "../Includes/IBaseDataMgr.h"
 #include "../Includes/WTSVersion.h"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
@@ -114,7 +112,7 @@ bool ParserCTPMini::init(WTSVariant* config)
 	std::string path = fmtutil::format("{}/{}/{}/", m_strFlowDir.c_str(), m_strBroker.c_str(), m_strUserID.c_str());
 	if (!StdFile::exists(path.c_str()))
 	{
-		fs::create_directories(fs::path(path));
+		wt::fs::create_directories(wt::fs::path(path));
 	}
 
 #ifdef _WIN32

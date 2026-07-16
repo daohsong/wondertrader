@@ -11,9 +11,8 @@
 #include "WtHelper.h"
 
 #include <exception>
-#include <filesystem>
-namespace fs = std::filesystem;
 
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/decimal.h"
@@ -163,7 +162,7 @@ void SelMocker::dump_outputs()
 	std::string folder = WtHelper::getOutputDir();
 	folder += _name;
 	folder += "/";
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::string filename = folder + "trades.csv";
 	std::string content = "code,time,direct,action,price,qty,tag,fee\n";

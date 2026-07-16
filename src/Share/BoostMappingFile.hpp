@@ -8,7 +8,7 @@
  * \brief boost的内存映射文件组件的封装,方便使用
  */
 #pragma once
-#include <boost/filesystem.hpp>
+#include "FilesystemCompat.hpp"
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -62,7 +62,7 @@ public:
 		int mode=boost::interprocess::read_write,
 		int mapmode=boost::interprocess::read_write,bool zeroother=true)
 	{
-		if (!boost::filesystem::exists(filename))
+		if (!wt::fs::exists(filename))
 		{
 			return false;
 		}
@@ -97,4 +97,3 @@ private:
 	boost::interprocess::file_mapping *_file_map;
 	boost::interprocess::mapped_region *_map_region;
 };
-

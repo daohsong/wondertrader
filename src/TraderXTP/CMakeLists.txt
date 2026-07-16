@@ -23,7 +23,6 @@ ELSE()
 		SET(LIBS
 			WT::Platform
 			WT::BoostThread
-			WT::BoostFilesystem
 			${FS_LIB}
 			ws2_32
 			)
@@ -31,7 +30,6 @@ ELSE()
 		SET(LIBS
 			WT::Platform
 			WT::BoostThread
-			WT::BoostFilesystem
 			${FS_LIB}
 			)
 	ENDIF()

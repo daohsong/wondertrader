@@ -17,7 +17,7 @@ SET(SRC
 SET(LIBS
     WT::BoostThread
     WT::Platform
-    WT::BoostFilesystem
+    ${FS_LIB}
     WT::Platform
     WTSUtils
     ${WT_ICONV_LIB}

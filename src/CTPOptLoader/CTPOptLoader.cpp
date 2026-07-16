@@ -8,10 +8,8 @@
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Share/DLLHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/fmtlib.h"
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 #include "../WTSUtils/WTSCfgLoader.h"
 #include "../Includes/WTSVariant.hpp"
@@ -235,7 +233,7 @@ int run(const char* cfgfile, bool bAsync = false, bool isFile = true)
 		printf("Loading CreateFtdcTraderApi failed\r\n");
 
 	std::string flowPath = fmtutil::format("./CTPFlow/{}/{}/", BROKER_ID, INVESTOR_ID);
-	fs::create_directories(flowPath.c_str());
+	wt::fs::create_directories(flowPath.c_str());
 	pUserApi = g_ctpCreator(flowPath.c_str());
 	CTraderSpi* pUserSpi = new CTraderSpi();
 	pUserApi->RegisterSpi((CThostFtdcTraderSpi*)pUserSpi);			// 注册事件类

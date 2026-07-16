@@ -15,8 +15,9 @@
 #include <condition_variable>
 #include <stdint.h>
 #include <string>
-#include <filesystem>
+#include "FilesystemCompat.hpp"
 #include <fstream>
+#include <stdexcept>
 
 //////////////////////////////////////////////////////////////////////////
 //std线程类
@@ -57,13 +58,13 @@ public:
     static inline uint64_t read_file_content(const char* filename, std::string& content, std::size_t offset = 0, std::size_t length = 0)
     {
         // 检查文件是否存在
-        if (!std::filesystem::exists(filename)) 
+        if (!wt::fs::exists(filename))
 		{
             throw std::runtime_error("File does not exist");
         }
         
         // 获取文件大小
-        auto file_size = std::filesystem::file_size(filename);
+        auto file_size = wt::fs::file_size(filename);
         
         // 检查偏移量是否有效
         if (offset > file_size) 
@@ -138,7 +139,7 @@ public:
     {
         try 
 		{
-            return std::filesystem::exists(filename);
+            return wt::fs::exists(filename);
         } catch (...) 
 		{
             return false;

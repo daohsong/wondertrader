@@ -19,7 +19,7 @@ ADD_LIBRARY(WtShareHelper SHARED ${SRCS} ${HDRS})
 TARGET_LINK_LIBRARIES(WtShareHelper PUBLIC WT::fmt)
 
 SET(LIBS
-	WT::BoostFilesystem
+	${FS_LIB}
 	WT::Platform
 )
 

@@ -12,6 +12,7 @@
 #include "../Share/TimeUtils.hpp"
 #include "../Share/BoostFile.hpp"
 #include "../Share/Converter.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/fmtlib.h"
 #include "../Share/StdUtils.hpp"
 
@@ -22,9 +23,6 @@
 
 #include "../Includes/WTSDataDef.hpp"
 #include "../Includes/WTSSessionInfo.hpp"
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 #include <rapidjson/document.h>
 namespace rj = rapidjson;
@@ -173,13 +171,13 @@ void dump_bars(WtString binFolder, WtString csvFolder, WtString strFilter /* = "
 	}
 
 	if (!StdFile::exists(csvFolder))
-		fs::create_directories(csvFolder);
+		wt::fs::create_directories(csvFolder);
 
-	fs::path myPath(srcFolder);
-	fs::directory_iterator endIter;
-	for (fs::directory_iterator iter(myPath); iter != endIter; iter++)
+	wt::fs::path myPath(srcFolder);
+	wt::fs::directory_iterator endIter;
+	for (wt::fs::directory_iterator iter(myPath); iter != endIter; iter++)
 	{
-		if (fs::is_directory(iter->path()))
+		if (wt::fs::is_directory(iter->path()))
 			continue;
 
 		if (iter->path().extension() != ".dsb")
@@ -278,13 +276,13 @@ void dump_ticks(WtString binFolder, WtString csvFolder, WtString strFilter /* = 
 	}
 
 	if (!StdFile::exists(csvFolder))
-		fs::create_directories(csvFolder);
+		wt::fs::create_directories(csvFolder);
 
-	fs::path myPath(srcFolder);
-	fs::directory_iterator endIter;
-	for (fs::directory_iterator iter(myPath); iter != endIter; iter++)
+	wt::fs::path myPath(srcFolder);
+	wt::fs::directory_iterator endIter;
+	for (wt::fs::directory_iterator iter(myPath); iter != endIter; iter++)
 	{
-		if (fs::is_directory(iter->path()))
+		if (wt::fs::is_directory(iter->path()))
 			continue;
 
 		if (iter->path().extension() != ".dsb")
@@ -379,7 +377,7 @@ void trans_csv_bars(WtString csvFolder, WtString binFolder, WtString period, Fun
 		return;
 
 	if (!StdFile::exists(binFolder))
-		fs::create_directories(binFolder);
+		wt::fs::create_directories(binFolder);
 
 	WTSKlinePeriod kp = KP_DAY;
 	if (wt_stricmp(period, "m1") == 0)
@@ -389,11 +387,11 @@ void trans_csv_bars(WtString csvFolder, WtString binFolder, WtString period, Fun
 	else
 		kp = KP_DAY;
 
-	fs::path myPath(csvFolder);
-	fs::directory_iterator endIter;
-	for (fs::directory_iterator iter(myPath); iter != endIter; iter++)
+	wt::fs::path myPath(csvFolder);
+	wt::fs::directory_iterator endIter;
+	for (wt::fs::directory_iterator iter(myPath); iter != endIter; iter++)
 	{
-		if (fs::is_directory(iter->path()))
+		if (wt::fs::is_directory(iter->path()))
 			continue;
 
 		if (iter->path().extension() != ".csv")

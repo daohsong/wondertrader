@@ -18,6 +18,7 @@
 #include "../Share/CodeHelper.hpp"
 #include "../Share/decimal.h"
 #include "../Share/Converter.hpp"
+#include "../Share/FilesystemCompat.hpp"
 
 #include "../WTSTools/WTSLogger.h"
 #include "../WTSTools/WTSHotMgr.h"
@@ -25,10 +26,6 @@
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 namespace rj = rapidjson;
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-
 
 USING_NS_WTP;
 
@@ -70,7 +67,7 @@ void HftStraBaseCtx::init_outputs()
 	std::string folder = WtHelper::getOutputDir();
 	folder += _name;
 	folder += "//";
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::string filename = folder + "trades.csv";
 	_trade_logs.reset(new BoostFile());

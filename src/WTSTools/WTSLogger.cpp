@@ -24,8 +24,7 @@
 #include "../Share/StrUtil.hpp"
 #include "../Share/TimeUtils.hpp"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/FilesystemCompat.hpp"
 
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -112,7 +111,7 @@ inline void checkDirs(const char* filename)
 	pos++;
 
 	if (!StdFile::exists(s.substr(0, pos).c_str()))
-		fs::create_directories(s.substr(0, pos).c_str());
+		wt::fs::create_directories(s.substr(0, pos).c_str());
 }
 
 inline void print_timetag(bool bWithSpace = true)

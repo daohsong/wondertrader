@@ -15,11 +15,9 @@
 #include "../Includes/IBaseDataMgr.h"
 
 #include "../Share/TimeUtils.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/Converter.hpp"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
@@ -114,7 +112,7 @@ bool ParserXTP::init(WTSVariant* config)
 		module = "xtpquoteapi";
 
 	std::string path = fmtutil::format("{}/{}/", m_strFlowDir.c_str(), m_strUser.c_str());
-	fs::create_directories(path.c_str());
+	wt::fs::create_directories(path.c_str());
 
 	std::string dllpath = getBinDir() + DLLHelper::wrap_module(module.c_str(), "lib");;
 	m_hInst = DLLHelper::load_library(dllpath.c_str());

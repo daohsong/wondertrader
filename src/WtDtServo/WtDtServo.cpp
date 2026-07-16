@@ -17,9 +17,6 @@
 #include "../Includes/WTSVersion.h"
 #include "../Includes/WTSDataDef.hpp"
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #ifdef _MSC_VER
 #ifdef _WIN64
 char PLATFORM_NAME[] = "X64";
@@ -32,14 +29,15 @@ char PLATFORM_NAME[] = "UNIX";
 
 #ifdef _MSC_VER
 #include "../Common/mdump.h"
+#include "../Share/ModuleNameCompat.hpp"
 const char* getModuleName()
 {
 	static char MODULE_NAME[250] = { 0 };
 	if (strlen(MODULE_NAME) == 0)
 	{
 		GetModuleFileName(g_dllModule, MODULE_NAME, 250);
-		fs::path p(MODULE_NAME);
-		strcpy(MODULE_NAME, p.filename().string().c_str());
+		const std::string basename = ModuleNameCompat::module_basename(MODULE_NAME);
+		strcpy(MODULE_NAME, basename.c_str());
 	}
 
 	return MODULE_NAME;

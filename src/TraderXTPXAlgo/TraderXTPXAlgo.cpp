@@ -18,8 +18,8 @@
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/Converter.hpp"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/FilesystemCompat.hpp"
+namespace fs = wt::fs;
 
 #include <iostream>
 

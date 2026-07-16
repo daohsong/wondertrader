@@ -10,9 +10,8 @@
 #include "WtHelper.h"
 
 #include "../Share/CurrentDirCompat.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StrUtil.hpp"
-#include <filesystem>
-namespace fs = std::filesystem;
 
 std::string WtHelper::_inst_dir;
 std::string WtHelper::_out_dir = "./outputs_bt/";
@@ -34,7 +33,7 @@ void WtHelper::setOutputDir(const char* out_dir)
 
 const char* WtHelper::getOutputDir()
 {
-	if (!fs::exists(_out_dir.c_str()))
-        fs::create_directories(_out_dir.c_str());
+	if (!wt::fs::exists(_out_dir.c_str()))
+		wt::fs::create_directories(_out_dir.c_str());
 	return _out_dir.c_str();
 }

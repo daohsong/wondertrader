@@ -19,8 +19,8 @@
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/Converter.hpp"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/FilesystemCompat.hpp"
+namespace fs = wt::fs;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"

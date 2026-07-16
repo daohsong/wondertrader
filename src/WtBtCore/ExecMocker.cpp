@@ -14,10 +14,8 @@
 #include "../Share/TimeUtils.hpp"
 #include "../Share/decimal.h"
 #include "../Share/Converter.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../WTSTools/WTSLogger.h"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
 #define PRICE_DOUBLE_TO_INT_P(x) ((int32_t)((x)*10000.0 + 0.5))
 #define PRICE_DOUBLE_TO_INT_N(x) ((int32_t)((x)*10000.0 - 0.5))
@@ -358,7 +356,7 @@ void ExecMocker::handle_replay_done()
 {
 	std::string folder = WtHelper::getOutputDir();
 	folder += "exec/";
-	fs::create_directories(folder.c_str());
+	wt::fs::create_directories(folder.c_str());
 
 	std::stringstream ss;
 	ss << folder << "trades_" << _id << ".csv";

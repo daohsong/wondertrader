@@ -31,9 +31,9 @@ IF (MSVC)
 ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
-		WT::BoostFilesystem
+		${FS_LIB}
 		WT::BoostThread
-		${FS_LIB})
+		)
 	IF(WIN32)
 		LIST(APPEND LIBS
 			ws2_32 iconv)

@@ -19,8 +19,6 @@ ELSE()
 	SET(LIBS
 		WT::Platform
 		${FS_LIB}
-        WT::BoostFilesystem
-		WT::Platform
 	)
 	TARGET_LINK_LIBRARIES(TraderCTP PUBLIC ${LIBS})
 ENDIF()

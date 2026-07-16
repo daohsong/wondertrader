@@ -2,11 +2,40 @@
 #include "EventNotifier.h"
 
 #include "../Share/CodeHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Includes/WTSVariant.hpp"
 #include "../WTSUtils/WTSCfgLoader.h"
 #include "../WTSTools/WTSLogger.h"
 
+#include <cerrno>
+#include <system_error>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 USING_NS_WTP;
+
+namespace
+{
+void throw_last_write_time_error(const wt::fs::path& path, int err)
+{
+	throw wt::fs::filesystem_error(
+		"last_write_time", path, std::error_code(err, std::generic_category()));
+}
+
+std::time_t last_write_time_seconds(const wt::fs::path& path)
+{
+#ifdef _WIN32
+	struct __stat64 statBuf;
+	if (_stat64(path.string().c_str(), &statBuf) != 0)
+		throw_last_write_time_error(path, errno);
+#else
+	struct stat statBuf;
+	if (::stat(path.string().c_str(), &statBuf) != 0)
+		throw_last_write_time_error(path, errno);
+#endif
+	return static_cast<std::time_t>(statBuf.st_mtime);
+}
+}
 
 void WtFilterMgr::load_filters(const char* fileName)
 {
@@ -22,7 +51,7 @@ void WtFilterMgr::load_filters(const char* fileName)
 		return;
 	}
 
-	auto lastModTime = fs::last_write_time(fs::path(_filter_file));
+	auto lastModTime = last_write_time_seconds(wt::fs::path(_filter_file));
 	
 
 	if (!_is_first)
@@ -205,6 +234,5 @@ bool WtFilterMgr::is_filtered_by_code(const char* stdCode, double& targetPos)
 
 	return false;
 }
-
 
 

@@ -1,7 +1,6 @@
 ﻿#pragma once
+#include <ctime>
 #include <string>
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 #include "../Includes/FasterDefs.h"
 #include "../Includes/WTSMarcos.h"
@@ -13,7 +12,7 @@ class EventNotifier;
 class WtFilterMgr
 {
 public:
-	WtFilterMgr():_notifier(NULL), _is_first(true){}
+	WtFilterMgr():_filter_timestamp(), _is_first(true), _notifier(NULL){}
 
 	void		set_notifier(EventNotifier* notifier) { _notifier = notifier; }
 
@@ -81,11 +80,10 @@ private:
 	ExecuterFilters	_exec_filters;
 
 	std::string			_filter_file;	//过滤器配置文件
-	time_t				_filter_timestamp;	//过滤器文件时间戳
+	std::time_t			_filter_timestamp;	//过滤器文件时间戳
 	bool				_is_first;
 
 	EventNotifier*	_notifier;
 };
 
 NS_WTP_END
-

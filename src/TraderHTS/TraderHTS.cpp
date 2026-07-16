@@ -30,6 +30,7 @@
 #include <iostream>
 
 #include "../Share/BoostFile.hpp"
+#include "../Share/FilesystemCompat.hpp"
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
 
@@ -108,8 +109,8 @@ std::string getBinDir()
 #else
 		_bin_dir = getInstPath();
 #endif
-		boost::filesystem::path p(_bin_dir);
-		_bin_dir = p.branch_path().string() + "/";
+		wt::fs::path p(_bin_dir);
+		_bin_dir = p.parent_path().string() + "/";
 	}
 
 	return _bin_dir;
@@ -783,7 +784,7 @@ void TraderHTS::doLogin()
 			ss << "./HTSData/local/";
 			std::string path = StrUtil::standardisePath(ss.str());
 			if (!StdFile::exists(path.c_str()))
-				boost::filesystem::create_directories(path.c_str());
+				wt::fs::create_directories(path);
 			ss << m_strUser << ".dat";
 
 			m_iniHelper.load(ss.str().c_str());

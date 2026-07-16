@@ -26,10 +26,8 @@ IF(MSVC)
 ELSE()
 	LIST(APPEND LIBS
 		WT::Platform
-		WT::BoostFilesystem
-        WT::BoostThread
-        WT::Platform
 		${FS_LIB}
+		WT::BoostThread
 		)
 	if(WIN32)
 		LIST(APPEND LIBS

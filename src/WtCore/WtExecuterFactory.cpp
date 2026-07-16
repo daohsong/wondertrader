@@ -2,10 +2,8 @@
 
 #include "../Share/StdUtils.hpp"
 #include "../Share/StrUtil.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../WTSTools/WTSLogger.h"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
 
 USING_NS_WTP;
@@ -20,11 +18,11 @@ bool WtExecuterFactory::loadFactories(const char* path)
 		return false;
 	}
 
-	fs::path myPath(path);
-	fs::directory_iterator endIter;
-	for (fs::directory_iterator iter(myPath); iter != endIter; iter++)
+	wt::fs::path myPath(path);
+	wt::fs::directory_iterator endIter;
+	for (wt::fs::directory_iterator iter(myPath); iter != endIter; iter++)
 	{
-		if (fs::is_directory(iter->path()))
+		if (wt::fs::is_directory(iter->path()))
 			continue;
 
 		if (iter->path().extension() != DLLHelper::module_suffix())

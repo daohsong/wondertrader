@@ -10,8 +10,8 @@
 #include "TraderHuaX.h"
 #include "../Share/Converter.hpp"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/FilesystemCompat.hpp"
+namespace fs = wt::fs;
 
 template<size_t N>
 inline void copy_api_field(char (&destination)[N], const char* source) noexcept

@@ -10,8 +10,8 @@
 #include "ParserHuaX.h"
 #include "../Includes/WTSVersion.h"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/FilesystemCompat.hpp"
+namespace fs = wt::fs;
 
 
 template<typename... Args>

@@ -16,8 +16,7 @@
 
 #ifdef _MSC_VER
 #include "../Common/mdump.h"
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "../Share/ModuleNameCompat.hpp"
 const char* getModuleName()
 {
 	static char MODULE_NAME[250] = { 0 };
@@ -25,8 +24,8 @@ const char* getModuleName()
 	{
 
 		GetModuleFileName(g_dllModule, MODULE_NAME, 250);
-		fs::path p(MODULE_NAME);
-		strcpy(MODULE_NAME, p.filename().string().c_str());
+		const std::string basename = ModuleNameCompat::module_basename(MODULE_NAME);
+		strcpy(MODULE_NAME, basename.c_str());
 	}
 
 	return MODULE_NAME;

@@ -6,13 +6,11 @@
 #include "../Includes/WTSDataDef.hpp"
 #include "../Includes/WTSVariant.hpp"
 #include "../Share/BoostFile.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StrUtil.hpp"
 #include "../Share/decimal.h"
 
 #include "../Includes/IBaseDataMgr.h"
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 using namespace std;
 
@@ -78,7 +76,7 @@ bool WtDataWriterAD::init(WTSVariant* params, IDataWriterSink* sink)
 
 	_base_dir = StrUtil::standardisePath(params->getCString("path"));
 	if (!StdFile::exists(_base_dir.c_str()))
-		fs::create_directories(_base_dir.c_str());
+		wt::fs::create_directories(_base_dir.c_str());
 
 	_cache_file_tick = "cache_tick.dmb";
 	_m1_cache._filename = "cache_m1.dmb";
@@ -1041,7 +1039,7 @@ WtDataWriterAD::WtLMDBPtr WtDataWriterAD::get_k_db(const char* exchg, WTSKlinePe
 
 	WtLMDBPtr dbPtr(new WtLMDB(false));
 	std::string path = fmtutil::format("{}{}/{}/", _base_dir.c_str(), subdir.c_str(), exchg);
-	boost::filesystem::create_directories(path);
+	wt::fs::create_directories(path);
 	if(!dbPtr->open(path.c_str(), _kline_mapsize))
 	{
 		if (_sink) pipe_writer_log(_sink, LL_ERROR, "Opening {} db at {} failed: {}", subdir, path, dbPtr->errmsg());
@@ -1061,7 +1059,7 @@ WtDataWriterAD::WtLMDBPtr WtDataWriterAD::get_t_db(const char* exchg, const char
 
 	WtLMDBPtr dbPtr(new WtLMDB(false));
 	std::string path = fmtutil::format("{}ticks/{}/{}", _base_dir.c_str(), exchg, code);
-	boost::filesystem::create_directories(path);
+	wt::fs::create_directories(path);
 	if (!dbPtr->open(path.c_str(), _tick_mapsize))
 	{
 		if (_sink) pipe_writer_log(_sink, LL_ERROR, "Opening tick db at {} failed: {}", path, dbPtr->errmsg());

@@ -14,12 +14,10 @@
 #include "../Includes/WTSContractInfo.hpp"
 
 #include "../Share/ModuleHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/TimeUtils.hpp"
 #include "../Share/decimal.h"
 #include "../Share/Converter.hpp"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
@@ -170,7 +168,7 @@ void TraderFemas::connect()
 	std::stringstream ss;
 	ss << m_strFlowDir << "flows/" << m_strBroker << "/" << m_strUser << "/";
 	std::string path = ss.str();
-	fs::create_directories(path.c_str());
+	wt::fs::create_directories(path.c_str());
 	m_pUserAPI = m_funcCreator(path.c_str());
 	m_pUserAPI->RegisterSpi(this);
 	if(m_bQuickStart)

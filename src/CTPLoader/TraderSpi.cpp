@@ -3,9 +3,9 @@
 #include <stdint.h>
 #include <fstream>
 #include <exception>
-#include <filesystem>
 
 #include "../Share/StrUtil.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/fmtlib.h"
 #include "../Share/charconv.hpp"
 #include "../Share/Converter.hpp"
@@ -15,8 +15,6 @@
 #include "../Includes/WTSVariant.hpp"
 
 #include "../WTSUtils/WTSCfgLoader.h"
-
-#include <boost/filesystem.hpp>
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
@@ -708,7 +706,7 @@ void CTraderSpi::DumpFees()
 
 	std::ofstream ofs;
 	std::string path;
-	if (boost::filesystem::path(FEES_FILE).is_absolute())
+	if (wt::fs::path(FEES_FILE).is_absolute())
 	{
 		path = FEES_FILE;
 	}

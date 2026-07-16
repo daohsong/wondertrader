@@ -17,11 +17,9 @@
 #include "../Includes/IBaseDataMgr.h"
 
 #include "../Share/ModuleHelper.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/decimal.h"
 #include "../Share/Converter.hpp"
-
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
 
 const char* ENTRUST_SECTION = "entrusts";
 const char* ORDER_SECTION = "orders";
@@ -306,7 +304,7 @@ void TraderCTPOpt::connect()
 	std::stringstream ss;
 	ss << m_strFlowDir << "flows/" << m_strBroker << "/" << m_strUser << "/";
 	if(!StdFile::exists(ss.str().c_str()))
-		fs::create_directories(ss.str().c_str());
+		wt::fs::create_directories(ss.str().c_str());
 	m_pUserAPI = m_funcCreator(ss.str().c_str());
 	m_pUserAPI->RegisterSpi(this);
 	if (m_bQuickStart)
@@ -903,7 +901,7 @@ void TraderCTPOpt::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CT
 		ss << m_strFlowDir << "local/" << m_strBroker << "/";
 		std::string path = StrUtil::standardisePath(ss.str());
 		if (!StdFile::exists(path.c_str()))
-			fs::create_directories(path.c_str());
+			wt::fs::create_directories(path.c_str());
 		ss << m_strUser << ".dat";
 
 		m_iniHelper.load(ss.str().c_str());

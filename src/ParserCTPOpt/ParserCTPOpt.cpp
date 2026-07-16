@@ -16,12 +16,10 @@
 #include "../Includes/WTSVersion.h"
 
 #include "../Share/TimeUtils.hpp"
+#include "../Share/FilesystemCompat.hpp"
 #include "../Share/StdUtils.hpp"
 #include "../Share/ModuleHelper.hpp"
 #include "../Share/Converter.hpp"
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
  //By Wesley @ 2022.01.05
 #include "../Share/fmtlib.h"
@@ -115,7 +113,7 @@ bool ParserCTPOpt::init(WTSVariant* config)
 	std::string path = fmtutil::format("{}/{}/{}/", m_strFlowDir.c_str(), m_strBroker.c_str(), m_strUserID.c_str());
 	if (!StdFile::exists(path.c_str()))
 	{
-		fs::create_directories(fs::path(path));
+		wt::fs::create_directories(wt::fs::path(path));
 	}	
 #ifdef _WIN32
 #	ifdef _WIN64
