@@ -104,3 +104,25 @@ if(WT_ASAN_OPTIONS MATCHES "(^|:)detect_leaks=1(:|$)")
 	message(FATAL_ERROR
 		"macos-arm64-asan must not enable LeakSanitizer, which Apple ASan does not support")
 endif()
+
+string(JSON WT_UBSAN_OPTIONS GET "${WT_PRESETS_JSON}"
+	testPresets ${WT_ASAN_TEST_INDEX} environment UBSAN_OPTIONS)
+if(NOT WT_UBSAN_OPTIONS MATCHES "(^|:)halt_on_error=1(:|$)")
+	message(FATAL_ERROR "macos-arm64-asan must stop on unsuppressed UBSan errors")
+endif()
+if(NOT WT_UBSAN_OPTIONS MATCHES
+	"(^|:)suppressions=.*cmake/sanitizers/macos-ubsan\\.supp(:|$)")
+	message(FATAL_ERROR "macos-arm64-asan must load the scoped UBSan suppression file")
+endif()
+
+get_filename_component(WT_PRESETS_DIRECTORY "${WT_PRESETS_FILE}" DIRECTORY)
+set(WT_UBSAN_SUPPRESSIONS_FILE
+	"${WT_PRESETS_DIRECTORY}/cmake/sanitizers/macos-ubsan.supp")
+if(NOT EXISTS "${WT_UBSAN_SUPPRESSIONS_FILE}")
+	message(FATAL_ERROR "Missing macOS UBSan suppression file: ${WT_UBSAN_SUPPRESSIONS_FILE}")
+endif()
+file(READ "${WT_UBSAN_SUPPRESSIONS_FILE}" WT_UBSAN_SUPPRESSIONS)
+if(NOT WT_UBSAN_SUPPRESSIONS MATCHES
+	"pointer-overflow:rapidjson/internal/stack\\.h")
+	message(FATAL_ERROR "The macOS UBSan suppression must remain scoped to RapidJSON stack.h")
+endif()

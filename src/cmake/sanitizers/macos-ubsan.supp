@@ -1,0 +1,2 @@
+# RapidJSON 1.1 subtracts null stack pointers before its first allocation.
+pointer-overflow:rapidjson/internal/stack.h
