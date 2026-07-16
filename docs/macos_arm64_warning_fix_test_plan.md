@@ -69,3 +69,11 @@ StackTracer 测试覆盖空符号列表、解析失败、demangle 失败和长�
 
 `override` 修改逐模块构建。warning target 先对已清零的自有目标启用，第三方源码不得继承 `-Werror`；CI 对规范化唯一诊断做预算测试，并验证 C++17/20、Debug/Release 和 macOS arm64 presets。
 
+实施结果：
+
+- 31 处虚函数声明已补齐 `override`，相关模块和全目标构建通过。
+- `WT::Warnings` 已应用到 62 个项目自有目标；混合编译 vendored 源码的 `WTSUtils` 保持隔离，避免第三方代码继承项目告警策略。
+- 告警策略提供 `BASELINE`/`STRICT` 两级和可选 `-Werror`；规范化告警预算以零基线阻止新增项目告警。
+- `src/CMakePresets.json` 保留 macOS arm64 Debug C++17、Release C++20、Release C++23 和 ASan+UBSan 四套本地配置；`.github/workflows/portability.yml` 的 macOS job 固定使用 `macos-26` arm64 runner，仅以 Release/C++23 preset 执行构建、CTest、零告警预算、诊断归档和 Mach-O arm64 slice 检查。Linux x86_64 与 Windows amd64 的 Release/C++23 验证也合并在同一 workflow 中。
+
+修复后验收：Linux x86_64 的 Debug/C++17、Release/C++20、Release/C++23 三套 `-Werror` preset 均完成全目标构建并分别通过 33/33 CTest；ASan+UBSan+LSan 下 `WonderTrader.TestUnits`、`WonderTrader.WtBtCoreTests` 两个测试进程 2/2 通过。macOS 四套 preset、Linux/Windows 各三套 preset 均可被 CMake 正确解析；仓库内契约测试进一步约束 GitHub Actions 只保留单一 workflow，并只运行 macOS arm64、Linux x86_64、Windows amd64 三个 Release/C++23 job。`macos-26` 下的 AppleClang、Homebrew 与 Mach-O 组合仍须由提交后的 GitHub Actions 最终确认。

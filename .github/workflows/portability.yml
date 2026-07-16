@@ -1,0 +1,203 @@
+name: C++23 portability
+
+on:
+  push:
+    branches:
+      - compile_warnings
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: portability-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  macos-arm64:
+    name: macOS arm64
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify Apple Silicon runner
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Install open-source dependencies
+        run: brew install boost cppzmq fmt nanomsg rapidjson spdlog zeromq
+
+      - name: Configure C++23 Release
+        working-directory: src
+        run: cmake --preset macos-arm64-cxx23
+
+      - name: Build C++23 Release
+        shell: bash
+        working-directory: src
+        run: |
+          set -o pipefail
+          cmake --build --preset macos-arm64-cxx23 --parallel 3 2>&1 | tee "${RUNNER_TEMP}/macos-arm64-cxx23-build.log"
+
+      - name: Enforce zero warning budget
+        run: >-
+          python3 scripts/warning_budget.py
+          --log "${RUNNER_TEMP}/macos-arm64-cxx23-build.log"
+          --source-root "${GITHUB_WORKSPACE}"
+          --baseline .github/warning-baseline-macos-arm64.json
+          --output "${RUNNER_TEMP}/macos-arm64-cxx23-warnings.json"
+
+      - name: Test C++23 Release
+        working-directory: src
+        run: ctest --preset macos-arm64-cxx23 --parallel 3 --output-log "${RUNNER_TEMP}/macos-arm64-cxx23-ctest.log"
+
+      - name: Verify Mach-O arm64 slices
+        shell: bash
+        working-directory: src
+        run: |
+          product_root="out/build/macos-arm64-cxx23/build_arm64/Release"
+          product_count=0
+          while IFS= read -r -d '' artifact; do
+            archs="$(lipo -archs "${artifact}" 2>/dev/null || true)"
+            if [[ -z "${archs}" ]]; then
+              continue
+            fi
+            if [[ "${archs}" != "arm64" ]]; then
+              echo "Unexpected architecture '${archs}' in ${artifact}" >&2
+              exit 1
+            fi
+            product_count=$((product_count + 1))
+          done < <(find "${product_root}" -type f \( -name '*.dylib' -o -name '*.a' -o -perm -111 \) -print0)
+          if [[ ${product_count} -eq 0 ]]; then
+            echo "No Mach-O products found under ${product_root}" >&2
+            exit 1
+          fi
+          echo "Verified ${product_count} arm64 Mach-O products"
+
+      - name: Archive diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-arm64-cxx23-diagnostics
+          path: |
+            ${{ runner.temp }}/macos-arm64-cxx23-build.log
+            ${{ runner.temp }}/macos-arm64-cxx23-warnings.json
+            ${{ runner.temp }}/macos-arm64-cxx23-ctest.log
+          if-no-files-found: ignore
+
+  linux-x86-64:
+    name: Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify x86_64 runner
+        run: test "$(uname -m)" = "x86_64"
+
+      - name: Install open-source dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libboost-all-dev cppzmq-dev libfmt-dev libnanomsg-dev rapidjson-dev libspdlog-dev libzmq3-dev
+
+      - name: Configure C++23 Release
+        working-directory: src
+        run: cmake --preset linux-x64-cxx23
+
+      - name: Build C++23 Release
+        shell: bash
+        working-directory: src
+        run: |
+          set -o pipefail
+          cmake --build --preset linux-x64-cxx23 --parallel 3 2>&1 | tee "${RUNNER_TEMP}/linux-x64-cxx23-build.log"
+
+      - name: Test C++23 Release
+        working-directory: src
+        run: ctest --preset linux-x64-cxx23 --parallel 3 --output-log "${RUNNER_TEMP}/linux-x64-cxx23-ctest.log"
+
+      - name: Archive diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-x86-64-cxx23-diagnostics
+          path: |
+            ${{ runner.temp }}/linux-x64-cxx23-build.log
+            ${{ runner.temp }}/linux-x64-cxx23-ctest.log
+          if-no-files-found: ignore
+
+  windows-amd64:
+    name: Windows amd64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify AMD64 runner
+        shell: pwsh
+        run: |
+          if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
+            throw "Expected AMD64 runner, got $env:PROCESSOR_ARCHITECTURE"
+          }
+
+      - name: Install open-source dependencies
+        shell: pwsh
+        run: >-
+          vcpkg install
+          boost-asio boost-atomic boost-chrono boost-circular-buffer
+          boost-filesystem boost-interprocess boost-pool boost-property-tree
+          boost-thread boost-xpressive
+          cppzmq fmt nanomsg rapidjson spdlog zeromq
+          --triplet x64-windows
+
+      - name: Configure C++23 Release
+        shell: pwsh
+        working-directory: src
+        run: |
+          $configureLog = Join-Path $env:RUNNER_TEMP "windows-x64-cxx23-configure.log"
+          cmake --preset windows-x64-cxx23 2>&1 | Tee-Object -FilePath $configureLog
+          $configureExitCode = $LASTEXITCODE
+          if ($configureExitCode -ne 0) {
+            $errorPattern = 'CMake Error|: warning C[0-9]+:|: (fatal )?error C[0-9]+:|: (fatal )?error LNK[0-9]+:|error MSB[0-9]+:'
+            $diagnostics = @(Select-String -Path $configureLog -Pattern $errorPattern | ForEach-Object { $_.Line } | Select-Object -Last 30)
+            if ($diagnostics.Count -eq 0) {
+              $diagnostics = @(Get-Content $configureLog -Tail 200)
+            }
+            $diagnostics | Where-Object { $_ } | ForEach-Object {
+              $message = $_ -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
+              Write-Output "::error title=CMake configure::$message"
+            }
+            exit $configureExitCode
+          }
+
+      - name: Build C++23 Release
+        shell: pwsh
+        working-directory: src
+        run: |
+          $buildLog = Join-Path $env:RUNNER_TEMP "windows-x64-cxx23-build.log"
+          cmake --build --preset windows-x64-cxx23 --parallel 3 2>&1 | Tee-Object -FilePath $buildLog
+          $buildExitCode = $LASTEXITCODE
+          if ($buildExitCode -ne 0) {
+            $errorPattern = 'CMake Error|: warning C[0-9]+:|: (fatal )?error C[0-9]+:|: (fatal )?error LNK[0-9]+:|error MSB[0-9]+:'
+            $diagnostics = @(Select-String -Path $buildLog -Pattern $errorPattern | ForEach-Object { $_.Line } | Select-Object -Last 30)
+            if ($diagnostics.Count -eq 0) {
+              $diagnostics = @(Get-Content $buildLog -Tail 200)
+            }
+            $diagnostics | Where-Object { $_ } | ForEach-Object {
+              $message = $_ -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
+              Write-Output "::error title=CMake build::$message"
+            }
+            exit $buildExitCode
+          }
+
+      - name: Test C++23 Release
+        shell: pwsh
+        working-directory: src
+        run: ctest --preset windows-x64-cxx23 --parallel 3 --output-log "${env:RUNNER_TEMP}/windows-x64-cxx23-ctest.log"
+
+      - name: Archive diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-amd64-cxx23-diagnostics
+          path: |
+            ${{ runner.temp }}/windows-x64-cxx23-configure.log
+            ${{ runner.temp }}/windows-x64-cxx23-build.log
+            ${{ runner.temp }}/windows-x64-cxx23-ctest.log
+          if-no-files-found: ignore

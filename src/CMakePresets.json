@@ -1,0 +1,305 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "macos-arm64-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "WT_DEPS_ROOT": "/opt/homebrew",
+        "WT_ENABLE_WARNINGS": "ON",
+        "WT_WARNING_LEVEL": "BASELINE"
+      }
+    },
+    {
+      "name": "macos-arm64-debug",
+      "displayName": "macOS arm64 Debug (C++17)",
+      "inherits": "macos-arm64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WT_CXX_STANDARD": "17",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "macos-arm64-cxx20",
+      "displayName": "macOS arm64 Release (C++20)",
+      "inherits": "macos-arm64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WT_CXX_STANDARD": "20",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "macos-arm64-cxx23",
+      "displayName": "macOS arm64 Release (C++23)",
+      "inherits": "macos-arm64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WT_CXX_STANDARD": "23",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "macos-arm64-asan",
+      "displayName": "macOS arm64 Debug (ASan+UBSan)",
+      "inherits": "macos-arm64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "WT_CXX_STANDARD": "17",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "linux-x64-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "WT_ENABLE_WARNINGS": "ON",
+        "WT_WARNING_LEVEL": "BASELINE"
+      }
+    },
+    {
+      "name": "linux-x64-debug",
+      "displayName": "Linux x86_64 Debug (C++17)",
+      "inherits": "linux-x64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WT_CXX_STANDARD": "17",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "linux-x64-cxx20",
+      "displayName": "Linux x86_64 Release (C++20)",
+      "inherits": "linux-x64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WT_CXX_STANDARD": "20",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "linux-x64-cxx23",
+      "displayName": "Linux x86_64 Release (C++23)",
+      "inherits": "linux-x64-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WT_CXX_STANDARD": "23",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-x64-base",
+      "hidden": true,
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "WT_ENABLE_WARNINGS": "ON",
+        "WT_WARNING_LEVEL": "BASELINE"
+      }
+    },
+    {
+      "name": "windows-x64-debug",
+      "displayName": "Windows x86_64 Debug (C++17)",
+      "inherits": "windows-x64-base",
+      "cacheVariables": {
+        "WT_CXX_STANDARD": "17",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-x64-cxx20",
+      "displayName": "Windows x86_64 Release (C++20)",
+      "inherits": "windows-x64-base",
+      "cacheVariables": {
+        "WT_CXX_STANDARD": "20",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-x64-cxx23",
+      "displayName": "Windows x86_64 Release (C++23)",
+      "inherits": "windows-x64-base",
+      "cacheVariables": {
+        "WT_CXX_STANDARD": "23",
+        "WT_WARNINGS_AS_ERRORS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "macos-arm64-debug",
+      "configurePreset": "macos-arm64-debug"
+    },
+    {
+      "name": "macos-arm64-cxx20",
+      "configurePreset": "macos-arm64-cxx20"
+    },
+    {
+      "name": "macos-arm64-cxx23",
+      "configurePreset": "macos-arm64-cxx23"
+    },
+    {
+      "name": "macos-arm64-asan",
+      "configurePreset": "macos-arm64-asan"
+    },
+    {
+      "name": "linux-x64-debug",
+      "configurePreset": "linux-x64-debug"
+    },
+    {
+      "name": "linux-x64-cxx20",
+      "configurePreset": "linux-x64-cxx20"
+    },
+    {
+      "name": "linux-x64-cxx23",
+      "configurePreset": "linux-x64-cxx23"
+    },
+    {
+      "name": "windows-x64-debug",
+      "configurePreset": "windows-x64-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-x64-cxx20",
+      "configurePreset": "windows-x64-cxx20",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-x64-cxx23",
+      "configurePreset": "windows-x64-cxx23",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "macos-arm64-debug",
+      "configurePreset": "macos-arm64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-arm64-cxx20",
+      "configurePreset": "macos-arm64-cxx20",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-arm64-cxx23",
+      "configurePreset": "macos-arm64-cxx23",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-arm64-asan",
+      "configurePreset": "macos-arm64-asan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      },
+      "environment": {
+        "ASAN_OPTIONS": "strict_string_checks=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
+    },
+    {
+      "name": "linux-x64-debug",
+      "configurePreset": "linux-x64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "linux-x64-cxx20",
+      "configurePreset": "linux-x64-cxx20",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "linux-x64-cxx23",
+      "configurePreset": "linux-x64-cxx23",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x64-debug",
+      "configurePreset": "windows-x64-debug",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x64-cxx20",
+      "configurePreset": "windows-x64-cxx20",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x64-cxx23",
+      "configurePreset": "windows-x64-cxx23",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

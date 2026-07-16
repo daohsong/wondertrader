@@ -94,14 +94,15 @@ git worktree add ../wondertrader-portability-clean \
 
 | 环境 | 验证结果 |
 | --- | --- |
-| Linux x86_64 / GCC 13.3 / C++17 | 移除 BenchTools 后全目标构建通过；CTest 24/24；install/plugin smoke 通过 |
-| Linux x86_64 / GCC 13.3 / C++20 | 移除 BenchTools 后全目标构建通过；CTest 24/24；install/plugin smoke 通过 |
-| Linux x86_64 / GCC 13.3 / C++23 | 移除 BenchTools 后全目标构建通过；CTest 24/24；install/plugin smoke 通过 |
+| Linux x86_64 / GCC 13.3 / C++17 | 全目标构建通过；CTest 31/31；install/plugin smoke 通过 |
+| Linux x86_64 / GCC 13.3 / C++20 + `-Werror` | 全目标构建通过；CTest 31/31；install/plugin smoke 通过 |
+| Linux x86_64 / GCC 13.3 / C++23 + `-Werror` | `linux-x64-cxx23` 全目标构建通过；CTest 33/33；install/plugin smoke 通过 |
+| Linux x86_64 / ASan+UBSan+LSan | `WonderTrader.TestUnits` 与 `WonderTrader.WtBtCoreTests` 两个测试进程 2/2 通过，启用 leak detection |
 | 共享内存聚焦测试 | TestUnits 覆盖 layout/version/alignment、三轮环形复用、四类混合载荷和不同生产者 PID 重启；不再保留 BenchTools ABI manifest 与 benchmark harness |
 | vendor 三态 | available/missing AUTO/missing ON/wrong-arch fixture 全通过；ATP/DD/HTS 缺 SDK 的显式 ON 诊断已单独验证 |
 | 安装树 | OES Parser/Trader 的 `DT_NEEDED=liboes_api.so`、`RUNPATH=$ORIGIN/..`，`ldd` 从 install root 解析；所有已选插件可 `dlopen` |
 
-当前环境没有 `ninja`/`ninja-build`，因此无法实际运行 Ninja Multi-Config。macOS、Windows、Linux aarch64、Clang/libc++、Conan/vcpkg 和闭源 SDK ABI/CRT 组合不能由本机 Linux x86_64 结果替代；仓库也尚未加入覆盖这些组合的 CI workflow 或 `CMakePresets.json`。它们仍应按后文计划矩阵进入对应 CI，未验证前不得提升支持等级。ATP 仓库内只有 Windows runtime/import library，因此 Linux `AUTO` 跳过是预期行为；DD/HTS SDK 未随仓库提供，同样只验证了 gate 和缺失诊断。
+当前环境没有 `ninja`/`ninja-build`，因此无法实际运行 Ninja Multi-Config。仓库在 `src/CMakePresets.json` 中保留多标准和 sanitizer 本地配置，但 GitHub Actions 收敛为单一 `.github/workflows/portability.yml`：只运行 macOS arm64（固定 GA `macos-26`）、Linux x86_64（`ubuntu-latest`）、Windows amd64（`windows-latest`）三个 Release/C++23 job，不再运行 Debug、C++20 或 ASan job。workflow 使用基于 Node.js 24 的 `actions/checkout@v6` 与 `actions/upload-artifact@v7`，并对经 `tee`/`Tee-Object` 的构建显式传播失败码。Linux 三套本地 preset 已在 GCC 13.3 下完成全目标构建并分别通过 CTest 33/33；macOS 与 Windows runner 上的 AppleClang/MSVC、Homebrew/vcpkg、Mach-O 和 CRT 组合仍必须以提交后的 workflow 结果为最终依据。Linux aarch64、Clang/libc++、Conan、sanitizer CI 和闭源 SDK 的全部 ABI/CRT 组合不再由该精简 workflow 覆盖，不能由本机 Linux x86_64 结果替代。ATP 仓库内只有 Windows runtime/import library，因此 Linux `AUTO` 跳过是预期行为；DD/HTS SDK 未随仓库提供，同样只验证了 gate 和缺失诊断。
 
 ### 为什么不建议两个极端选项
 

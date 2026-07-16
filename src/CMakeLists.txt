@@ -212,6 +212,30 @@ IF(BUILD_TESTING)
 	SET_TESTS_PROPERTIES(WonderTrader.WarningBudget PROPERTIES LABELS cmake)
 
 	ADD_TEST(
+		NAME WonderTrader.MacosArm64Presets
+		COMMAND ${CMAKE_COMMAND}
+			-DWT_PRESETS_FILE=${CMAKE_CURRENT_LIST_DIR}/CMakePresets.json
+			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_macos_arm64_presets.cmake
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.MacosArm64Presets PROPERTIES LABELS cmake)
+
+	ADD_TEST(
+		NAME WonderTrader.PortabilityCI
+		COMMAND ${CMAKE_COMMAND}
+			-DWT_WORKFLOWS_DIR=${CMAKE_CURRENT_LIST_DIR}/../.github/workflows
+			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_portability_ci.cmake
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.PortabilityCI PROPERTIES LABELS cmake)
+
+	ADD_TEST(
+		NAME WonderTrader.X64Presets
+		COMMAND ${CMAKE_COMMAND}
+			-DWT_PRESETS_FILE=${CMAKE_CURRENT_LIST_DIR}/CMakePresets.json
+			-P ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/test_x64_presets.cmake
+	)
+	SET_TESTS_PROPERTIES(WonderTrader.X64Presets PROPERTIES LABELS cmake)
+
+	ADD_TEST(
 		NAME WonderTrader.HeaderDependencies
 		COMMAND ${CMAKE_COMMAND}
 			-S ${CMAKE_CURRENT_LIST_DIR}/cmake/tests/header_dependencies
