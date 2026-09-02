@@ -238,6 +238,7 @@ void WtSelRtTicker::run()
 void WtSelRtTicker::stop()
 {
 	_stopped = true;
-	if (_thrd)
+	if (_thrd && _thrd->joinable())
 		_thrd->join();
+	_thrd.reset();
 }

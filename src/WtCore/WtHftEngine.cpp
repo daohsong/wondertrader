@@ -38,15 +38,22 @@ WtHftEngine::WtHftEngine()
 
 WtHftEngine::~WtHftEngine()
 {
+	stop();
+
 	if (_tm_ticker)
 	{
-		_tm_ticker->stop();
 		delete _tm_ticker;
 		_tm_ticker = NULL;
 	}
 
 	if (_cfg)
 		_cfg->release();
+}
+
+void WtHftEngine::stop()
+{
+	if (_tm_ticker)
+		_tm_ticker->stop();
 }
 
 void WtHftEngine::init(WTSVariant* cfg, IBaseDataMgr* bdMgr, WtDtMgr* dataMgr, IHotMgr* hotMgr, EventNotifier* notifier /* = NULL */)

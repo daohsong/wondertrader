@@ -52,6 +52,8 @@ public:
 	void run(bool bAsync = false);
 
 private:
+	void shutdown();
+
 	bool initTraders(WTSVariant* cfgTrader);
 	bool initParsers(WTSVariant* cfgParser);
 	bool initExecuters(WTSVariant* cfgExecuter);
@@ -96,5 +98,5 @@ private:
 	bool				_is_sel;
 
 	bool				_to_exit;
+	bool				_shutdown;
 };
-

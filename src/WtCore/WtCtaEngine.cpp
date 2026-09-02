@@ -40,6 +40,8 @@ WtCtaEngine::WtCtaEngine()
 
 WtCtaEngine::~WtCtaEngine()
 {
+	stop();
+
 	if (_tm_ticker)
 	{
 		delete _tm_ticker;
@@ -48,6 +50,12 @@ WtCtaEngine::~WtCtaEngine()
 
 	if (_cfg)
 		_cfg->release();
+}
+
+void WtCtaEngine::stop()
+{
+	if (_tm_ticker)
+		_tm_ticker->stop();
 }
 
 void WtCtaEngine::run()

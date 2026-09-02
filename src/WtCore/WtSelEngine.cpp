@@ -25,6 +25,7 @@ USING_NS_WTP;
 
 WtSelEngine::WtSelEngine()
 	: _terminated(false)
+	, _tm_ticker(NULL)
 	, _cfg(NULL)
 {
 }
@@ -32,6 +33,22 @@ WtSelEngine::WtSelEngine()
 
 WtSelEngine::~WtSelEngine()
 {
+	stop();
+
+	if (_tm_ticker)
+	{
+		delete _tm_ticker;
+		_tm_ticker = NULL;
+	}
+
+	if (_cfg)
+		_cfg->release();
+}
+
+void WtSelEngine::stop()
+{
+	if (_tm_ticker)
+		_tm_ticker->stop();
 }
 
 void WtSelEngine::on_session_end()

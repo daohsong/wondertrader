@@ -52,6 +52,7 @@ public:
 	virtual void init(WTSVariant* cfg, IBaseDataMgr* bdMgr, WtDtMgr* dataMgr, IHotMgr* hotMgr, EventNotifier* notifier) override;
 
 	virtual void run() override;
+	void stop();
 
 	virtual void on_tick(const char* stdCode, WTSTickData* curTick) override;
 

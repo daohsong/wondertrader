@@ -38,10 +38,13 @@ const char* getBinDir()
 
 
 WtRunner::WtRunner()
-	: _data_store(NULL)
+	: _config(NULL)
+	, _engine(NULL)
+	, _data_store(NULL)
 	, _is_hft(false)
 	, _is_sel(false)
 	, _to_exit(false)
+	, _shutdown(false)
 {
 	
 }
@@ -49,6 +52,26 @@ WtRunner::WtRunner()
 
 WtRunner::~WtRunner()
 {
+	shutdown();
+}
+
+void WtRunner::shutdown()
+{
+	if (_shutdown)
+		return;
+	_shutdown = true;
+
+	// Stop engine-owned timer threads before disconnecting adapters.  Engine
+	// executers keep raw adapter pointers and must not run during teardown.
+	if (_is_hft)
+		_hft_engine.stop();
+	else if (_is_sel)
+		_sel_engine.stop();
+	else
+		_cta_engine.stop();
+
+	_parsers.release();
+	_traders.release();
 }
 
 void WtRunner::init(const std::string& filename)
@@ -608,6 +631,9 @@ void WtRunner::run(bool bAsync /* = false */)
 			WTSLogger::error(message);
 		});
 	}
+
+	if (!bAsync)
+		shutdown();
 }
 
 const char* LOG_TAGS[] = {

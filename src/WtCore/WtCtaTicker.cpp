@@ -278,8 +278,9 @@ void WtCtaRtTicker::run()
 void WtCtaRtTicker::stop()
 {
 	_stopped = true;
-	if (_thrd)
+	if (_thrd && _thrd->joinable())
 		_thrd->join();
+	_thrd.reset();
 }
 
 bool WtCtaRtTicker::is_in_trading() const 
